@@ -1,0 +1,26 @@
+# Distributed-plugin tree: track only what ships in the plugin.
+# Denylist everything, then whitelist the plugin's own files.
+/*
+!/skills/
+!/.claude-plugin/
+!/README.md
+!/CHANGELOG.md
+!/LICENSE
+!/.gitignore
+
+# Skills subtree: ignore everything, then whitelist only the skills published
+# with this plugin. Anything not listed below is excluded by default; to publish
+# a new skill, add an "!" line for it here.
+/skills/*
+!/skills/arch-review/
+!/skills/cobol-xray/
+!/skills/create-handoff/
+!/skills/critical-design-review/
+!/skills/critical-implementation-review/
+!/skills/critical-security-review/
+!/skills/resume-handoff/
+!/skills/thorough-brainstorming/
+!/skills/thorough-writing-plans/
+!/skills/tma/
+!/skills/update-design-doc/
+!/skills/update-implementation-plan/
