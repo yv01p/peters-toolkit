@@ -1,5 +1,7 @@
 # Peter's Agentic Toolkit
 
+**Version 2.0.0** · targets Superpowers 5.1.x
+
 Peter's Agentic Toolkit is a Claude Code plugin. It's a set of skills that shape how an agent handles design, planning, review, and implementation. The idea is simple: **agentic work deserves the same discipline you'd apply to writing critical software.** You brainstorm an idea into a spec, review the spec adversarially and revise it, turn the spec into a plan, review the plan adversarially and revise it, then hand the plan to sub-agents to build. Security gets assessed along the way.
 
 Each step is explicit, and load-bearing assumptions get checked against the real codebase before they harden into code.
@@ -8,7 +10,7 @@ The Toolkit builds on [Superpowers](https://github.com/obra/superpowers) by Jess
 
 ## Methodology and principles
 
-The Toolkit inherits Superpowers' **planning-first, test-driven** methodology: design and plan before you write code, and drive the implementation with tests (TDD). On top of that, two disciplines run through the whole cycle (brainstorming, design review, planning, implementation, and the security pass alike):
+The Toolkit inherits Superpowers' **planning-first, test-driven-development** methodology: design and plan before you write code, and drive the implementation with tests (TDD). On top of that, two disciplines run through the whole cycle (brainstorming, design review, planning, implementation, and the security pass alike):
 
 - **Ruthless YAGNI.** Build the smallest thing that solves the actual problem. No speculative generality, no features nobody asked for.
 - **Strict DRY.** No duplicated logic or knowledge. One source of truth for every decision.
@@ -17,7 +19,7 @@ The Toolkit inherits Superpowers' **planning-first, test-driven** methodology: d
 
 ### Prerequisite: Superpowers (required)
 
-The Toolkit will not function without [Superpowers](https://github.com/obra/superpowers). It calls Superpowers skills directly (`subagent-driven-development`, `requesting-code-review`, `using-git-worktrees`), and `thorough-brainstorming` / `thorough-writing-plans` extend Superpowers' `brainstorming` / `writing-plans`. Install it first:
+The Toolkit will not function without [Superpowers](https://github.com/obra/superpowers) version 5.1.x. I will work on updating to version 6 whenever I have some time. It calls Superpowers skills directly (`subagent-driven-development`, `requesting-code-review`, `using-git-worktrees`), and `thorough-brainstorming` / `thorough-writing-plans` extend Superpowers' `brainstorming` / `writing-plans`. Install it first:
 
 ```
 /plugin install superpowers@claude-plugins-official
