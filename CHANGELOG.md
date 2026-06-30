@@ -17,6 +17,27 @@ When cutting a new version, update in lockstep:
 2. A new entry in this file (date, what changed, Superpowers target)
 3. The README version line (and the install-requirement line if compatibility changed)
 4. A new `git tag vX.Y.Z`
+5. Regenerate `tests/provenance/companion-manifest.sha256` (and its `# target:` line) if the visual-companion files were re-synced to a new Superpowers target
+
+## [2.1.0] — 2026-06-30
+
+**Targets Superpowers 6.0.x**
+
+### Changed
+
+- Retargeted from Superpowers 5.1.x to 6.0.x (W1: plan-format blocks, W2: visual-companion sync + security fix)
+- Fixed README overclaims: clarified that the Toolkit invokes `subagent-driven-development` directly and reaches `requesting-code-review` / `using-git-worktrees` transitively through it, not by direct calls (W4)
+- Softened README intro prose to match actual usage pattern (W4)
+- Repositioned `critical-security-review` as optional and post-implementation (usually post-SDD), rather than mandatory and part of the pipeline (W3)
+- Updated plan-format blocks in `thorough-writing-plans` and `critical-implementation-review` to match Superpowers 6.0.x conventions (W1)
+
+### Security
+
+- Fixed `critical-security-review` to use Superpowers' `code-review` skill without passing `--no-auth` (W2)
+
+### Added
+
+- Provenance and lockstep tests to verify version/target/format consistency across plugin.json / README / CHANGELOG (W5)
 
 ## [2.0.0] — 2026-06-27
 

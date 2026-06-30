@@ -1,12 +1,12 @@
 # Peter's Agentic Toolkit
 
-**Version 2.0.0** · targets Superpowers 5.1.x
+**Version 2.1.0** · targets Superpowers 6.0.x
 
 Peter's Agentic Toolkit is a Claude Code plugin. It's a set of skills that shape how an agent handles design, planning, review, and implementation. The idea is simple: **agentic work deserves the same discipline you'd apply to writing critical software.** You brainstorm an idea into a spec, review the spec adversarially and revise it, turn the spec into a plan, review the plan adversarially and revise it, then hand the plan to sub-agents to build. Security gets assessed along the way.
 
 Each step is explicit, and load-bearing assumptions get checked against the real codebase before they harden into code.
 
-The Toolkit builds on [Superpowers](https://github.com/obra/superpowers) by Jesse Vincent. It augments Superpowers' core loop rather than replacing it. **Superpowers is a hard requirement.** The Toolkit calls Superpowers' skills directly and lives *on top of* them, so you need Superpowers installed for any of this to work.
+The Toolkit builds on [Superpowers](https://github.com/obra/superpowers) by Jesse Vincent. It augments Superpowers' core loop rather than replacing it. **Superpowers is a hard requirement.** The Toolkit builds on Superpowers' skills (it invokes `subagent-driven-development` directly and reaches the others through it) and lives *on top of* them, so you need Superpowers installed for any of this to work.
 
 ## Methodology and principles
 
@@ -19,7 +19,7 @@ The Toolkit inherits Superpowers' **planning-first, test-driven-development** me
 
 ### Prerequisite: Superpowers (required)
 
-The Toolkit will not function without [Superpowers](https://github.com/obra/superpowers) version 5.1.x. I will work on updating to version 6 whenever I have some time. It calls Superpowers skills directly (`subagent-driven-development`, `requesting-code-review`, `using-git-worktrees`), and `thorough-brainstorming` / `thorough-writing-plans` extend Superpowers' `brainstorming` / `writing-plans`. Install it first:
+The Toolkit will not function without [Superpowers](https://github.com/obra/superpowers) version 6.0.x. It invokes `subagent-driven-development` directly (which in turn reaches `requesting-code-review` and `using-git-worktrees`), and `thorough-brainstorming` / `thorough-writing-plans` extend Superpowers' `brainstorming` / `writing-plans`. Install it first:
 
 ```
 /plugin install superpowers@claude-plugins-official
@@ -74,7 +74,7 @@ Once the spec is approved, `thorough-writing-plans` (TWP) turns it into an imple
 
 **3. Implementation and security review**
 
-You hand the approved plan to Superpowers' `subagent-driven-development` (SDD) to build. Once SDD has implemented the **entire** plan, `critical-security-review` runs over the finished code as a dedicated security pass.
+You hand the approved plan to Superpowers' `subagent-driven-development` (SDD) to build. `critical-security-review` is optional and you run it yourself, once the implementation is done (usually post-SDD, over the finished code). If you already have a TMA threat model, point it there with `tma_path`.
 
 ## Security skills
 
@@ -116,7 +116,7 @@ Every session stays in the part of the window where the model still does its bes
 
 ## Attribution
 
-This Toolkit builds on [Superpowers](https://github.com/obra/superpowers) by Jesse Vincent (obra), an open-source skill set for Claude Code that establishes brainstorm-first / plan-before-code conventions and provides the agentic primitives the Toolkit composes on. The Toolkit uses several Superpowers skills directly without modification (mainly `subagent-driven-development`, `requesting-code-review`, and `using-git-worktrees`).
+This Toolkit builds on [Superpowers](https://github.com/obra/superpowers) by Jesse Vincent (obra), an open-source skill set for Claude Code that establishes brainstorm-first / plan-before-code conventions and provides the agentic primitives the Toolkit composes on. The Toolkit invokes `subagent-driven-development` directly and unmodified. `requesting-code-review` and `using-git-worktrees` come along transitively through it, not by direct calls.
 
 Two Toolkit skills extend Superpowers' originals. `thorough-brainstorming` extends `brainstorming` by adding empirical assumption verification before spec finalization, and `thorough-writing-plans` extends `writing-plans` by adding empirical plan-level assumption verification.
 
