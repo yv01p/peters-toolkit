@@ -223,7 +223,7 @@ The mechanism is the same as in thorough-brainstorming — but the over-engineer
 The default answer to "should the plan also have a task / step / helper for X?" is **no**, unless the spec called for X or X is a known correctness issue for the path the spec did call for. Specifically, do NOT include:
 
 - **Tasks the spec didn't authorize** — observability, metrics, logging, monitoring, alerting, dashboards, audit trails, feature flags, telemetry, OpenAPI/API docs, CHANGELOG entries, README updates, "while we're here" refactors of adjacent code.
-- **Premature task splitting** — three tasks named "Define types / Implement function / Add tests" should usually be ONE task with four steps. Splitting fragments review surface, multiplies per-task ceremony, and pretends decomposition where there's only sequencing.
+- **Premature task splitting** — three tasks named "Define types / Implement function / Add tests" should usually be ONE task with four steps. Splitting fragments review surface, multiplies per-task ceremony, and pretends decomposition where there's only sequencing. (This right-sizing discipline matches Superpowers 6.0.x's Task Right-Sizing guidance; peters states it here rather than duplicating it.)
 - **Premature helpers in code blocks** — if a code block in Task 3 introduces `withTransaction(fn)` to wrap a single use case, inline the transaction handling. Extract a helper when there's a third real callsite.
 - **Invented test infrastructure** — new test harnesses, mock factories, fixtures, test categories when 2-5 lines of inline setup using the codebase's existing convention would do.
 - **Invented build/lint/CI knobs** — new lint rules, build scripts, CI steps, env-var toggles unless the spec asked.
@@ -312,6 +312,13 @@ Empty or minimal. No `version`. No `parameters:` (non-standard per agentskills.i
 
 ---
 
+## Global Constraints
+(Conditional — present only when the spec states project-wide rules. Omit entirely
+when the spec has none, per "No template forcing." Copy values verbatim from the spec.)
+Project-wide rules every task must hold to: version floors, dependency limits,
+naming/copy conventions, exact required values. SDD's pre-flight read picks these up
+so each per-task subagent inherits them.
+
 ## File Structure
 [Map files created/modified by tasks. One clear responsibility per file.
 Format: bullet list grouped by Create / Modify / Test, with one-line purpose each.]
@@ -339,6 +346,10 @@ and verified at plan-write time:
 - Create: `exact/path/to/file.ts`
 - Modify: `exact/path/to/existing.ts:123-145`
 - Test: `tests/exact/path/to/test.ts`
+
+**Interfaces** (conditional — include only when the task has cross-task dependencies):
+- Consumes: [what earlier tasks produce that this task depends on — symbols, files, values]
+- Produces: [what later tasks depend on from this task]
 
 - [ ] **Step 1: [actionable verb-led description]**
 [Code block / command / explanation as appropriate to the step.]
