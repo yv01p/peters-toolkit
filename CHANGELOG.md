@@ -17,6 +17,7 @@ When cutting a new version, update in lockstep:
 2. A new entry in this file (date, what changed, Superpowers target)
 3. The README version line (and the install-requirement line if compatibility changed)
 4. A new `git tag vX.Y.Z`
+5. Regenerate `tests/provenance/companion-manifest.sha256` (and its `# target:` line) if the visual-companion files were re-synced to a new Superpowers target
 
 ## [2.1.0] — 2026-06-30
 
