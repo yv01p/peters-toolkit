@@ -300,7 +300,7 @@ Empty or minimal. No `version`. No `parameters:` (non-standard per agentskills.i
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For agentic workers:** REQUIRED: Use `superpowers:subagent-driven-development` to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Source spec:** `docs/specs/YYYY-MM-DD-<topic>-design.md` (commit SHA: `<spec-SHA-at-plan-write-time>`)
 

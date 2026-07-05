@@ -28,6 +28,7 @@ When cutting a new version, update in lockstep:
 - `thorough-brainstorming` → 2.1.1: process-flow diagram now matches the checklist on commit placement — the diagram showed a single commit at the terminal node while checklist item 9 commits at the write step (and the write node is re-entered, with commit, on self-review fixes and user-requested changes).
 - `thorough-writing-plans` → 2.1.1: removed the stale "UIP currently appends one (transitional gap; UIP v2 will drop it)" Changelog cross-ref — false since UIP 2.1.0, which forbids appending a Changelog. Same stale-ref class as the CDR/CIR fixes in 2.2.0.
 - Both: vendor-neutral todo phrasing (was "TodoWrite", a tool name current harnesses no longer expose; matches upstream Superpowers 6.x's deliberate vendor-neutral convention).
+- `thorough-writing-plans`: the emitted plan's "For agentic workers" header block synced byte-identical to upstream Superpowers 6.x (`REQUIRED SUB-SKILL`, `executing-plans` fallback for subagent-less harnesses, "task-by-task") — the 2.1.0 W1 sync had shipped a simplified SDD-only variant; found by the TWP↔consumers audit.
 
 ### Audit note
 
