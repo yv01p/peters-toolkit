@@ -1,7 +1,7 @@
 ---
 name: update-design-doc
 description: Use when a critical-design-review v2 output exists and the design spec needs to be revised to address its findings. Takes one or more CDR v2 review file paths as arguments. Processes each finding sequentially with user approval. Commits pre-state and post-state when the spec is in a git repo. Empty review = no edits made.
-version: 2.0.0
+version: 2.1.0
 ---
 
 # Update Design Document
@@ -13,6 +13,14 @@ Apply the findings from one or more `critical-design-review` v2 outputs to the d
 ## Input contract
 
 Invoked with one or more paths to CDR v2 review files. If not provided in the invocation, ask the user. The skill auto-discovers the spec path from each review's `**Spec:** <path>` header (path may be backtick-wrapped).
+
+### Multi-review constraint
+
+If multiple review files are passed and they do NOT all carry the same `**Spec:**` value, error with:
+
+> `Multi-review invocation requires all reviews to target the same spec. Found N distinct spec paths: <list>. Invoke separately per spec.`
+
+Single-spec invocation is the supported case.
 
 | Input | Source |
 |---|---|
@@ -48,15 +56,16 @@ The discipline is the same as `thorough-brainstorming`'s: every line you add mus
 
 ## Process
 
-1. **Read each review file in `review_files`.** Detect format by header section names. If the review does NOT contain at least one of: `## 1. Verified-assumptions cross-check`, `## 2. Literal-wrongness findings`, `## 3. Forced decisions`, `## 5. Recommendation` — refuse with this exact message:
+1. **Read each review file in `review_files`.** Detect format by two markers, BOTH required: (a) a `**Spec:** <path>` header in the file's preamble, and (b) at least one of: `## 1. Verified-assumptions cross-check`, `## 2. Literal-wrongness findings`, `## 3. Forced decisions`, `## 5. Recommendation`. Section names alone are NOT sufficient — CIR v2 output shares three of the four headers; the `**Spec:**` header is what distinguishes CDR output from its siblings. If either marker is absent, refuse with this exact message:
 
-   > "Input does not appear to be CDR v2 output. This skill only accepts critical-design-review v2.0.0+ reviews. Re-run `critical-design-review` (v2.0.0+) on the spec first. If you have a CDR v1 review file, its findings are not supported — they tend to include speculative noise that v2 explicitly removed."
+   > "Input does not appear to be CDR v2 output. This skill only accepts critical-design-review v2.0.0+ reviews. Re-run `critical-design-review` (v2.0.0+) on the spec first. If you have a CDR v1 review file, its findings are not supported — they tend to include speculative noise that v2 explicitly removed. If the file carries a `**Plan:**` header, it is critical-implementation-review output — use `update-implementation-plan` for it instead."
 
    Do not attempt to fall back to v1 parsing. Do not fabricate findings.
 
 2. **From each accepted review, extract:**
    - Spec path: parse `**Spec:** <path>` from the header. Strip surrounding backticks if present.
-   - §1 items: classify each as "Still holds" (no action) or "failed (with new evidence at file:line)" (high-priority §2-equivalent).
+   - §1 items: classify each as "Still holds" (no action), "failed (with new evidence at file:line)" (high-priority §2-equivalent), or — when the review's §1 carries a span check (emitted by CDR v2.2.0+) — "uncovered dependency" (own dispatch; see the finding-category table).
+   - §0 (Coverage enumeration, emitted by CDR v2.2.0+): skip if present — reviewer bookkeeping, not findings.
    - §2 findings: list each.
    - §3 forced decisions: list each as `{the choice, why it's forced, the options}`.
    - §4 items: skip (already-resolved history).
@@ -64,17 +73,21 @@ The discipline is the same as `thorough-brainstorming`'s: every line you add mus
 
 3. **Read the spec file once.** Read codebase files cited by either the spec or the reviews on demand to ground fixes in real context.
 
-4. **Forced-decisions gate.** If any review's recommendation is 🛑 "Surface forced decisions to user", process §3 BEFORE §2. For each §3 item:
+4. **Decomposition gate.** If any review's recommendation is 🚧 "Spec needs decomposition", STOP before processing any findings: surface the decomposition recommendation to the user and ask whether to (a) proceed anyway with this skill on the undecomposed spec, or (b) stop here and take the spec back to `thorough-brainstorming` for splitting. Do not process findings without their pick.
+
+   **Forced-decisions gate.** If any review's recommendation is 🛑 "Surface forced decisions to user", process §3 BEFORE §1/§2. For each §3 item:
    - Present "the choice / why it's forced / the options" to the user verbatim.
    - If the options are clearly enumerable (a/b/c, bullet list, etc.), ask the user to pick one.
    - If the options are inline prose and not clearly enumerable, ask the user to clarify what the available picks are, then ask for the pick.
-   - Apply the picked option to the spec text in memory.
+   - Apply the picked option to the spec text in memory: **TRACK it as a (find-string, replace-string) tuple, exactly as step 5 does.** §3 resolutions ARE tracked changes — they flow through steps 7–9 with everything else; a §3-only run still writes to disk and commits.
+   - The user's option pick IS the approval — do not run step 5's `Apply this fix?` gate on §3 items.
    - **You never pick.** The whole point of §3 is that the user must decide.
 
-   Do not proceed to §2 processing until all §3 items are resolved.
+   Do not proceed to §1/§2 processing until all §3 items are resolved.
 
 5. **Process remaining findings in this order:**
    - §1 failed verified-assumptions (high priority — design rests on falsified ground)
+   - §1 uncovered dependencies from the span check, if the review has them (see the finding-category table)
    - §2 literal-wrongness findings
 
    For each finding:
@@ -86,7 +99,7 @@ The discipline is the same as `thorough-brainstorming`'s: every line you add mus
 
 6. **§4 (Previously addressed) findings:** skip. No action needed.
 
-7. **No-op short-circuit.** If no changes were tracked in step 5 (0 fixes approved, all rejected, or empty review): skip steps 8-9 entirely. Output the summary in step 10 with `Pre-state SHA: N/A. Post-state SHA: unchanged.` Do NOT take any git side effects when nothing is pending. The user invoked the skill, the skill ran, no work needed doing — that's a valid clean result.
+7. **No-op short-circuit.** If no changes were tracked in steps 4–5 (0 forced decisions applied AND 0 fixes approved — all rejected, or empty review): skip steps 8-9 entirely. Output the summary in step 10 with `Pre-state SHA: N/A. Post-state SHA: unchanged.` Do NOT take any git side effects when nothing is pending. The user invoked the skill, the skill ran, no work needed doing — that's a valid clean result.
 
 8. **Snapshot guarantee** — only reached if step 7's no-op short-circuit didn't fire (i.e., ≥1 change is tracked). The disk spec is still in its pre-edit state at this point. BEFORE applying the tracked changes:
 
@@ -98,6 +111,7 @@ The discipline is the same as `thorough-brainstorming`'s: every line you add mus
         ```
         snapshot before update-design-doc applies N fixes from <review basenames>
         ```
+        Scope the commit to the spec alone — `git commit -m "<message>" -- <spec>` — never a bare `git commit`: unrelated files someone else left staged or dirty in the repo must not be swept into the snapshot.
    c. **If NOT in git repo:**
       - Warn: `Spec at <path> is not in a git repository. Overwrite will be destructive (no recoverable history).`
       - Ask: `Proceed / save .bak copy alongside / abort` — wait for user.
@@ -110,23 +124,27 @@ The discipline is the same as `thorough-brainstorming`'s: every line you add mus
       ```
       applied N fixes from <review basenames> to <spec basename>
       ```
+      Scoped to the spec alone (`git commit -m "<message>" -- <spec>`), same as the pre-state snapshot.
 
 10. **Output one-line summary:**
     ```
     Applied N fixes (M rejected, K forced decisions resolved). Spec at <path>.
     Pre-state SHA: <sha or N/A>. Post-state SHA: <sha or unchanged>.
     ```
+    N counts every applied edit, §3-driven ones included; K says how many of those resolved forced decisions; M counts rejected findings. Use the singular ("1 fix") when N=1, in both the summary and the commit messages. Pre-state SHA is the snapshot commit when step 8 created one, the pre-existing HEAD when the spec was already clean, and `N/A` only on the step-7 no-op path.
 
 ## Finding-category dispatch
 
 | CDR v2 section | Action |
 |---|---|
+| §0 coverage enumeration (CDR v2.2.0+) | Reviewer bookkeeping. Skip. Never process a §0 row — including `dropped` candidates — as a finding; findings live only in §1–§3. |
 | §1 verified-assumptions cross-check (Still holds) | No action. Don't surface. |
 | §1 verified-assumptions cross-check (failed) | High-priority §2-equivalent. Update the spec's `Verified assumptions` section to reflect the corrected fact, plus the design change the failure forces. |
+| §1 span check: uncovered dependency (CDR v2.2.0+) | Distinct class — neither "still holds" nor "failed". Present each to the user with the reviewer's evidence. If it can be verified now (read the cited evidence), propose adding a covering item to the spec's `Verified assumptions` section — the per-fix gate applies. If it can't, put the choice to the user (verify empirically / accept the risk and leave it uncovered / re-run CDR). Never silently drop an uncovered dependency. |
 | §2 literal-wrongness | Standard finding processing (per-finding gate, smallest-fix). |
-| §3 forced decisions | Special: present options, user picks, apply. Process before §2 if recommendation is 🛑. |
+| §3 forced decisions | Special: present options, user picks, apply. Process before §1/§2 if recommendation is 🛑. |
 | §4 previously addressed (history) | Skip. |
-| §5 recommendation | Inform behavior (🛑 vs ⚠️ vs ✅), don't process as a finding. |
+| §5 recommendation | Inform behavior (🚧 vs 🛑 vs ⚠️ vs ✅ — 🚧 triggers step 4's decomposition gate), don't process as a finding. |
 
 ## Anti-patterns
 
@@ -164,3 +182,4 @@ These thoughts mean STOP — you're rationalizing your way into producing specul
 | "Empty review means I should at least scan for issues to demonstrate the skill ran." | Empty review = valid output = no work done. Demonstration-by-fabrication is the failure mode this skill exists to prevent. |
 | "The review didn't propose an architecture alternative, but the §2 fix would clearly benefit from one — I'll propose it." | Alternatives belong in the §2 finding's proposed-fix prose (per CDR v2's design). If CDR v2 didn't propose one, don't invent one. |
 | "I noticed the upstream review missed a real issue — let me address it too while I'm here." | The review is the contract. If the review missed something, surface it back to the user as a hint to re-run CDR; don't fold it into this update silently. |
+| "The span-check item is unverified and proposes no fix — nothing for me to apply, skip it." | Uncovered dependencies are the span check's entire output. Present each to the user; ratchet verified ones into `Verified assumptions`; put unverifiable ones to the user as a choice. A silent drop here defeats the check one skill downstream of where it ran. |
