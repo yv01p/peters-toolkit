@@ -1,7 +1,7 @@
 ---
 name: thorough-writing-plans
 description: Use after thorough-brainstorming has produced and committed a verified design spec, before writing any code. Hardens superpowers:writing-plans by empirically verifying every plan-level assumption (file paths, function signatures, test/lint/build commands, task ordering, code-in-plan correctness, consumer impact) against the real codebase, and applies ruthless YAGNI / strict DRY to plan content. Consumes thorough-brainstorming spec output (strict input contract — rejects other formats).
-version: 2.1.0
+version: 2.1.1
 ---
 
 # Thorough Writing Plans: Verified, Minimal Implementation Plans
@@ -29,13 +29,13 @@ A one-line config tweak still rests on assumptions: the file is at the path you 
 
 ## Checklist
 
-Create a TodoWrite task per item, in order:
+Create a todo per item, in order:
 
 1. **Read the source spec end-to-end.** Verify it's a thorough-brainstorming output (look for a "Verified assumptions" section); reject otherwise with a clear message (see "Spec input contract" below).
 2. **Extract from the spec:** design body, verified-assumptions list, out-of-scope list (if present), known-issues list (if present). Treat verified assumptions as ground truth.
 3. **Draft the plan:** file structure, task decomposition, code blocks, test/lint/build commands, task ordering. Apply ruthless YAGNI / strict DRY (see below).
 4. **Present the draft to the user for approval.** Section by section if multi-component; whole-thing if genuinely small (per thorough-brainstorming's small-design definition: one file, no new dependency, no new route, no schema change, no new convention).
-5. **List ALL plan-level assumptions cold (TodoWrite per item),** against the draft plan only, BEFORE reading any code for verification.
+5. **List ALL plan-level assumptions cold (one todo per item),** against the draft plan only, BEFORE reading any code for verification.
 6. **Verify each assumption empirically with evidence** (path:line, command output excerpt, grep result). Record evidence in the todo's completion.
 7. **If verification changed the plan:** revise and re-confirm with user before writing.
 8. **Write the plan** to `docs/plans/YYYY-MM-DD-<topic>-implementation-plan.md`.
@@ -158,7 +158,7 @@ Same discipline as thorough-brainstorming, retargeted:
 - **Verify-by-exploration-then-list (BAD):** opens code first to "get oriented," then writes the list. The list ends up describing what was found, not what the plan rests on.
 - **List ALL cold (REQUIRED):** generate the entire list against the draft plan only, before reading any code for verification. Then verify each.
 
-Use TodoWrite. One todo per assumption. Phrase as a falsifiable statement.
+Track the list as todos — one todo per assumption. Phrase each as a falsifiable statement.
 
 ### Sibling-set sweep (rides on top of all six categories)
 
@@ -380,7 +380,7 @@ These exist in the implementation by design — accepted by the user during brai
 ### Deliberately NOT in the body
 
 - **No fixed step template per task.** Upstream's "every task has 5 steps: Write test / Run test / Implement / Run test / Commit" is YAGNI for tasks that don't fit (e.g., 1-line config change). Steps scale to the actual work; TDD principle preserved (tests-first when there's logic to test) but the cadence isn't templated.
-- **No Changelog section.** UIP currently appends one (transitional gap; UIP v2 will drop it). Git history is the change log.
+- **No Changelog section.** Git history is the change log.
 - **No "Implementation Notes" / "Considerations" / "Future Work" / "Tradeoffs Discussed" sections.** Those are spec content; readers retrieve via the linked source spec.
 
 ## Self-Review (Step 9)

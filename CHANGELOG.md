@@ -19,6 +19,20 @@ When cutting a new version, update in lockstep:
 4. A new `git tag vX.Y.Z`
 5. Regenerate `tests/provenance/companion-manifest.sha256` (and its `# target:` line) if the visual-companion files were re-synced to a new Superpowers target
 
+## [2.2.1] — 2026-07-05
+
+**Targets Superpowers 6.0.x–6.1.x** (verified against 6.1.1)
+
+### Fixed
+
+- `thorough-brainstorming` → 2.1.1: process-flow diagram now matches the checklist on commit placement — the diagram showed a single commit at the terminal node while checklist item 9 commits at the write step (and the write node is re-entered, with commit, on self-review fixes and user-requested changes).
+- `thorough-writing-plans` → 2.1.1: removed the stale "UIP currently appends one (transitional gap; UIP v2 will drop it)" Changelog cross-ref — false since UIP 2.1.0, which forbids appending a Changelog. Same stale-ref class as the CDR/CIR fixes in 2.2.0.
+- Both: vendor-neutral todo phrasing (was "TodoWrite", a tool name current harnesses no longer expose; matches upstream Superpowers 6.x's deliberate vendor-neutral convention).
+
+### Audit note
+
+- Full `thorough-brainstorming` ↔ consumers contract audit (TWP acceptance, CDR §1 ground-truth/fresh-read, UDD ratchet target, decomposition path). Three statically-suspected defects did NOT reproduce in blind baseline trials (7/7 reps complied: spec heading/evidence always detectable by both consumers' detectors; plan-as-spec rejected under user pressure; post-review edits committed unprompted), so no guidance edits were made for them per the no-failing-test rule. Remaining TodoWrite references in `arch-review` / `critical-implementation-review` / `resume-handoff` / `tma` are noted for a future pass.
+
 ## [2.2.0] — 2026-07-05
 
 **Targets Superpowers 6.0.x–6.1.x** (verified against 6.1.1, released 2026-07-02: the v6.0.3→v6.1.1 delta leaves every skill the toolkit depends on — `subagent-driven-development`, `writing-plans`, `brainstorming` SKILL.md, `requesting-code-review`, `using-git-worktrees`, `writing-skills` process content — byte-identical or cosmetically edited (dead-link/Gemini-CLI-line removals only); remaining changes are the `using-superpowers` bootstrap trim, Gemini CLI removal, and Codex packaging)
