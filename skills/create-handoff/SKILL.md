@@ -1,7 +1,7 @@
 ---
 name: create-handoff
 description: Use when the context window is overwhelmed or nearing its limit, or when transitioning work to a fresh session or new agent - generates a structured technical handoff document that captures all session state, mental models, and decisions for seamless continuation
-version: 2.0.0
+version: 2.1.0
 ---
 
 # Create Handoff
@@ -41,14 +41,16 @@ Every file reference **must** use `path/to/file:line` syntax for Ctrl/Cmd+Click 
 
 ```bash
 mkdir -p handoffs
-# write the file
-git add handoffs/[FILENAME].md
+# write the file — do NOT stage or commit it
 ```
+
+The handoff is left untracked **by design**. Staging without committing leaves a foreign file armed in the index, where any later bare `git commit` — by any tool or agent — sweeps it into an unrelated commit (observed live). If the user wants handoffs in history, they commit deliberately, pathspec-scoped.
 
 Then output **exactly**:
 
 ```
 Handoff successfully generated. Context preserved at: handoffs/[FILENAME].md
+(The handoff file is untracked by design — commit it yourself if you want it in history.)
 
 Clear your context window and run the resume command to continue.
 Resume command:
@@ -97,6 +99,7 @@ Or: `None`
 **Environment:**
 - Uncommitted changes: [yes/no — list specific files if yes]
 - Staged changes: [list files, or none]
+- Stashes: [output of `git stash list`, or none]
 - ENV vars or config required: [any non-obvious ones]
 - Any running processes / background jobs: [or none]
 
