@@ -1,7 +1,7 @@
 ---
 name: resume-handoff
 description: Use when continuing work after a context window was cleared, when given a handoff file path to resume from, or when a previous session ended with a create-handoff acknowledgment message
-version: 2.0.0
+version: 2.0.1
 ---
 
 # Resume Handoff
@@ -129,7 +129,7 @@ review any section above before we continue?
 
 ### Step 4 — Build Action Plan
 
-Convert §5 Next Steps (validated) into a prioritized task list using TodoWrite or equivalent. Present clearly.
+Convert §5 Next Steps (validated) into a prioritized todo list. Present clearly.
 
 Start with the state-verification command from §5 Step 1 — always run this first before touching any code.
 

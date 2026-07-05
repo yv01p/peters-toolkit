@@ -1,7 +1,7 @@
 {
   "name": "peters-toolkit",
   "description": "Adversarial design / plan / code-review and threat-modeling skills for Claude Code. Composes on top of Superpowers: brainstorm -> spec -> plan -> implement, with empirical assumption verification and explicit review loops at each phase.",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "author": {
     "name": "Peter Zadrozny"
   },

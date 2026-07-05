@@ -19,6 +19,14 @@ When cutting a new version, update in lockstep:
 4. A new `git tag vX.Y.Z`
 5. Regenerate `tests/provenance/companion-manifest.sha256` (and its `# target:` line) if the visual-companion files were re-synced to a new Superpowers target
 
+## [2.2.2] — 2026-07-05
+
+**Targets Superpowers 6.0.x–6.1.x** (verified against 6.1.1)
+
+### Fixed
+
+- Vendor-neutral todo phrasing completed across the remaining four skills — `arch-review` → 2.0.1, `critical-implementation-review` → 2.1.1, `resume-handoff` → 2.0.1, `tma` → 2.0.1 (was "TodoWrite", a tool name current harnesses no longer expose; same factual-correction class as 2.2.1's TB/TWP edits, closing the pass queued there). Repo-wide grep now clean.
+
 ## [2.2.1] — 2026-07-05
 
 **Targets Superpowers 6.0.x–6.1.x** (verified against 6.1.1)

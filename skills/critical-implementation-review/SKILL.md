@@ -1,7 +1,7 @@
 ---
 name: critical-implementation-review
 description: Use when reviewing an implementation plan produced by thorough-writing-plans, before the plan is implemented. Use for adversarial implementation review, second-opinion on a finalized plan, or finding issues in a plan before they become bugs at execution time. Multiple iterative passes supported.
-version: 2.1.0
+version: 2.1.1
 ---
 
 # Critical Implementation Review (v2)
@@ -14,7 +14,7 @@ CIR v2 is a ground-up rewrite of v1.6.0, replacing the persona / mandatory-scope
 
 ## Checklist
 
-Each item becomes a TodoWrite task at skill-invocation time, in order:
+Each item becomes a todo at skill-invocation time, in order:
 
 1. Read the input plan end-to-end. Verify it's a `thorough-writing-plans` output (presence of `## Verified plan-level assumptions` header, case-insensitive); reject otherwise with the verbatim message in the "Input contract" section.
 2. Read all prior review files matching `<plan-basename>-critical-review-*.md` in `docs/criticalreviews/`. Treat the combined content as the full history; never re-raise an issue already present in any prior review.
