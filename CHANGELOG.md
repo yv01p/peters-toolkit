@@ -21,7 +21,7 @@ When cutting a new version, update in lockstep:
 
 ## [2.2.0] — 2026-07-05
 
-**Targets Superpowers 6.0.x**
+**Targets Superpowers 6.0.x–6.1.x** (verified against 6.1.1, released 2026-07-02: the v6.0.3→v6.1.1 delta leaves every skill the toolkit depends on — `subagent-driven-development`, `writing-plans`, `brainstorming` SKILL.md, `requesting-code-review`, `using-git-worktrees`, `writing-skills` process content — byte-identical or cosmetically edited (dead-link/Gemini-CLI-line removals only); remaining changes are the `using-superpowers` bootstrap trim, Gemini CLI removal, and Codex packaging)
 
 ### Changed
 
@@ -29,6 +29,14 @@ When cutting a new version, update in lockstep:
 - `critical-design-review` → 2.2.0: new "Coverage before candidates" enumeration sweep (§0 of the review output — sections, rules-and-operands in both failure directions, data-flow arrows with persistence-boundary flagging); §1 span check (name design dependencies with no covering assumption); rule-over-input-class claims added to the empirical-evidence recipe (check false positives AND false negatives against real data); input-cleanliness claims named as negative claims (with the corporate-first-party worked example); anti-anchor rule for iterative rounds (build the enumeration before reading prior reviews); new rationalization rows and anti-patterns guarding the sweep's integrity.
 - `critical-implementation-review` → 2.1.0: same family device adapted to plans — §0 enumeration over tasks × surfaces (step prose, code blocks, commands, wiring text) plus cross-task interface contracts (Consumes/Produces pairs, fixture handoffs, persistence-boundary flags); §1 span check extended to the "Inherited from spec" list; the static/dynamic mode-switch generalized through §0; matching rationalization rows and anti-patterns.
 - Precision posture unchanged by design: the sweep drives candidate *generation* only; every candidate still passes the literal-wrongness gate, §0 is bookkeeping (not a fifth finding category), and dropped candidates are recorded with reasons, never promoted. Device validated in three live trials before landing (zero noise findings across all three) and gated on two pre-fix regression reproductions before merge.
+- `update-design-doc` → 2.1.0 and `update-implementation-plan` → 2.1.0: correctness and alignment fixes from a full UDD/UIP↔CDR/CIR audit, each defect confirmed by blind baseline trials on synthetic fixtures before the fix was written:
+  - Forced-decision-only runs (§3 items, empty §2) now explicitly persist: §3 resolutions are tracked changes flowing through the snapshot/apply/commit steps; the no-op short-circuit is scoped to "steps 4–5", not "step 5" (baseline agents documented that the literal text let the user's applied decisions silently never reach disk).
+  - Pre-state and post-state auto-commits are pathspec-scoped to the spec/plan file — a baseline trial's plain `git commit` really did sweep an unrelated pre-staged file into the snapshot commit.
+  - Acceptance checks now require BOTH the `**Spec:**`/`**Plan:**` header AND the section-header markers; CDR and CIR share three of four section names, so each updater previously accepted its sibling's output on the literal check (survival depended on agent judgment). Refusal messages now name the sibling skill.
+  - `update-design-doc` gains the multi-review same-spec constraint (mirroring UIP's same-plan rule): a baseline trial batch-edited two different specs in one run with one combined commit.
+  - 🚧 "Spec needs decomposition" now has defined behavior in `update-design-doc`: a decomposition gate — surface to the user, ask proceed-anyway vs back-to-brainstorming, don't process findings without the pick (previously "given no defined behavior anywhere in the skill", per baseline).
+  - Forward-compatible dispatch for the CDR 2.2.0 / CIR 2.1.0 output contract (inert against stock reviews): §0 Coverage enumeration is skipped as reviewer bookkeeping (a `dropped` row is never a finding), and §1 span-check "uncovered dependency" items get their own class — present to the user, ratchet verified ones into the spec's `Verified assumptions` section / plan's assumptions table, put unverifiable ones to the user as a choice; never silently drop (baseline: the item "fits neither bucket" of the still-holds/failed classifier and evaporated).
+  - Summary/commit-message clarifications observed as ambiguities in every baseline: N counts §3-driven edits (K flags them), singular "1 fix", and pre-state SHA semantics when the doc was already clean.
 
 ## [2.1.0] — 2026-06-30
 

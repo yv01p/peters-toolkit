@@ -1,7 +1,7 @@
 ---
 name: update-implementation-plan
 description: Use when a critical-implementation-review v2 output exists and the implementation plan needs to be revised to address its findings. Takes one or more CIR v2 review file paths as arguments. Processes each finding sequentially with user approval. Commits pre-state and post-state when the plan is in a git repo. Empty review = no edits made.
-version: 2.0.0
+version: 2.1.0
 ---
 
 # Update Implementation Plan
@@ -12,9 +12,9 @@ Apply the findings from one or more `critical-implementation-review` v2 outputs 
 
 ## Process
 
-1. Read each review file in `review_files` (passed as argument; ask user if not provided). Detect format by section-header markers. If the review does NOT contain at least one of: `## 1. Verified-plan-assumptions cross-check`, `## 2. Literal-wrongness findings`, `## 3. Forced decisions`, `## 5. Recommendation` — refuse with the verbatim message in the "Input contract" section.
+1. Read each review file in `review_files` (passed as argument; ask user if not provided). Detect format by two markers, BOTH required: (a) the `**Plan:** <path>` header in the file's preamble, and (b) at least one of: `## 1. Verified-plan-assumptions cross-check`, `## 2. Literal-wrongness findings`, `## 3. Forced decisions`, `## 5. Recommendation`. Section names alone are NOT sufficient — CDR v2 output shares three of the four headers; the `**Plan:**` header is what distinguishes CIR output from its siblings. If either marker is absent, refuse with the verbatim message in the "Input contract" section.
 
-2. From each accepted review, extract: plan path (parse `**Plan:** <path>` from header; bare path expected per CIR v2 emission practice — defensive backtick-stripping is YAGNI per evidence), §1 items classified as "still holds" or "failed (with new evidence at file:line)", §2 findings, §3 forced decisions `{the choice / why it's forced / the options}`, §4 history (skip), §5 recommendation label (✅/⚠️/🛑).
+2. From each accepted review, extract: plan path (parse `**Plan:** <path>` from header; bare path expected per CIR v2 emission practice — defensive backtick-stripping is YAGNI per evidence), §1 items classified as "still holds", "failed (with new evidence at file:line)", or — when the review's §1 carries a span check (emitted by CIR v2.1.0+) — "uncovered dependency" (own dispatch; see the finding-category table), §2 findings, §3 forced decisions `{the choice / why it's forced / the options}`, §4 history (skip), §5 recommendation label (✅/⚠️/🛑). §0 (Coverage enumeration, emitted by CIR v2.1.0+): skip if present — reviewer bookkeeping, not findings.
 
 3. Read the plan file once. Read codebase files cited by either the plan or the reviews on demand to ground fixes in real context.
 
@@ -22,13 +22,15 @@ Apply the findings from one or more `critical-implementation-review` v2 outputs 
    - Present "the choice / why it's forced / the options" to the user verbatim.
    - If options are clearly enumerable (a/b/c, bullet list), ask the user to pick one.
    - If options are inline prose and not clearly enumerable, ask the user to clarify what the available picks are, then ask for the pick.
-   - Apply the picked option to the plan text in memory.
+   - Apply the picked option to the plan text in memory: **TRACK it as a (find-string, replace-string) tuple, exactly as step 5 does.** §3 resolutions ARE tracked changes — they flow through steps 7–9 with everything else; a §3-only run still writes to disk and commits.
+   - The user's option pick IS the approval — do not run step 5's `Apply this fix?` gate on §3 items.
    - **You never pick.** §3's whole purpose is that the user decides.
 
    Do not proceed to §1/§2 processing until all §3 items are resolved.
 
 5. **Process remaining findings in this order:**
    - §1 failed verified-plan-assumptions (high priority — plan rests on falsified ground)
+   - §1 uncovered dependencies from the span check, if the review has them (see the finding-category table)
    - §2 literal-wrongness findings
 
    For each finding:
@@ -40,7 +42,7 @@ Apply the findings from one or more `critical-implementation-review` v2 outputs 
 
 6. **§4 (Previously addressed) findings:** skip. No action needed.
 
-7. **No-op short-circuit.** If no changes were tracked in step 5 (0 fixes approved, all rejected, or empty review): skip steps 8-9 entirely. Output the summary in step 10 with `Pre-state SHA: N/A. Post-state SHA: unchanged.` Do NOT take any git side effects when nothing is pending. The user invoked the skill, the skill ran, no work needed doing — that's a valid clean result.
+7. **No-op short-circuit.** If no changes were tracked in steps 4–5 (0 forced decisions applied AND 0 fixes approved — all rejected, or empty review): skip steps 8-9 entirely. Output the summary in step 10 with `Pre-state SHA: N/A. Post-state SHA: unchanged.` Do NOT take any git side effects when nothing is pending. The user invoked the skill, the skill ran, no work needed doing — that's a valid clean result.
 
 8. **Snapshot guarantee** — only reached if step 7's no-op short-circuit didn't fire (i.e., ≥1 change is tracked). The disk plan is still in its pre-edit state at this point. BEFORE applying the tracked changes:
 
@@ -52,6 +54,7 @@ Apply the findings from one or more `critical-implementation-review` v2 outputs 
         ```
         snapshot before update-implementation-plan applies N fixes from <review basenames>
         ```
+        Scope the commit to the plan alone — `git commit -m "<message>" -- <plan>` — never a bare `git commit`: unrelated files someone else left staged or dirty in the repo must not be swept into the snapshot.
    c. **If NOT in git repo:**
       - Warn: `Plan at <path> is not in a git repository. Overwrite will be destructive (no recoverable history).`
       - Ask: `Proceed / save .bak copy alongside / abort` — wait for user.
@@ -64,12 +67,14 @@ Apply the findings from one or more `critical-implementation-review` v2 outputs 
       ```
       applied N fixes from <review basenames> to <plan basename>
       ```
+      Scoped to the plan alone (`git commit -m "<message>" -- <plan>`), same as the pre-state snapshot.
 
 10. **Output one-line summary:**
     ```
     Applied N fixes (M rejected, K forced decisions resolved). Plan at <path>.
     Pre-state SHA: <sha or N/A>. Post-state SHA: <sha or unchanged>.
     ```
+    N counts every applied edit, §3-driven ones included; K says how many of those resolved forced decisions; M counts rejected findings. Use the singular ("1 fix") when N=1, in both the summary and the commit messages. Pre-state SHA is the snapshot commit when step 8 created one, the pre-existing HEAD when the plan was already clean, and `N/A` only on the step-7 no-op path.
 
 ### Multi-review constraint
 
@@ -83,14 +88,14 @@ Single-plan invocation is the supported case.
 
 ### Acceptance check (Step 1)
 
-Read each review file at the path the user provides. Look for these markers indicating it's a CIR v2 output:
+Read each review file at the path the user provides. Look for these markers indicating it's a CIR v2 output — BOTH required:
 
 - At least one of these section headers (case-sensitive substring match): `## 1. Verified-plan-assumptions cross-check`, `## 2. Literal-wrongness findings`, `## 3. Forced decisions`, `## 5. Recommendation`
 - The `**Plan:** <path>` header in the file's preamble
 
-If absent, **reject** with this exact message shape:
+If either is absent, **reject** with this exact message shape:
 
-> "Input does not appear to be CIR v2 output. This skill only accepts critical-implementation-review v2.0.0+ reviews. Re-run `critical-implementation-review` (v2.0.0+) on the plan first. If you have a CIR v1.6.0 review file, its section structure ('Critical Issues' / 'Minor Issues & Improvements') was structurally over-engineering-prone and was replaced — re-run with v2 first. If you have a critical-security-review output, address those findings in code, not through this skill — critical-security-review v2 is code-only by design."
+> "Input does not appear to be CIR v2 output. This skill only accepts critical-implementation-review v2.0.0+ reviews. Re-run `critical-implementation-review` (v2.0.0+) on the plan first. If you have a CIR v1.6.0 review file, its section structure ('Critical Issues' / 'Minor Issues & Improvements') was structurally over-engineering-prone and was replaced — re-run with v2 first. If you have a critical-security-review output, address those findings in code, not through this skill — critical-security-review v2 is code-only by design. If the file carries a `**Spec:**` header, it is critical-design-review output — use `update-design-doc` for it instead."
 
 No silent translation. No best-effort fallback for CIR v1.6.0 reviews, critical-security-review v1.0.0 outputs, or hand-written review-shaped notes.
 
@@ -140,8 +145,10 @@ The discipline is the same as `thorough-brainstorming`'s: every line you add mus
 
 | CIR v2 section | Action |
 |---|---|
+| §0 coverage enumeration (CIR v2.1.0+) | Reviewer bookkeeping. Skip. Never process a §0 row — including `dropped` candidates — as a finding; findings live only in §1–§3. |
 | §1 verified-plan-assumptions cross-check (Still holds) | No action. Don't surface. |
 | §1 verified-plan-assumptions cross-check (failed) | High-priority §2-equivalent. Update the plan's `Verified plan-level assumptions` table to reflect the corrected fact (find-string = entire current row; replace-string = updated row), plus the plan changes the failure forces (separate (find-string, replace-string) tuple in the plan body). |
+| §1 span check: uncovered dependency (CIR v2.1.0+) | Distinct class — neither "still holds" nor "failed". Present each to the user with the reviewer's evidence. If it can be verified now (read the cited evidence), propose adding a covering row to the plan's `Verified plan-level assumptions` table — the per-fix gate applies. If it can't, put the choice to the user (verify empirically / accept the risk and leave it uncovered / re-run CIR). Never silently drop an uncovered dependency. |
 | §2 literal-wrongness | Standard finding processing (per-finding gate, smallest-fix). |
 | §3 forced decisions | Special: present options, user picks, apply. Process before §1/§2 if recommendation is 🛑. |
 | §4 previously addressed (history) | Skip. |
@@ -186,3 +193,4 @@ These thoughts mean STOP — you're rationalizing your way into producing specul
 | "I noticed the upstream review missed a real issue — let me address it too while I'm here." | The review is the contract. If the review missed something, surface it back to the user as a hint to re-run CIR; don't fold it into this update silently. |
 | "The plan's `Verified plan-level assumptions` table is outdated; let me also re-verify the ones the review didn't fail." | Re-verify only the assumptions a failed §1-finding touches. Other assumptions are CIR's job, not yours. |
 | "I should also pattern-sweep the plan for similar issues — the review only cited examples." | UIP v1.1.0 had a 'pattern sweep' instruction; v2 explicitly drops it. The review IS the contract. If a class of issue exists beyond what the review cited, surface back to user as a hint to re-run CIR — don't fold in silently. |
+| "The span-check item is unverified and proposes no fix — nothing for me to apply, skip it." | Uncovered dependencies are the span check's entire output. Present each to the user; ratchet verified ones into the `Verified plan-level assumptions` table; put unverifiable ones to the user as a choice. A silent drop here defeats the check one skill downstream of where it ran. |
