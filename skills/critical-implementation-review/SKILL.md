@@ -181,7 +181,7 @@ These are the only categories that exist. There is no "miscellaneous." No "Minor
 
 | # | Category | What goes here | Output if empty |
 |---|---|---|---|
-| 1 | Verified-plan-assumptions cross-check | For each item in the plan's `Verified plan-level assumptions` table: does it still hold under a fresh read of the cited evidence? Then the **span check**: name any plan dependency with no covering assumption — a fact a task needs that no listed item (and no "Inherited from spec" item) verifies as scoped. Ground truth attaches to each listed item as written, not to the gaps between items. Bounded: one line per uncovered dependency; verify it or surface it — don't re-litigate listed items. Skip the entire section only if the input table was empty (with the note from the input-contract sub-edge case). | "All verified plan-level assumptions reconfirmed; span check found no uncovered dependency." |
+| 1 | Verified-plan-assumptions cross-check | For each item in the plan's `Verified plan-level assumptions` table: does it still hold under a fresh read of the cited evidence? Then the **span check**: name any plan dependency with no covering assumption — a fact a task needs that no listed item (and no "Inherited from spec" item) verifies as scoped. Ground truth attaches to each listed item as written, not to the gaps between items. Bounded: one line per uncovered dependency; verify it in-round with read evidence, or — when it can't be verified — surface it as a §3 forced decision (verify empirically / accept the risk / defer). An unverifiable dependency never stays a §1-only note — that would let §5 read ✅ over an unverified load-bearing fact. Don't re-litigate listed items. Skip the entire section only if the input table was empty (with the note from the input-contract sub-edge case). | "All verified plan-level assumptions reconfirmed; span check found no uncovered dependency." |
 | 2 | Literal-wrongness findings | Each candidate must pass the literal-wrongness test above. Covers static AND dynamic. Per item: description / evidence (file:line, exec output, or runtime trace) / proposed fix. | "No literal-wrongness findings." |
 | 3 | Forced decisions | Real either/or the plan leaves unpicked, where a codebase or product constraint forces a choice the plan hasn't named. Reviewer surfaces the choice; never picks. Per item: the choice / why it's forced / the options. | "No forced decisions found." |
 | 4 | Previously addressed (history) | Only present if prior reviews exist for this plan basename. Brief bullets on items from the review history that have been resolved by the plan's current state. | Section omitted entirely. |
@@ -284,7 +284,7 @@ If `git -C <plan-dir> rev-parse --is-inside-work-tree` returns false (plan is no
 [One of: ✅ Approve as-is / ⚠️ Approve with literal-wrongness fixes / 🛑 Surface forced decisions to user]
 ````
 
-No issue IDs (mirror CDR v2; UIP v2 will define its own parsing contract when it lands). Findings are ordered/numbered bullets within each section.
+No issue IDs (mirror CDR v2; UIP v2 dispatches on section headers, not issue IDs). Findings are ordered/numbered bullets within each section.
 
 ## Anti-patterns
 
@@ -335,4 +335,4 @@ These thoughts mean STOP — you're rationalizing your way into producing specul
 | "The plan names the paths that produce this status, and I verified those." | The predicate matches whatever the CODE can produce. Grep the producers; the one the plan didn't name is the unhandled input class. |
 | "I verified this operation's parameter sourcing at its call site." | At *a* call site. An operation with several callers is sourced several ways — the eval-side replica of a runtime call reads persisted artifacts the runtime path never touches. One row per caller; the caller the plan treats as a copy of another is the one that breaks. |
 | "This code block already gave me a finding; the rest of it is covered." | A finding disposes a defect, not a surface. The block's remaining named identifiers are unchecked until checked — the second phantom type in a block hides behind the first, and it has survived exactly this rationalization before. |
-| "I've finished §2; UIP can pick up the findings now — let me invoke it." | The skill stops at the written review file. UIP is a separate user-directed step; CIR doesn't auto-chain. (CIR v2 output is intentionally NOT compatible with UIP v1.1.0's parser — UIP v2 will adapt; see family-pattern documentation in the spec.) |
+| "I've finished §2; UIP can pick up the findings now — let me invoke it." | The skill stops at the written review file. UIP is a separate user-directed step; CIR doesn't auto-chain. (UIP v2 consumes the review file when — and only when — the user invokes it.) |
