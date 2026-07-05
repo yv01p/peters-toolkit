@@ -1,7 +1,7 @@
 ---
 name: thorough-brainstorming
 description: "You MUST use this before any creative work — creating features, building components, adding functionality, or modifying behavior. Like brainstorming, but with two enforced disciplines: every design proposed is the smallest one that solves the actual problem (ruthless YAGNI, strict DRY), and every load-bearing assumption is empirically verified against the real codebase before the spec is finalized."
-version: 2.1.0
+version: 2.1.1
 ---
 
 # Thorough Brainstorming: Ideas Into Designs (with Empirical Verification)
@@ -24,14 +24,14 @@ Every project goes through this process. A todo list, a single-function utility,
 
 ## Checklist
 
-You MUST create a TodoWrite task for each of these items and complete them in order:
+You MUST create a todo for each of these items and complete them in order:
 
 1. **Explore project context** — check files, docs, recent commits
 2. **Offer the visual companion just-in-time** — NOT upfront. The first time a question would genuinely be clearer shown than described, offer it then (its own message); on approval its browser tab opens for you. If no visual question ever arises, never offer it. See the Visual Companion section below.
 3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
 4. **Propose 2-3 approaches** — with trade-offs and your recommendation
 5. **Present design** — in sections scaled to their complexity, get user approval after each section
-6. **List assumptions** — write each load-bearing assumption as a TodoWrite item before verifying any
+6. **List assumptions** — write each load-bearing assumption as a todo item before verifying any
 7. **Verify each assumption empirically** — read code, run commands, check docs; mark each todo complete with the evidence found
 8. **Re-confirm with user if anything changed** — if verification invalidated or shifted any assumption, present the revised design and get re-approval before writing
 9. **Write design doc** — save to `docs/specs/YYYY-MM-DD-<topic>-design.md` and commit
@@ -48,33 +48,33 @@ digraph thorough_brainstorming {
     "Propose 2-3 approaches" [shape=box];
     "Present design sections" [shape=box];
     "User approves design?" [shape=diamond];
-    "List assumptions\n(TodoWrite per item)" [shape=box];
+    "List assumptions\n(one todo per item)" [shape=box];
     "Verify each assumption\nempirically" [shape=box];
     "Verification changed\nthe design?" [shape=diamond];
     "Present revised design" [shape=box];
     "User re-approves?" [shape=diamond];
-    "Write design doc" [shape=box];
+    "Write design doc\n(save + commit)" [shape=box];
     "Spec self-review\n(fix inline)" [shape=box];
     "User reviews spec?" [shape=diamond];
-    "Commit; stop and wait" [shape=doublecircle];
+    "Stop and wait" [shape=doublecircle];
 
     "Explore project context" -> "Ask clarifying questions";
     "Ask clarifying questions" -> "Propose 2-3 approaches";
     "Propose 2-3 approaches" -> "Present design sections";
     "Present design sections" -> "User approves design?";
     "User approves design?" -> "Present design sections" [label="no, revise"];
-    "User approves design?" -> "List assumptions\n(TodoWrite per item)" [label="yes"];
-    "List assumptions\n(TodoWrite per item)" -> "Verify each assumption\nempirically";
+    "User approves design?" -> "List assumptions\n(one todo per item)" [label="yes"];
+    "List assumptions\n(one todo per item)" -> "Verify each assumption\nempirically";
     "Verify each assumption\nempirically" -> "Verification changed\nthe design?";
     "Verification changed\nthe design?" -> "Present revised design" [label="yes"];
-    "Verification changed\nthe design?" -> "Write design doc" [label="no"];
+    "Verification changed\nthe design?" -> "Write design doc\n(save + commit)" [label="no"];
     "Present revised design" -> "User re-approves?";
     "User re-approves?" -> "Present revised design" [label="no, revise"];
-    "User re-approves?" -> "Write design doc" [label="yes"];
-    "Write design doc" -> "Spec self-review\n(fix inline)";
+    "User re-approves?" -> "Write design doc\n(save + commit)" [label="yes"];
+    "Write design doc\n(save + commit)" -> "Spec self-review\n(fix inline)";
     "Spec self-review\n(fix inline)" -> "User reviews spec?";
-    "User reviews spec?" -> "Write design doc" [label="changes requested"];
-    "User reviews spec?" -> "Commit; stop and wait" [label="approved"];
+    "User reviews spec?" -> "Write design doc\n(save + commit)" [label="changes requested"];
+    "User reviews spec?" -> "Stop and wait" [label="approved"];
 }
 ```
 
@@ -226,7 +226,7 @@ After the user approves the design and **before** writing the spec, verify the a
 
 ### Step 1 — List assumptions explicitly (ALL of them, before reading any code for verification)
 
-Use TodoWrite. One todo per assumption. **Complete the entire list before you read a single file for verification purposes** — and definitely before you mark any item verified. Two patterns to avoid:
+Track the list as todos — one todo per assumption. **Complete the entire list before you read a single file for verification purposes** — and definitely before you mark any item verified. Two patterns to avoid:
 
 - **List-and-verify-each:** listing one assumption, verifying it, then listing the next. This lets you stop early once a few feel "fine" and miss the assumption you didn't think to question.
 - **Verify-by-exploration-then-list:** opening files first to "get oriented" and then writing the assumption list. The enumeration is now colored by what you already saw — you list what you found instead of what the design depends on, and you'll silently drop assumptions whose answers you happen to have already absorbed. **Generate the list cold, against the design alone.** Then verify.
