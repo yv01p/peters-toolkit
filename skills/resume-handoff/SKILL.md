@@ -1,7 +1,7 @@
 ---
 name: resume-handoff
 description: Use when continuing work after a context window was cleared, when given a handoff file path to resume from, or when a previous session ended with a create-handoff acknowledgment message
-version: 2.0.0
+version: 2.0.2
 ---
 
 # Resume Handoff
@@ -49,7 +49,7 @@ Verify each section from the handoff against current reality. Run checks in para
 | **§0 Executive Summary** | Is the "where stopped" description still accurate given git log? |
 | **§1 Technical State → Active Working Set** | Do all `file:line` refs exist? Is that line still the relevant location? |
 | **§1 Technical State → Current Errors/Blockers** | Does the exact error still reproduce? Has it been silently fixed? |
-| **§1 Technical State → Environment** | Do uncommitted changes listed still exist? Do required ENV vars exist? |
+| **§1 Technical State → Environment** | Do uncommitted changes listed still exist? Do required ENV vars exist? Does `git stash list` match the handoff's Stashes line (when present)? |
 | **§2 Progress Tracker** | Is each ✅/🔄/⏳/❌ status still accurate given current git state? |
 | **§3 Mental Model → Dead Ends** | Do all dead-end `file:line` refs still exist? Are they still dead ends? |
 | **§3 Mental Model → Assumptions** | Are the listed assumptions still valid? |
@@ -89,7 +89,7 @@ Current Errors / Blockers:
 Environment Delta:
   • Uncommitted changes: [matches handoff / differs: list specifics]
   • Staged changes: [matches / differs]
-  • New stash entries since handoff: [yes/no]
+  • Stashes: [matches handoff's Stashes line / differs: list / handoff has no Stashes line — report current stash state]
 
 ━━━ §2 PROGRESS TRACKER (UPDATED) ━━━
 | Task | Handoff Status | Current Status | Notes |
@@ -129,7 +129,7 @@ review any section above before we continue?
 
 ### Step 4 — Build Action Plan
 
-Convert §5 Next Steps (validated) into a prioritized task list using TodoWrite or equivalent. Present clearly.
+Convert §5 Next Steps (validated) into a prioritized todo list. Present clearly.
 
 Start with the state-verification command from §5 Step 1 — always run this first before touching any code.
 

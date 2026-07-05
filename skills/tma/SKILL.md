@@ -1,7 +1,7 @@
 ---
 name: tma
 description: Use when producing a threat model (STRIDE-per-element) for a system or codebase — before a first production deploy, after a major architectural change, when a security trigger fires (new/changed auth or authz model, new tenant or isolation boundary, new external integration, new class of sensitive data, new trust boundary), or for legacy assessment. Produces a single canonical threat-model document that critical-security-review can consume. User-invoked; does not auto-chain to any other skill.
-version: 2.0.0
+version: 2.0.1
 ---
 
 # TMA — Threat Model Analysis
@@ -12,7 +12,7 @@ This tool is the security family's **threat-modeling tool**. It produces the thr
 
 ## Checklist
 
-At invocation, create a TodoWrite checklist with one item per phase plus setup:
+At invocation, create a todo checklist with one item per phase plus setup:
 
 - [ ] Setup: resolve inputs, determine output location
 - [ ] Phase 0: Input resolution

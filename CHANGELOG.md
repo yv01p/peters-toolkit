@@ -19,6 +19,19 @@ When cutting a new version, update in lockstep:
 4. A new `git tag vX.Y.Z`
 5. Regenerate `tests/provenance/companion-manifest.sha256` (and its `# target:` line) if the visual-companion files were re-synced to a new Superpowers target
 
+## [2.2.2] — 2026-07-05
+
+**Targets Superpowers 6.0.x–6.1.x** (verified against 6.1.1)
+
+### Fixed
+
+- Vendor-neutral todo phrasing completed across the remaining four skills — `arch-review` → 2.0.1, `critical-implementation-review` → 2.1.1, `resume-handoff`, `tma` → 2.0.1 (was "TodoWrite", a tool name current harnesses no longer expose; same factual-correction class as 2.2.1's TB/TWP edits, closing the pass queued there). Repo-wide grep now clean.
+
+### Changed
+
+- `create-handoff` → 2.1.0: **no longer stages the handoff file** (`git add` removed from Step 4). Staging without committing left foreign files armed in the index indefinitely — observed live: four staged-never-committed handoffs sat in a real repo's index for 7 weeks and were genuinely swept into an unrelated snapshot commit by a bare `git commit` during the UDD/UIP audit's baseline trials (the hazard UDD/UIP 2.1.0 mitigated consumer-side; this removes the producer-side root cause). Handoffs are session-local by design (matching observed user practice: gitignored in one repo, never committed in another); the acknowledgment now says so. Also: Environment template gains a `Stashes:` line — Step 1 always gathered `git stash list` but the template never recorded it.
+- `resume-handoff` → 2.0.2: fidelity report's stash line now compares against the handoff's recorded `Stashes:` field instead of asserting "new stash entries since handoff" with no recorded baseline (graceful when older handoffs lack the field); Environment validation row updated to match.
+
 ## [2.2.1] — 2026-07-05
 
 **Targets Superpowers 6.0.x–6.1.x** (verified against 6.1.1)

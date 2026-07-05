@@ -1,7 +1,7 @@
 ---
 name: arch-review
 description: Use when reviewing the architecture of an existing codebase against a stated trigger — preparing for a known change (scaling event, migration, new feature class), responding to incidents or operational pain, due diligence pre-acquisition, or onboarding to an unfamiliar codebase. Adversarial review against a user-supplied brief; not a generic "score this codebase" pass.
-version: 2.0.0
+version: 2.0.1
 ---
 
 # Architecture Review (v2)
@@ -14,7 +14,7 @@ arch-review v2 is a ground-up rewrite of v1.1.0, replacing the persona / mandato
 
 ## Checklist
 
-Each item becomes a TodoWrite task at skill-invocation time, in order:
+Each item becomes a todo at skill-invocation time, in order:
 
 1. Read the user's invocation message and any args passed to the Skill tool. Extract the brief — one or more sentences naming a trigger, concern, or scope. The brief may appear in the args, in the user's surrounding message text, or both. If a brief is present in either source, accept it; the brief is whatever the user wrote.
 2. If no brief is present, ask exactly one clarifying question (verbatim message in the "Input contract" section below) and wait. The user's response becomes the brief; proceed. If the user explicitly refuses to provide a brief, do NOT proceed to a fabricated review — write a refusal note to the output file (per "Output format" below) and stop.
