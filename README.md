@@ -1,6 +1,6 @@
 # Peter's Agentic Toolkit
 
-**Version 2.1.0** · targets Superpowers 6.0.x
+**Version 2.2.0** · targets Superpowers 6.0.x
 
 Peter's Agentic Toolkit is a Claude Code plugin. It's a set of skills that shape how an agent handles design, planning, review, and implementation. The idea is simple: **agentic work deserves the same discipline you'd apply to writing critical software.** You brainstorm an idea into a spec, review the spec adversarially and revise it, turn the spec into a plan, review the plan adversarially and revise it, then hand the plan to sub-agents to build. Security gets assessed along the way.
 

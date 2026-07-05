@@ -1,7 +1,7 @@
 ---
 name: critical-design-review
 description: Use when reviewing a design spec produced by thorough-brainstorming, before the design is implemented. Use for adversarial design review, second-opinion on a finalized spec, or finding issues in a design before they become bugs. Multiple iterative passes supported.
-version: 2.1.0
+version: 2.2.0
 ---
 
 # Critical Design Review
@@ -34,6 +34,18 @@ Implementation-level concerns (race conditions in called primitives, error-path 
 Your job is to find the things in this spec that would literally break the user's stated outcome. You are not paid by the issue. An empty review is a valid output. Your job is correctness-defense, not value-demonstration.
 
 You are not playing a role. You are not a Senior Principal Architect. You are not graded on issues-found per review. The discipline emerges from the constraints in this skill — the literal-wrongness test, the bounded finding categories, the explicit delegation of security and implementation concerns to other skills — not from a persona.
+
+## Coverage before candidates (the enumeration sweep)
+
+Precision machinery tells you what to drop; it does not tell you where to look. Before generating any candidate finding, enumerate the review surface as a checkable list — this becomes §0 of your output:
+
+1. **Sections:** one row per section of the spec (by header), including sections that look settled or boilerplate. Late sections get the same depth of read as early ones.
+2. **Rules and operands:** one row per rule the design defines over inputs (matching, comparison, extraction, filtering, routing). For each: name every operand it touches (both sides of any comparison; key-side AND app-side; first party AND second party), and check BOTH failure directions — over-inclusion (claims/matches something it shouldn't) and under-inclusion (silently misses something it should catch). A rule that treats two structurally-similar operands differently is a mandatory row: test the operand the spec assumes is clean against real data; never accept "it's clean" by assertion.
+3. **Data-flow arrows:** one row per arrow between stages — "stage N's inputs are obtainable from stage N−1's outputs." Flag every arrow that crosses a persistence/serialization boundary (write-then-read of JSON/DB/file artifacts): the in-memory shape and the persisted shape are different objects; name both and confirm the fields the consumer needs actually exist in the shape it reads. A single design concept ("a verified record") silently splitting into two incompatible shapes across a write-to-disk is a recurring real-failure class.
+
+Work through the enumeration; give every row a one-line disposition: `ok — <what you checked>`, `→ §2/§3` (became a finding), or `dropped — <reason>` (candidate generated, failed the literal-wrongness test).
+
+The sweep drives candidate **generation only**. §0 is bookkeeping, not a fifth finding category — findings live only in §1–§4, and every candidate still passes the literal-wrongness test before it may appear in §2. A `dropped` row must never be promoted to a finding to justify the sweep's cost. Empty §2 remains a valid output — but only after the surface is covered. "I found one real issue" is not a reason to stop; "every §0 row has a disposition and this is all that's wrong" is.
 
 ## Ruthless YAGNI for reviewers
 
@@ -86,6 +98,7 @@ A **negative claim** asserts that something does NOT happen — "consumer X does
 | "Symbol Z is unused" / "Z has no callers" | `\bZ\b` across the codebase, excluding Z's own declaration site. | Any non-self hit → claim FALSE → §2. |
 | "Feature/flag F is dead" | `\bF\b` and any documented aliases / configuration keys. | Hit → claim FALSE → §2. |
 | "Module M has no external dependents" | Imports / `require` / project references / `using` statements naming M, across the codebase. | Hit → claim FALSE → §2. |
+| "Rule R produces correct output on all inputs of class C" (incl. recovery/coverage-rate claims: "recover the 180", "handles all variants") | Run R — or hand-trace it — over the real corpus/data it will see. Inspect BOTH the matched/covered set (spurious hits) AND the unmatched/residual set (silent misses). | Either failure direction on real data → §2. |
 
 ### Critical pitfall — grep the right symbol
 
@@ -96,6 +109,10 @@ Worked example (real failure that motivated this section):
 - **Wrong verification:** grep `LogProvider` in `GlobalExecutionId/`. Hit found — looks like a public-API call. Conclude: claim verified.
 - **Right verification:** grep `\bILog\b` in `GlobalExecutionId/`. Four hits: `private readonly ILog _logger = LogProvider.For<...>();`. The field type `ILog` is internal. Removing the IVT breaks compilation in 4 files.
 - **Verdict:** the public-API call returns an internal type; the consumer's field type leaks the access requirement; the claim is false; this is a §2 finding.
+
+### Input-cleanliness claims are negative claims
+
+"X is just the party name", "this field never carries suffixes", "input class C needs no special handling" — each asserts an absence of structure in an input. When a rule's correctness rests on one, it is load-bearing; test it against the real corpus, in both failure directions. Real failure that motivated this: a citation matcher extracted a first-party surname as "the last content token before `v.`"; the spec asserted the text before `v.` "is just the party name." Real corpus anchors had corporate parties — `Air Safety, Inc. v. …` extracts `inc.`, `Trammell Crow Co. No. 60 v. …` extracts `60` — so every corporate-first-party citation silently failed to match: a false-negative miss on the operand assumed clean. Three review rounds hunted over-inclusion only and accepted the cleanliness assertion without a corpus test; the enumeration sweep's both-directions rule plus this section exists so round 1 catches it.
 
 ### When grep can't verify
 
@@ -111,7 +128,7 @@ These are the only categories that exist. There is no "miscellaneous." Each requ
 
 | # | Category | What goes here | Output if empty |
 |---|---|---|---|
-| 1 | Verified-assumptions cross-check | For each item in the spec's `Verified assumptions` section: does it still hold under a fresh read of the cited evidence? Skip entirely if the section is absent (with a warning at the top of the review). | "All verified assumptions reconfirmed" |
+| 1 | Verified-assumptions cross-check | For each item in the spec's `Verified assumptions` section: does it still hold under a fresh read of the cited evidence? Then the **span check**: name any design dependency with no covering assumption — a fact the design needs that no listed item verifies, as scoped. Ground-truth status attaches to each listed item as written, not to the gaps between items; a mis-scoped assumption ("citations are enumerable" verified, "enumerated records carry the probe's inputs" never stated) hides in exactly that gap. Bounded: one line per uncovered dependency; verify it or surface it — don't re-litigate listed items. Skip the whole section only if it is absent from the spec (with a warning at the top of the review). | "All verified assumptions reconfirmed; span check found no uncovered dependency" |
 | 2 | Literal-wrongness findings | Each candidate must pass the literal-wrongness test above. Per item: description / evidence (file:line or behavior) / proposed fix. | "No literal-wrongness findings." |
 | 3 | Forced decisions | Real either/or the spec leaves unpicked, where a codebase or product constraint forces a choice the spec hasn't named. Reviewer surfaces the choice; never picks. Per item: the choice / why it's forced / the options. | "No forced decisions found." |
 | 4 | Previously addressed (history) | Only present if prior reviews exist. Brief bullets on items from the review history that have been resolved by the spec's current state. | Section omitted entirely. |
@@ -149,9 +166,14 @@ These thoughts mean STOP — you're rationalizing your way into producing specul
 | "The 'asked-for behavior' obviously implies X (where X is something the spec doesn't say)." | Be honest about what the spec actually says vs. what you'd assume in the spec's place. If the spec doesn't say X, X is not part of the asked-for behavior — don't smuggle X in to manufacture a §2 finding. |
 | "The spec says consumer X doesn't access internals of Y, so removing the `[InternalsVisibleTo]` / unexporting Y / etc. is safe." | Negative claims are load-bearing when a deletion's safety depends on them. Verify by grep'ing the **specific internal symbol** in X's source — not the public API around it. Public methods can return internal types; field annotations leak access. See "Negative claims require empirical evidence." |
 | "I grep'd the consumer for the public API and it's all clean — claim verified." | You grep'd the wrong target. The access-controlled symbol is what matters. Re-grep for the internal type/member name itself. |
+| "I have a solid finding already; the rest of the spec is probably fine." | One finding proves the search worked, not that it finished. The sweep isn't done until every §0 row has a disposition. Stopping at the first defensible finding is how a defect survives four rounds one section over. |
+| "Enumerating the surface is overhead; I'll spot-check the likely sections." | §0 is part of the output and checkable — a section, rule, or arrow with no row is a visible hole. Spot-checking is exactly how silent-miss (false-negative) defects survive review after review. |
+| "This arrow just passes data between stages; no row needed." | Arrows crossing a write-then-read boundary are where in-memory and persisted shapes diverge. One line to confirm the consumer's required fields exist in the shape it actually reads. |
+| "The rule's other operand is obviously the same shape; checking one side covers both." | Structurally-similar operands treated differently by a rule is a named smell. Test the assumed-clean side against real data — the miss that motivated this discipline lived on exactly the operand nobody tested. |
 
 ## Iterative review behavior
 
+- **Re-derive coverage every round.** In round N>1, complete the §0 enumeration sweep BEFORE reading prior reviews; the previous round's fix and its neighbors are single enumeration rows, not the search area. History tells you what's *resolved*, never what's *covered* — an update loop that only re-examines the last diff walks a thread through one section while the rest of the spec goes unread. (Prior-review reading remains mandatory for the never-re-raise rule; it just happens after the enumeration is built.)
 - **History awareness.** Read all prior reviews matching `<spec-basename>-critical-review-*.md` in the output directory. Never re-raise an issue already present in any prior review (resolved or not). If a prior issue is now confirmed as still wrong despite previous mention, surface it in §1 (verified-assumptions cross-check) or §2 (literal-wrongness) only if the cited evidence has changed; do not duplicate.
 - **Default output location:** `docs/criticalreviews/<spec-basename>-critical-review-N.md`, relative to the repository root. Create the directory if it does not exist. User preference overrides.
 - **Numbering:** N is one higher than the highest existing N for that spec basename, or 1 if none. Never overwrite.
@@ -167,7 +189,8 @@ Critical Design Review written to:
   <path/to/review/file.md>
 
 <icon> <recommendation label>
-  §1 Verified-assumptions cross-check: <X reconfirmed, Y failed> | n/a (section missing)
+  §0 Coverage: <N rows — X ok, Y → findings, Z dropped>
+  §1 Verified-assumptions cross-check: <X reconfirmed, Y failed, Z uncovered dependencies> | n/a (section missing)
   §2 Literal-wrongness findings: <count>
   §3 Forced decisions: <count>
   §4 Previously addressed: <count> | n/a (first round)
@@ -188,8 +211,12 @@ Print the summary. CDR ends after printing it; no further prompts.
 [If MISSING, immediately after the header:]
 > ⚠️ This spec lacks a `Verified assumptions` section. Reviewer cannot distinguish verified facts from unverified assumptions; treat findings accordingly.
 
+## 0. Coverage enumeration
+[One row per enumerated item — sections / rules-and-operands (both failure directions) / data-flow arrows (persistence boundaries flagged) — each with its disposition: `ok — <what was checked>` | `→ §2.n` / `→ §3.n` | `dropped — <reason it failed literal-wrongness>`]
+
 ## 1. Verified-assumptions cross-check
 [Per spec assumption: still holds | failed (with new evidence at file:line)]
+[Then span check: uncovered dependencies (one line each) | "span check found no uncovered dependency"]
 [If section missing: omit this entire section]
 
 ## 2. Literal-wrongness findings
@@ -227,6 +254,8 @@ Disambiguation:
 - DON'T re-question items in the Verified Assumptions section unless the cited evidence has changed.
 - DON'T play "Senior Principal Architect" or any other expert-role framing.
 - DON'T fabricate findings to fill empty sections. Empty is a valid output.
+- DON'T mark a §0 row `ok` without naming what you checked — an unexamined `ok` is fabricated coverage.
+- DON'T promote a §0 `dropped` candidate into §2 to make the sweep look productive — the literal-wrongness gate is unchanged.
 - DON'T propose decomposition unless the spec genuinely covers multiple independent subsystems.
 - DON'T comment on variable names, micro-optimizations, or low-level implementation details.
 - DON'T perform any of the tasks described in the spec itself — only review.

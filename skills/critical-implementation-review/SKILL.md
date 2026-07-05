@@ -1,7 +1,7 @@
 ---
 name: critical-implementation-review
 description: Use when reviewing an implementation plan produced by thorough-writing-plans, before the plan is implemented. Use for adversarial implementation review, second-opinion on a finalized plan, or finding issues in a plan before they become bugs at execution time. Multiple iterative passes supported.
-version: 2.0.0
+version: 2.1.0
 ---
 
 # Critical Implementation Review (v2)
@@ -19,13 +19,14 @@ Each item becomes a TodoWrite task at skill-invocation time, in order:
 1. Read the input plan end-to-end. Verify it's a `thorough-writing-plans` output (presence of `## Verified plan-level assumptions` header, case-insensitive); reject otherwise with the verbatim message in the "Input contract" section.
 2. Read all prior review files matching `<plan-basename>-critical-review-*.md` in `docs/criticalreviews/`. Treat the combined content as the full history; never re-raise an issue already present in any prior review.
 3. Detect drift: parse the plan's `**Source spec:**` header for a SHA (matches both `(commit SHA: <SHA>)` form when spec was tracked and `(uncommitted at plan-write time; repo HEAD = <SHA>)` form when spec was untracked). If `git -C <plan-dir> log --oneline <SHA>..HEAD` returns commits, emit a one-line drift note at the top of the review.
-4. Cross-check the plan's "Verified plan-level assumptions" section (§1 of output): for each assumption, perform a fresh read of the cited evidence; mark each as "still holds" or "failed (with new evidence at file:line)".
-5. Apply the literal-wrongness test to surface §2 findings (literal-wrongness in the plan's tasks, code blocks, commands, ordering, signatures, consumer impact, race conditions in called primitives, error-path swallowing, integration edge cases at trust boundaries).
-6. Surface §3 forced decisions the plan silently picked (real either/or where a codebase or product constraint forces a choice the plan hasn't named).
-7. Surface §4 history (only if prior reviews exist) — bullets of items from the review history now resolved by the plan's current state.
-8. Pick the recommendation per the bounded taxonomy (✅ / ⚠️ / 🛑).
-9. Write the review file to `docs/criticalreviews/<plan-basename>-critical-review-N.md` (N = highest existing N for that basename + 1, or 1). Create the directory if it doesn't exist; never overwrite.
-10. STOP. The review file is the handoff — no execution-handoff message printed (mirrors CDR v2). Do NOT auto-invoke `update-implementation-plan` or any other downstream skill.
+4. Build the §0 coverage enumeration (see "Coverage before candidates" below): one row per task × surface (step prose, code blocks, commands, wiring/integration text), one row per cross-task interface contract, both failure directions on rule-like content. In round N>1, build the enumeration BEFORE reading the prior round's diff in detail — the prior fix is one row, not the search area.
+5. Cross-check the plan's "Verified plan-level assumptions" section (§1 of output): for each assumption, perform a fresh read of the cited evidence; mark each as "still holds" or "failed (with new evidence at file:line)". Then the span check: name any plan dependency with no covering assumption — including dependencies the "Inherited from spec" list assumes but never states (a spec-level span gap otherwise passes through two review layers unexamined).
+6. Work the §0 enumeration through the literal-wrongness test to surface §2 findings (literal-wrongness in the plan's tasks, code blocks, commands, ordering, signatures, consumer impact, race conditions in called primitives, error-path swallowing, integration edge cases at trust boundaries). Give every §0 row a disposition.
+7. Surface §3 forced decisions the plan silently picked (real either/or where a codebase or product constraint forces a choice the plan hasn't named).
+8. Surface §4 history (only if prior reviews exist) — bullets of items from the review history now resolved by the plan's current state.
+9. Pick the recommendation per the bounded taxonomy (✅ / ⚠️ / 🛑).
+10. Write the review file to `docs/criticalreviews/<plan-basename>-critical-review-N.md` (N = highest existing N for that basename + 1, or 1). Create the directory if it doesn't exist; never overwrite.
+11. STOP. The review file is the handoff — no execution-handoff message printed (mirrors CDR v2). Do NOT auto-invoke `update-implementation-plan` or any other downstream skill.
 
 ## Process flow
 
@@ -36,6 +37,7 @@ digraph cir_v2 {
     "Reject with clear message" [shape=doublecircle];
     "Read prior review history" [shape=box];
     "Detect drift (parse Source-spec SHA)" [shape=box];
+    "§0 coverage enumeration (tasks × surfaces + contracts)" [shape=box];
     "§1 cross-check verified-plan-assumptions" [shape=box];
     "§2 literal-wrongness (static + dynamic)" [shape=box];
     "§3 forced decisions" [shape=box];
@@ -48,7 +50,8 @@ digraph cir_v2 {
     "Plan is thorough-writing-plans output?" -> "Reject with clear message" [label="no"];
     "Plan is thorough-writing-plans output?" -> "Read prior review history" [label="yes"];
     "Read prior review history" -> "Detect drift (parse Source-spec SHA)";
-    "Detect drift (parse Source-spec SHA)" -> "§1 cross-check verified-plan-assumptions";
+    "Detect drift (parse Source-spec SHA)" -> "§0 coverage enumeration (tasks × surfaces + contracts)";
+    "§0 coverage enumeration (tasks × surfaces + contracts)" -> "§1 cross-check verified-plan-assumptions";
     "§1 cross-check verified-plan-assumptions" -> "§2 literal-wrongness (static + dynamic)";
     "§2 literal-wrongness (static + dynamic)" -> "§3 forced decisions";
     "§3 forced decisions" -> "§4 previously addressed (if history)";
@@ -101,6 +104,18 @@ Your job is to find the things in this plan that would literally break the spec'
 
 You are not playing a role. You are not a Senior Staff Software Engineer. You are not graded on issues-found per review. The discipline emerges from the constraints in this skill — the literal-wrongness test, the bounded finding categories, the explicit delegation of security and design concerns to other skills — not from a persona.
 
+### Coverage before candidates (the enumeration sweep)
+
+Precision machinery tells you what to drop; it does not tell you where to look. Before generating any candidate finding, enumerate the plan's review surface as a checkable list — this becomes §0 of your output:
+
+1. **Tasks × surfaces:** one row per task per surface — step prose, code blocks, commands, and wiring/integration text each count as a surface. Step prose is not narration: derivation rules, classification logic, and parameter sourcing stated only in prose are executable content and break execution when wrong. The last tasks of the plan get the same depth of read as Task 1.
+2. **Cross-task interface contracts:** one row per contract — every Consumes/Produces pair ("Task 4 consumes Task 3's `ProbeOutcome`"), every fixture handoff (an artifact one task writes and a later task reads: spike results → regression fixtures, generated files → test inputs), every parameter a task passes that another task must have defined. Flag contracts that cross a persistence boundary — confirm the consuming task's inputs actually exist in the artifact the producing task writes.
+3. **Rule-like plan content:** any derivation/matching/classification rule stated in the plan (in prose or code) gets both failure directions checked — over-inclusion and under-inclusion — against the real inputs the plan will see, not hypothetical ones.
+
+Work through the enumeration; give every row a one-line disposition: `ok — <what you checked>`, `→ §2/§3` (became a finding), or `dropped — <reason it failed literal-wrongness>`.
+
+The sweep drives candidate **generation only**. §0 is bookkeeping, not a fifth finding category — findings live only in §1–§4, and every candidate still passes the literal-wrongness test. A `dropped` row must never be promoted to a finding to justify the sweep's cost. Empty §2 remains a valid output — but only after the surface is covered. "I found one real issue" is not a reason to stop; "every §0 row has a disposition and this is all that's wrong" is.
+
 ### Static AND dynamic mode-switch
 
 §2 covers static AND dynamic correctness — code-block bugs, command typos, ordering deps, signature mismatches, consumer-impact regressions, *and* race conditions in called primitives, error-path swallowing, integration edge cases at trust boundaries. Both pass through the same literal-wrongness gate.
@@ -108,6 +123,8 @@ You are not playing a role. You are not a Senior Staff Software Engineer. You ar
 Don't skip the dynamic mode just because the static read finishes faster — the dynamic mode is where CIR catches what no upstream skill could. `thorough-writing-plans` already verifies the static plan-level assumptions (paths, signatures, commands, ordering, code-validity, consumer-impact) at plan-write time. If CIR v2's §2 is *also* primarily about static issues, CIR is mostly re-doing that verification as a fresh-eyes pass — useful but not distinctive. The runtime / integration-boundary perspective is what no upstream skill covers; that's the work that justifies the skill's existence.
 
 The discipline emerges from this prose plus §2's worked examples (which cover both modes) — NOT from a separate §4 "Implementation-time edge cases" section. A separate § would prime filling and have an unfalsifiable discriminator (the agent can claim to have done the dynamic-mode work; nothing checks). A single §2 with both kinds of worked examples and an explicit mode-switch callout closes the structural slot.
+
+The §0 enumeration sweep is how both modes reach every task: each task's rows get a static pass and a dynamic pass, so the last tasks of the plan receive the same treatment as the first, and the coverage is visible in the output rather than claimed. (The mode-switch was this skill's original falsifiability device on one axis; §0 generalizes it to the full surface.)
 
 ## Ruthless YAGNI for reviewers
 
@@ -161,7 +178,7 @@ These are the only categories that exist. There is no "miscellaneous." No "Minor
 
 | # | Category | What goes here | Output if empty |
 |---|---|---|---|
-| 1 | Verified-plan-assumptions cross-check | For each item in the plan's `Verified plan-level assumptions` table: does it still hold under a fresh read of the cited evidence? Skip the entire section if the input table was empty (with the note from the input-contract sub-edge case). | "All verified plan-level assumptions reconfirmed." |
+| 1 | Verified-plan-assumptions cross-check | For each item in the plan's `Verified plan-level assumptions` table: does it still hold under a fresh read of the cited evidence? Then the **span check**: name any plan dependency with no covering assumption — a fact a task needs that no listed item (and no "Inherited from spec" item) verifies as scoped. Ground truth attaches to each listed item as written, not to the gaps between items. Bounded: one line per uncovered dependency; verify it or surface it — don't re-litigate listed items. Skip the entire section only if the input table was empty (with the note from the input-contract sub-edge case). | "All verified plan-level assumptions reconfirmed; span check found no uncovered dependency." |
 | 2 | Literal-wrongness findings | Each candidate must pass the literal-wrongness test above. Covers static AND dynamic. Per item: description / evidence (file:line, exec output, or runtime trace) / proposed fix. | "No literal-wrongness findings." |
 | 3 | Forced decisions | Real either/or the plan leaves unpicked, where a codebase or product constraint forces a choice the plan hasn't named. Reviewer surfaces the choice; never picks. Per item: the choice / why it's forced / the options. | "No forced decisions found." |
 | 4 | Previously addressed (history) | Only present if prior reviews exist for this plan basename. Brief bullets on items from the review history that have been resolved by the plan's current state. | Section omitted entirely. |
@@ -191,6 +208,7 @@ Disambiguation:
 
 ## Iterative review behavior
 
+- **Re-derive coverage every round.** In round N>1, complete the §0 enumeration sweep BEFORE reading the prior round's diff in detail; the previous round's fix and its neighbors are single enumeration rows, not the search area. History tells you what's *resolved*, never what's *covered* — the CIR→UIP loop otherwise collapses each round's search to the last fix's neighborhood. (Prior-review reading remains mandatory for the never-re-raise rule; it just happens after the enumeration is built.)
 - **History awareness.** Read all prior reviews matching `<plan-basename>-critical-review-*.md` in the output directory. Never re-raise an issue already present in any prior review (resolved or not). If a prior issue is now confirmed as still wrong despite previous mention, surface it in §1 (cross-check) or §2 (literal-wrongness) only if the cited evidence has changed; do not duplicate.
 - **Default output location:** `docs/criticalreviews/<plan-basename>-critical-review-N.md`, relative to the plan's repository root (or to current working directory as fallback if not in a repo). Create the directory if it does not exist. User preference overrides.
 - **Numbering:** N is one higher than the highest existing N for that plan basename, or 1 if none. Never overwrite.
@@ -239,8 +257,12 @@ If `git -C <plan-dir> rev-parse --is-inside-work-tree` returns false (plan is no
 
 [Drift note if applicable: ⚠️ N commits since plan-write time (SHA <plan-SHA>); cited file:line references re-checked under §1.]
 
+## 0. Coverage enumeration
+[One row per enumerated item — tasks × surfaces (step prose / code blocks / commands / wiring text), cross-task interface contracts (persistence-boundary handoffs flagged), rule-like content (both failure directions) — each with its disposition: `ok — <what was checked>` | `→ §2.n` / `→ §3.n` | `dropped — <reason it failed literal-wrongness>`]
+
 ## 1. Verified-plan-assumptions cross-check
 [Per assumption (numbered, matching plan's table): still holds | failed (with new evidence at file:line)]
+[Then span check: uncovered dependencies (one line each) | "span check found no uncovered dependency"]
 [OR: "All verified plan-level assumptions reconfirmed."]
 [Section omitted entirely if input table was empty]
 
@@ -269,6 +291,8 @@ No issue IDs (mirror CDR v2; UIP v2 will define its own parsing contract when it
 - DON'T re-question items in the §1 cross-check unless the cited evidence has changed.
 - DON'T play "Senior Staff Software Engineer" or any other expert-role framing.
 - DON'T fabricate findings to fill empty sections. Empty is a valid output.
+- DON'T mark a §0 row `ok` without naming what you checked — an unexamined `ok` is fabricated coverage.
+- DON'T promote a §0 `dropped` candidate into §2 to make the sweep look productive — the literal-wrongness gate is unchanged.
 - DON'T propose plan-decomposition (no analog to CDR v2's 🚧 — plans are 1:1 with specs).
 - DON'T comment on variable names, micro-optimizations, or low-level implementation details that don't break the spec's outcome.
 - DON'T perform any of the tasks described in the plan — only review.
@@ -300,4 +324,8 @@ These thoughts mean STOP — you're rationalizing your way into producing specul
 | "I need to add 'questions for clarification' so the plan-author knows what to think about." | There is no Questions section. If something is a real either/or the plan hasn't picked, it's a §3 forced decision. If it's speculation about intent, drop it. |
 | "The 'spec's outcome' obviously implies X (where X is something the spec doesn't say)." | Be honest about what the spec actually says vs. what you'd assume in the spec's place. If the spec doesn't say X, X is not part of the spec's outcome — don't smuggle X in to manufacture a §2 finding. |
 | "I see a static issue in §2 already; the dynamic mode-switch in the reviewer-mindset section is optional now." | §2 covers BOTH static and dynamic findings under the same gate. Even with one mode populated, the other mode's pass is still required — runtime issues that break the spec's outcome are §2 too, not skip-able. |
+| "I have a solid finding already; the rest of the plan is probably fine." | One finding proves the search worked, not that it finished. The sweep isn't done until every §0 row has a disposition. |
+| "The step prose is just narration of the code blocks; reviewing the code covers it." | Derivation rules, classification logic, and parameter sourcing stated only in prose are executable content — real execution-breaking defects live in step prose and wiring text, exactly the cells a code-block-only read skims. Prose rows are mandatory. |
+| "Enumerating every task × surface is overhead; I'll spot-check the risky tasks." | §0 is part of the output and checkable — a task, surface, or contract with no row is a visible hole. The last tasks of a plan are precisely the ones spot-checking never reaches. |
+| "This Consumes/Produces line just names an object from an earlier task; no row needed." | Cross-task contracts are where plans break at execution time — an undefined parameter, a fixture that lacks the fields the consumer reads, a persisted artifact missing the in-memory shape's data. One line to confirm the producing task actually defines what the consuming task uses. |
 | "I've finished §2; UIP can pick up the findings now — let me invoke it." | The skill stops at the written review file. UIP is a separate user-directed step; CIR doesn't auto-chain. (CIR v2 output is intentionally NOT compatible with UIP v1.1.0's parser — UIP v2 will adapt; see family-pattern documentation in the spec.) |
