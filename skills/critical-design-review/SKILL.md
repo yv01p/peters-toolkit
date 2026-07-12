@@ -1,7 +1,7 @@
 ---
 name: critical-design-review
 description: Use when reviewing a design spec produced by thorough-brainstorming, before the design is implemented. Use for adversarial design review, second-opinion on a finalized spec, or finding issues in a design before they become bugs. Multiple iterative passes supported.
-version: 2.2.0
+version: 2.3.0
 ---
 
 # Critical Design Review
@@ -45,10 +45,34 @@ Precision machinery tells you what to drop; it does not tell you where to look. 
    - **Eligibility predicates** — for any scope test over a status or type ("all confirmed results", "case-law entries", "verified records"), enumerate every PRODUCER of that status/type in the code (grep the constructors/assignment sites that emit it) — one row per producer, checking the predicate's assumptions against what that producer actually populates. The input classes are defined by what the code can produce, not by the paths the spec happens to name; the producer the spec didn't mention is the classic unhandled input class.
 3. **Data-flow arrows:** one row per arrow, and an arrow ends at an **operation** — an API call, a computation, a comparison, a render — not at a stage name. For each consuming operation: list the parameters it requires, and trace each one back to a field that exists in the artifact the operation's stage actually reads. "The data reaches the stage" is not the check; "every parameter of the operation exists in what the stage received" is. Flag every arrow that crosses a persistence/serialization boundary (write-then-read of JSON/DB/file artifacts): the in-memory shape and the persisted shape are different objects — dump a real record's key set and check against it, don't reason from the in-memory type of the same concept. A single design concept ("a verified record") silently splitting into two incompatible shapes across a write-to-disk is a recurring real-failure class; so is a downstream operation whose required parameter exists nowhere in the artifact its stage enumerates from. An operation with more than one caller gets **one row per call site**, not one per operation — each caller sources the operation's parameters from its own artifacts, and verifying sourcing once "for the operation" hides the caller whose inputs come from somewhere else. The canonical instance: an eval/spike-side replica of a runtime call — same operation, but its parameters come from persisted artifacts that may lack fields the runtime path holds in memory.
 
-Work through the enumeration; give every row a one-line disposition: `ok — <what you checked>`, `→ §2/§3` (became a finding), or `dropped — <reason>` (candidate generated, failed the literal-wrongness test). Two disciplines on the rows themselves:
+Work through the enumeration; give every row a disposition — one line for non-load-bearing rows, the evidence-tier ladder below for load-bearing ones: `ok — <what you checked>`, `→ §2/§3` (became a finding), or `dropped — <reason>` (candidate generated, failed the literal-wrongness test). Two disciplines on the rows themselves:
 
 - **Proportionality:** the sweep scales with the artifact — a five-line spec gets a three-row sweep, not a template's worth of rows. §0 is a search discipline, not a form to fill; padding it with rows that check nothing is the same fabricated coverage as an unexamined `ok`.
-- **Finish the surface:** a row that yields a finding is not thereby disposed. Before moving on, check the surface's remaining named identifiers — types, functions, exceptions, fixtures, columns — against the codebase. A found defect marks where the scan continues, not where it stops; the second phantom identifier in a block routinely hides behind the first.
+- **Finish the surface:** a row that yields a finding is not thereby disposed. Before moving on, check the surface's remaining named identifiers — types, functions, exceptions, fixtures, columns — against the codebase. A found defect marks where the scan continues, not where it stops; the second phantom identifier in a block routinely hides behind the first. **And the family:** a confirmed finding additionally obligates a recurrence sweep — enumerate the structurally similar siblings of the defective instance and check each for the same failure shape, bounded to the enclosing surface: the remaining checks in the same validator/file span, the sibling tests in the same module, the other outbound seams of the same test, the other fields under the same constraint kind, the sentences that follow in the same spec/plan paragraph. The family lives in the codebase as much as in the artifact. Record it as one §0 row per family member, or one row naming the family with a per-member disposition.
+
+### Evidence tiers: the disposition must match the claim class
+
+An `ok` disposition is only as strong as the evidence named in it. For
+**load-bearing rows** — any row whose failure would be a §1 or §2
+finding — the named check must meet the tier its claim class requires.
+Paste the decisive evidence into the row (the actual key list, the
+actual count, the command run); an evidence tier asserted but not shown
+is fabricated coverage.
+
+| Claim class | Minimum evidence | Never sufficient |
+|---|---|---|
+| Totality/coverage over a population ("the join holds", "every X maps", "all keys parse") | Run the rule over the full real population it will see, or inspect both the covered set and the residual set | One sampled instance generalized to the class (n=1 "spot check") |
+| Field present in a persisted artifact | Dump a real record's key set and cite the keys | Schema docstrings, Pydantic models, or the in-memory type of the same concept |
+| Field absent from a persisted artifact | A dump of a record that **reached the state that populates the field** (stratify by status before sampling) | Absence in a record that never reached the populating state (a stuck run proves nothing about completed ones) |
+| Artifact–consumer compatibility ("the harness consumes these files") | Push at least one real artifact through the consuming operation or its validator | Existence/count evidence — "67 files on disk" discharges "67 files exist", never "these files load" |
+| Bidirectional completeness ("every X is Y" mappings, span checks, listed↔required correspondences) | Both directions checked, each direction's disposition named in the row | A one-direction pass |
+
+Existence-level evidence discharges existence-level claims only. A
+load-bearing row that can't meet its tier in-round is not `ok`: upgrade
+the evidence, or surface it as a §3 forced decision (verify empirically /
+accept the risk / defer) — the "When grep can't verify" rule generalizes
+to evidence tiers. Non-load-bearing rows keep their one-line check;
+the ladder does not license padding.
 
 The sweep drives candidate **generation only**. §0 is bookkeeping, not a fifth finding category — findings live only in §1–§4, and every candidate still passes the literal-wrongness test before it may appear in §2. A `dropped` row must never be promoted to a finding to justify the sweep's cost. Empty §2 remains a valid output — but only after the surface is covered. "I found one real issue" is not a reason to stop; "every §0 row has a disposition and this is all that's wrong" is.
 
@@ -146,6 +170,20 @@ These are the only categories that exist. There is no "miscellaneous." Each requ
 - No "Architectural Soundness" mandate (modularity / scalability / extensibility / maintainability). Replaced by the literal-wrongness test.
 - No "Questions for Clarification" section. If something is a real either/or the spec hasn't picked, it's a §3 forced decision. If it's speculation about intent, drop it.
 
+## Proposed fixes are claims too
+
+A §2 finding's proposed fix is reviewer-authored artifact text: the
+update skill applies it, often verbatim. A proposed fix that introduces a
+new load-bearing claim — names a function or signature, asserts a
+property of the data or corpus, claims an instrument capability, or
+asserts parity/safety "by construction" — must carry the same evidence
+this skill demands of the text it is replacing: grep, dump, signature
+read, or run, cited inline in the fix. If the evidence can't be produced
+in-round, prefix the fix with `UNVERIFIED:` so the update skill treats it
+as a claim to verify before applying, not a fact to transcribe. An
+unverified fix applied verbatim is how a review authors the next round's
+finding.
+
 ## Reviewer rationalization table
 
 These thoughts mean STOP — you're rationalizing your way into producing speculation:
@@ -180,6 +218,13 @@ These thoughts mean STOP — you're rationalizing your way into producing specul
 | "The arrow reaches the stage with the right records, so the arrow is ok." | Records arriving is half the check. The stage's operation consumes specific parameters — name them and confirm each exists in the artifact the stage reads. An enumeration step that yields records lacking the fields its own next operation needs is the canonical silent break. |
 | "I verified this operation's parameter sourcing at its call site." | At *a* call site. An operation with several callers is sourced several ways — the eval-side replica of a runtime call reads persisted artifacts the runtime path never touches. One row per caller; the caller the spec treats as a copy of another is the one that breaks. |
 | "This block already gave me a finding; the rest of it is covered." | A finding disposes a defect, not a surface. The block's remaining named identifiers are unchecked until checked — the second phantom type in a block hides behind the first, and it has survived exactly this rationalization before. |
+| "I counted the artifacts, so the row is ok." | Counting proves existence; only the consumer proves compatibility. Push one real record through the consuming operation — 66/67 answer keys once failed a loader whose line number three rounds had cited as evidence. |
+| "I checked one case and it matched byte-identically." | n=1 verifies that case, not the class. Totality claims get the full population or both-sets inspection — 19/116 silent join failures lived behind exactly this spot check. |
+| "The schema/docstring says the field is there." | The persisted artifact is the operand, not the type. Dump a real record's keys — a field that existed in every docstring and no artifact has survived two rounds this way. |
+| "The field wasn't in the records I sampled, so it's absent." | Records that never reached the state that populates the field prove nothing. Sample where the field would be set. |
+| "I found the broken check; the rest of that validator is a different concern." | A found check has siblings enforcing the same invariant for other statuses and paths. Inventory the enclosing span — the `partial` twin of a found `success` check sat 30 lines down and cost a full round. |
+| "This test's outbound call is mocked; the test's row is done." | One row per outbound seam of the test, not one per test. The unmocked second seam is where the live call escapes. |
+| "The fix is my own analysis; it doesn't need the evidence treatment." | Reviewer-authored text bypasses every gate unless this one holds. Four late findings in one retrospective cycle were quoted verbatim from a prior round's proposed fix. |
 
 ## Iterative review behavior
 
