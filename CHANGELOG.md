@@ -19,6 +19,16 @@ When cutting a new version, update in lockstep:
 4. A new `git tag vX.Y.Z`
 5. Regenerate `tests/provenance/companion-manifest.sha256` (and its `# target:` line) if the visual-companion files were re-synced to a new Superpowers target
 
+## [2.3.0] — 2026-07-12
+
+**Targets Superpowers 6.0.x–6.1.x** (verified against 6.1.1)
+
+### Added
+- CDR 2.3.0 / CIR 2.2.0: evidence-tier ladder for §0 dispositions; family recurrence sweep at first hit; proposed-fix evidence standard (`UNVERIFIED:` tag). CIR additionally: negative-claims section (ported from CDR, plan-prose adaptations); "Run what is runnable".
+- UDD 2.2.0 / UIP 2.2.0: verify new load-bearing claims in review fixes before applying; propagation of the applied fix's changed terms (UIP's blanket no-pattern-sweep scoped to defects, five sites); evidence ratchet into Verified assumptions. UIP trusts-boundary carve-out (classification vs prescription).
+
+Motivated by the 888l review-loop retrospective (23 late findings across 6 features: evidence-tier shallowness, fix-induced defects, finish-the-surface under-generalization).
+
 ## [2.2.2] — 2026-07-05
 
 **Targets Superpowers 6.0.x–6.1.x** (verified against 6.1.1)
