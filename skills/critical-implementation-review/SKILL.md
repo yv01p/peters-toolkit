@@ -1,7 +1,7 @@
 ---
 name: critical-implementation-review
 description: Use when reviewing an implementation plan produced by thorough-writing-plans, before the plan is implemented. Use for adversarial implementation review, second-opinion on a finalized plan, or finding issues in a plan before they become bugs at execution time. Multiple iterative passes supported.
-version: 2.1.1
+version: 2.2.0
 ---
 
 # Critical Implementation Review (v2)
@@ -112,10 +112,34 @@ Precision machinery tells you what to drop; it does not tell you where to look. 
 2. **Cross-task interface contracts:** one row per contract — every Consumes/Produces pair ("Task 4 consumes Task 3's `ProbeOutcome`"), every fixture handoff (an artifact one task writes and a later task reads: spike results → regression fixtures, generated files → test inputs), every parameter a task passes that another task must have defined. A contract's endpoint is an **operation**, not a task name: list the parameters the consuming operation requires and trace each to a field that exists in the artifact the producing task actually writes — dump a real record's key set where one exists; don't reason from the in-memory type of the same concept. Flag contracts that cross a persistence boundary. An operation with more than one caller in the plan gets **one row per call site**, not one per operation — each caller sources the operation's parameters from its own artifacts, and verifying sourcing once "for the operation" hides the caller whose inputs come from somewhere else. The canonical instance: an eval/spike-side replica of a runtime call — same operation, but its parameters come from persisted artifacts that may lack fields the runtime path holds in memory.
 3. **Rule-like plan content:** any derivation/matching/classification rule stated in the plan (in prose or code) gets both failure directions checked — over-inclusion and under-inclusion — against the real inputs the plan will see, not hypothetical ones. Identity/exclusion rules (cache keys, dedup keys, self-match exclusion) are mandatory rows: calibration or later tuning sets *values*, it cannot repair *mechanics* — a key that conflates distinct entities is wrong at every value. For any eligibility predicate over a status or type, enumerate every producer of that status in the code — one row per producer; the input classes are what the code can emit, not what the plan lists.
 
-Work through the enumeration; give every row a one-line disposition: `ok — <what you checked>`, `→ §2/§3` (became a finding), or `dropped — <reason it failed literal-wrongness>`. Two disciplines on the rows themselves:
+Work through the enumeration; give every row a disposition — one line for non-load-bearing rows, the evidence-tier ladder below for load-bearing ones: `ok — <what you checked>`, `→ §2/§3` (became a finding), or `dropped — <reason it failed literal-wrongness>`. Two disciplines on the rows themselves:
 
 - **Proportionality:** the sweep scales with the artifact — a five-line plan gets a three-row sweep, not a template's worth of rows. §0 is a search discipline, not a form to fill; padding it with rows that check nothing is the same fabricated coverage as an unexamined `ok`.
-- **Finish the surface:** a row that yields a finding is not thereby disposed. Before moving on, check the surface's remaining named identifiers — types, functions, exceptions, fixtures, columns — against the codebase. A found defect marks where the scan continues, not where it stops; the second phantom identifier in a code block routinely hides behind the first.
+- **Finish the surface:** a row that yields a finding is not thereby disposed. Before moving on, check the surface's remaining named identifiers — types, functions, exceptions, fixtures, columns — against the codebase. A found defect marks where the scan continues, not where it stops; the second phantom identifier in a code block routinely hides behind the first. **And the family:** a confirmed finding additionally obligates a recurrence sweep — enumerate the structurally similar siblings of the defective instance and check each for the same failure shape, bounded to the enclosing surface: the remaining checks in the same validator/file span, the sibling tests in the same module, the other outbound seams of the same test, the other fields under the same constraint kind, the sentences that follow in the same spec/plan paragraph. The family lives in the codebase as much as in the artifact. Record it as one §0 row per family member, or one row naming the family with a per-member disposition.
+
+### Evidence tiers: the disposition must match the claim class
+
+An `ok` disposition is only as strong as the evidence named in it. For
+**load-bearing rows** — any row whose failure would be a §1 or §2
+finding — the named check must meet the tier its claim class requires.
+Paste the decisive evidence into the row (the actual key list, the
+actual count, the command run); an evidence tier asserted but not shown
+is fabricated coverage.
+
+| Claim class | Minimum evidence | Never sufficient |
+|---|---|---|
+| Totality/coverage over a population ("the join holds", "every X maps", "all keys parse") | Run the rule over the full real population it will see, or inspect both the covered set and the residual set | One sampled instance generalized to the class (n=1 "spot check") |
+| Field present in a persisted artifact | Dump a real record's key set and cite the keys | Schema docstrings, Pydantic models, or the in-memory type of the same concept |
+| Field absent from a persisted artifact | A dump of a record that **reached the state that populates the field** (stratify by status before sampling) | Absence in a record that never reached the populating state (a stuck run proves nothing about completed ones) |
+| Artifact–consumer compatibility ("the harness consumes these files") | Push at least one real artifact through the consuming operation or its validator | Existence/count evidence — "67 files on disk" discharges "67 files exist", never "these files load" |
+| Bidirectional completeness ("every X is Y" mappings, span checks, listed↔required correspondences) | Both directions checked, each direction's disposition named in the row | A one-direction pass |
+
+Existence-level evidence discharges existence-level claims only. A
+load-bearing row that can't meet its tier in-round is not `ok`: upgrade
+the evidence, or surface it as a §3 forced decision (verify empirically /
+accept the risk / defer) — the "When grep can't verify" rule generalizes
+to evidence tiers. Non-load-bearing rows keep their one-line check;
+the ladder does not license padding.
 
 The sweep drives candidate **generation only**. §0 is bookkeeping, not a fifth finding category — findings live only in §1–§4, and every candidate still passes the literal-wrongness test. A `dropped` row must never be promoted to a finding to justify the sweep's cost. Empty §2 remains a valid output — but only after the surface is covered. "I found one real issue" is not a reason to stop; "every §0 row has a disposition and this is all that's wrong" is.
 
@@ -128,6 +152,8 @@ Don't skip the dynamic mode just because the static read finishes faster — the
 The discipline emerges from this prose plus §2's worked examples (which cover both modes) — NOT from a separate §4 "Implementation-time edge cases" section. A separate § would prime filling and have an unfalsifiable discriminator (the agent can claim to have done the dynamic-mode work; nothing checks). A single §2 with both kinds of worked examples and an explicit mode-switch callout closes the structural slot.
 
 The §0 enumeration sweep is how both modes reach every task: each task's rows get a static pass and a dynamic pass, so the last tasks of the plan receive the same treatment as the first, and the coverage is visible in the output rather than claimed. (The mode-switch was this skill's original falsifiability device on one axis; §0 generalizes it to the full surface.)
+
+**Run what is runnable.** When a plan's code block is fully specified and its dependencies are importable in the local environment (installed wheel, repo module, on-disk fixture), execute it — or the smallest round-trip that exercises its real dependency — instead of inspecting it. Inspection catches name errors; execution catches shape errors: the union variant the code doesn't handle, the constructor that rejects the fake payload, the validator the fixture fails. This is CDR's "run R over the real corpus" applied to plan code; hand-tracing is the fallback when execution isn't cheap, not the default. A ten-line `python3 -c` against the installed SDK is in scope for a review; standing up services is not.
 
 ## Ruthless YAGNI for reviewers
 
@@ -175,6 +201,36 @@ The "spec's stated outcome" is what the plan was written to deliver. CIR v2 does
 | **Speculation: best-practice nit** — "Should add `Cache-Control: no-store` because it's PII" | Without it, does the spec's outcome (response body shape) change? No. | Drop. |
 | **Re-raise** — A prior review already mentioned this issue | Re-raising violates CIR's iterative-review contract. | Drop. |
 
+## Negative claims require empirical evidence
+
+A **negative claim** asserts that something does NOT happen — "the unit suite never performs live HTTP", "no other task touches this file", "the fixture carries no X". Plan authors often cite negative claims as the reason a deletion or change is safe ("we can delete Y because nothing depends on it"). When a negative claim is **load-bearing for the plan's safety**, you MUST treat it as a §2 candidate UNLESS you have grep evidence against the specific symbol whose absence is being claimed. A negative claim accepted on faith is the most common way a CIR misses a real literal-wrongness finding.
+
+### Verification recipe
+
+| Claim shape | Grep target | Hit means |
+|---|---|---|
+| "Consumer X doesn't access [internal/private/protected] members of provider Y" | The **specific internal symbol names** declared in Y — especially type names (`internal interface Foo`, `internal class Bar`) — grep'd in X's source. Not the public API around them. | Claim is FALSE → §2 finding. |
+| "Symbol Z is unused" / "Z has no callers" | `\bZ\b` across the codebase, excluding Z's own declaration site. | Any non-self hit → claim FALSE → §2. |
+| "Feature/flag F is dead" | `\bF\b` and any documented aliases / configuration keys. | Hit → claim FALSE → §2. |
+| "Module M has no external dependents" | Imports / `require` / project references / `using` statements naming M, across the codebase. | Hit → claim FALSE → §2. |
+| "Rule R produces correct output on all inputs of class C" (incl. recovery/coverage-rate claims: "recover the 180", "handles all variants") | Run R — or hand-trace it — over the real corpus/data it will see. Inspect BOTH the matched/covered set (spurious hits) AND the unmatched/residual set (silent misses). | Either failure direction on real data → §2. |
+
+### Critical pitfall — grep the right symbol
+
+"X uses only public API `foo()`" is NOT sufficient evidence that "X doesn't access internal type `T`". Public methods can return internal types; field declarations, parameter types, local-variable types, and base-class declarations all require the type itself to be accessible. **If T is the access-controlled symbol, grep X for `\bT\b` — not for the public method that happens to return T.**
+
+### Input-cleanliness claims are negative claims
+
+"X is just the party name", "this field never carries suffixes", "input class C needs no special handling" — each asserts an absence of structure in an input. When a rule's correctness rests on one, it is load-bearing; test it against the real corpus, in both failure directions. Real failure that motivated this: a citation matcher extracted a first-party surname as "the last content token before `v.`"; the spec asserted the text before `v.` "is just the party name." Real corpus anchors had corporate parties — `Air Safety, Inc. v. …` extracts `inc.`, `Trammell Crow Co. No. 60 v. …` extracts `60` — so every corporate-first-party citation silently failed to match: a false-negative miss on the operand assumed clean. Three review rounds hunted over-inclusion only and accepted the cleanliness assertion without a corpus test; the enumeration sweep's both-directions rule plus this section exists so round 1 catches it.
+
+### When grep can't verify
+
+If access happens through reflection, dynamic dispatch, code generation, runtime DI registration, string-based lookup, or any mechanism that hides symbol references from grep — the negative claim is unverifiable at plan-review time. Do NOT bless it as "probably fine." Surface as a §3 forced decision: "Verify empirically by attempting the change and observing the toolchain's response; defer the change if it fails." The user can then decide whether to spike-test now or accept the risk.
+
+### When the claim is incidental, not load-bearing
+
+The literal-wrongness test still applies. A throwaway "this isn't used elsewhere" remark in plan prose is NOT a CIR concern. An explicit "this is safe to delete because nothing depends on it" IS. The trigger is whether the plan's safety argument rests on the negative claim.
+
 ## The four finding categories
 
 These are the only categories that exist. There is no "miscellaneous." No "Minor Issues & Improvements." No "Questions for Clarification." Each requires a *specific kind* of finding; none has a "fill this in" prompt.
@@ -193,6 +249,20 @@ These are the only categories that exist. There is no "miscellaneous." No "Minor
 - No "Minor Issues & Improvements" section (CIR v1.6.0 §4) — open-ended invitation to fabricate; speculation passes through.
 - No "Questions for Clarification" section (CIR v1.6.0 §5) — speculation about the plan-author's intent; not the reviewer's job.
 - No "Implementation-time edge cases" §4 (despite the user-facing label being CIR's distinctive job). Folded into §2 — the literal-wrongness test catches both static and dynamic when the dynamic issue breaks the spec's outcome. Mode-switch is taught in prose (reviewer-mindset section + §2's worked examples), not by a structural slot. Closes the bucket-priming risk; mirrors CDR v2's "no fifth category" lesson.
+
+## Proposed fixes are claims too
+
+A §2 finding's proposed fix is reviewer-authored artifact text: the
+update skill applies it, often verbatim. A proposed fix that introduces a
+new load-bearing claim — names a function or signature, asserts a
+property of the data or corpus, claims an instrument capability, or
+asserts parity/safety "by construction" — must carry the same evidence
+this skill demands of the text it is replacing: grep, dump, signature
+read, or run, cited inline in the fix. If the evidence can't be produced
+in-round, prefix the fix with `UNVERIFIED:` so the update skill treats it
+as a claim to verify before applying, not a fact to transcribe. An
+unverified fix applied verbatim is how a review authors the next round's
+finding.
 
 ## Recommendation taxonomy
 
@@ -336,3 +406,11 @@ These thoughts mean STOP — you're rationalizing your way into producing specul
 | "I verified this operation's parameter sourcing at its call site." | At *a* call site. An operation with several callers is sourced several ways — the eval-side replica of a runtime call reads persisted artifacts the runtime path never touches. One row per caller; the caller the plan treats as a copy of another is the one that breaks. |
 | "This code block already gave me a finding; the rest of it is covered." | A finding disposes a defect, not a surface. The block's remaining named identifiers are unchecked until checked — the second phantom type in a block hides behind the first, and it has survived exactly this rationalization before. |
 | "I've finished §2; UIP can pick up the findings now — let me invoke it." | The skill stops at the written review file. UIP is a separate user-directed step; CIR doesn't auto-chain. (UIP v2 consumes the review file when — and only when — the user invokes it.) |
+| "I counted the artifacts, so the row is ok." | Counting proves existence; only the consumer proves compatibility. Push one real record through the consuming operation — 66/67 answer keys once failed a loader whose line number three rounds had cited as evidence. |
+| "I checked one case and it matched byte-identically." | n=1 verifies that case, not the class. Totality claims get the full population or both-sets inspection — 19/116 silent join failures lived behind exactly this spot check. |
+| "The schema/docstring says the field is there." | The persisted artifact is the operand, not the type. Dump a real record's keys — a field that existed in every docstring and no artifact has survived two rounds this way. |
+| "The field wasn't in the records I sampled, so it's absent." | Records that never reached the state that populates the field prove nothing. Sample where the field would be set. |
+| "I found the broken check; the rest of that validator is a different concern." | A found check has siblings enforcing the same invariant for other statuses and paths. Inventory the enclosing span — the `partial` twin of a found `success` check sat 30 lines down and cost a full round. |
+| "This test's outbound call is mocked; the test's row is done." | One row per outbound seam of the test, not one per test. The unmocked second seam is where the live call escapes. |
+| "The fix is my own analysis; it doesn't need the evidence treatment." | Reviewer-authored text bypasses every gate unless this one holds. Four late findings in one retrospective cycle were quoted verbatim from a prior round's proposed fix. |
+| "I read the code block carefully; the attribute paths all exist." | Inspection was `ok` twice on a block that failed on first execution. If the imports resolve locally, run it — the check costs less than the round it saves. |
