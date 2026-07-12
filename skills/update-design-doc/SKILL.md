@@ -1,7 +1,7 @@
 ---
 name: update-design-doc
 description: Use when a critical-design-review v2 output exists and the design spec needs to be revised to address its findings. Takes one or more CDR v2 review file paths as arguments. Processes each finding sequentially with user approval. Commits pre-state and post-state when the spec is in a git repo. Empty review = no edits made.
-version: 2.1.0
+version: 2.2.0
 ---
 
 # Update Design Document
@@ -93,7 +93,34 @@ The discipline is the same as `thorough-brainstorming`'s: every line you add mus
    For each finding:
    - **Restate the finding** — quote or directly reference the relevant part of the review.
    - **Read the spec section it touches.** Ground the fix in cited codebase evidence.
-   - **Propose the smallest fix that resolves the finding.** No scope expansion. No adjacent improvements. No clarity polishing of unrelated prose. No "while we're here" additions.
+   - **Propose the smallest fix that resolves the finding.** No scope expansion. No adjacent improvements. No clarity polishing of unrelated prose. No "while we're here" additions. (Propagating the fix's dependent mentions per the Propagate bullet is part of the fix, not scope expansion.)
+   - **Verify new load-bearing claims before proposing.** If the fix —
+     whether reviewer-proposed or authored here — introduces a claim the
+     artifact will now rest on (a named function or signature, a data or
+     corpus property, an instrument capability, a derivation rule over real
+     inputs), verify it the way the review skills would: grep the symbol,
+     read the signature, dump or run against the real data — and cite the
+     evidence in the proposal shown to the user. A review fix prefixed
+     `UNVERIFIED:`, or carrying no evidence for such a claim, is a claim to
+     verify, not a fact to transcribe. If verification fails, surface that
+     back to the user with the evidence instead of applying; do not
+     silently substitute your own alternative fix.
+   - **Propagate.** After drafting the fix, search the artifact for other
+     statements of the quantity, rule, or mechanism the fix changes (grep
+     the artifact for the changed text's key terms). Each dependent mention
+     either receives a consistent tracked edit — part of the same proposal,
+     under the same approval gate — or an explicit note in the proposal that
+     it is unaffected and why. A fix that rewrites one section's rule while
+     a later section still records the replaced quantities ships an
+     internally inconsistent artifact.
+   - **Ratchet in-round evidence.** When a fix's correctness rests on
+     verification performed inside the review round — reviews are typically
+     untracked, so their evidence does not persist — track a matching
+     addition or update to the artifact's `Verified assumptions` (spec) /
+     `Verified plan-level assumptions` (plan) section as part of the same
+     proposal, so the fact survives into the artifact the next round
+     re-reads. This generalizes the existing rule for invalidated
+     assumptions to newly load-bearing ones.
    - **End with:** `Apply this fix? (yes / no / modify)` — wait for the user.
    - **On approve: TRACK the change. Do NOT call the Edit or Write tool yet.** Note the (find-string, replace-string) for the spec text in your conversation context. All disk writes are deferred to step 9 — this guarantees step 8's snapshot operates on the unmodified spec. If the fix also invalidates an item in the spec's `Verified assumptions` section, track an update for that item too (match by bold-text key); surface the assumption update to the user as part of the proposal.
 
@@ -183,3 +210,5 @@ These thoughts mean STOP — you're rationalizing your way into producing specul
 | "The review didn't propose an architecture alternative, but the §2 fix would clearly benefit from one — I'll propose it." | Alternatives belong in the §2 finding's proposed-fix prose (per CDR v2's design). If CDR v2 didn't propose one, don't invent one. |
 | "I noticed the upstream review missed a real issue — let me address it too while I'm here." | The review is the contract. If the review missed something, surface it back to the user as a hint to re-run CDR; don't fold it into this update silently. |
 | "The span-check item is unverified and proposes no fix — nothing for me to apply, skip it." | Uncovered dependencies are the span check's entire output. Present each to the user; ratchet verified ones into `Verified assumptions`; put unverifiable ones to the user as a choice. A silent drop here defeats the check one skill downstream of where it ran. |
+| "The reviewer proposed this exact fix; my job is to apply it faithfully." | Faithfully to the finding, not to unverified claims inside the fix text. Verify the claim; if it is false, surface it back with evidence — applying it verbatim manufactures the next round's finding. |
+| "The finding pointed at §5; touching §7 too would be scope creep." | Scope creep is adding improvements; propagation is finishing the fix. A dependent section still stating the replaced rule is a new defect authored by the update. |
