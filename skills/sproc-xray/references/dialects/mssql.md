@@ -265,18 +265,3 @@ WHERE o.type IN ('P','FN','IF','TF','TR');
 `OBJECT_DEFINITION()` returns `nvarchar(max)`, which avoids the truncation issue.
 
 **Post-processing:** You will need to parse the output and split each object's definition into separate `.sql` files for sproc-xray to analyze. A simple Python or Bash script can do this.
-
----
-
-## Sources
-
-This reference was distilled from:
-
-1. **Oracle ↔ T-SQL substitution cheat sheet** (lines 11-38 of the draft material) — the source of truth for substantive T-SQL facts. **If a translation contradicts this table, the translation is wrong.**
-2. The following URLs were consulted and weighted tertiary:
-   - Microsoft Docs: T-SQL Reference (https://learn.microsoft.com/en-us/sql/t-sql/)
-   - SQL Server Central: Trigger Best Practices (https://www.sqlservercentral.com/)
-3. **Silent-Behavior Footguns (Migration)** section — distilled from multi-model web research (four independent models), then vetted item-by-item: deduplicated against the rest of this reference, rejected for loud-not-silent / non-divergence / out-of-scope-DDL, and accuracy-checked for engine semantics. Items marked *(verified: Microsoft Learn)* were confirmed against primary Microsoft documentation (`money`, `COALESCE`, decimal precision/scale, `table`).
-
-All facts in this document prioritize the cheat sheet; external sources were used only for terminology and formatting guidance.
-
