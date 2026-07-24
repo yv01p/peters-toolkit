@@ -266,7 +266,7 @@ This generates and executes a script that creates one `.sql` file per object.
 
 The core dialect facts in this reference were distilled from:
 
-1. **`~/sproc-recon/references/dialects/oracle/notes.md`** — the origin of the substantive PL/SQL facts (package model, NULL semantics, trigger model, autonomous transactions, `AUTHID`, dynamic SQL, `RAISE_APPLICATION_ERROR`, exception swallowing).
+1. **Originating PL/SQL dialect notes** (pre-plugin working material, not distributed with this skill) — the origin of the substantive PL/SQL facts (package model, NULL semantics, trigger model, autonomous transactions, `AUTHID`, dynamic SQL, `RAISE_APPLICATION_ERROR`, exception swallowing).
 2. Oracle Documentation: PL/SQL Language Reference (https://docs.oracle.com/en/database/oracle/oracle-database/)
 
 The `DBMS_SQL`, `DBMS_OUTPUT`-swallow, standalone-overload, forward-declaration-stub, and Oracle-Specific-Footguns material was added from real sproc-xray runs against ADempiere PL/SQL and is not drawn from the notes file. A second, full-corpus run (adding the Oracle view layer) contributed the `ADD_MONTHS`, `ROUND`, `DATE`-as-fractional-day, and NLS-conversion footguns, plus the `ROWNUM` third-variant / view-layer and `(+)` at-scale notes.
