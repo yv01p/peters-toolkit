@@ -1,7 +1,5 @@
 # Oracle (PL/SQL) Dialect Reference
 
-**Validated against a real Oracle codebase (ADempiere PL/SQL).**
-
 PL/SQL (Procedural Language/SQL) is Oracle Database's procedural extension to SQL. This reference provides the dialect-specific facts that sproc-xray uses when analyzing PL/SQL codebases for extraction migration.
 
 ## Package-Based Modularity and Stored Procedure Model

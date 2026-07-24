@@ -116,7 +116,7 @@ Extended procedures (`xp_fileexist`, `xp_fixeddrives`, `xp_create_subdir`, `xp_l
 
 ## Silent-Behavior Footguns (Migration)
 
-These are T-SQL constructs whose behavior silently changes meaning when logic is extracted to application code or ported to PostgreSQL/Oracle — code that compiles and runs but produces different results, data, or side effects. They rarely surface as errors, so migration tools miss them and only production divergence reveals them. Each item was accuracy-vetted for engine semantics; the ones marked *(verified: Microsoft Learn)* were confirmed against primary documentation.
+These are T-SQL constructs whose behavior silently changes meaning when logic is extracted to application code or ported to PostgreSQL/Oracle — code that compiles and runs but produces different results, data, or side effects. They rarely surface as errors, so migration tools miss them and only production divergence reveals them.
 
 ### Strings and comparison
 
@@ -128,8 +128,8 @@ These are T-SQL constructs whose behavior silently changes meaning when logic is
 
 ### Numbers and rounding
 
-- **`money`/`smallmoney` cause rounding errors through truncation in calculations.** *(Verified: Microsoft Learn.)* The types carry a fixed 4-decimal scale, so intermediate division/multiplication results are truncated and a `money`→`numeric`/`NUMBER` remapping changes totals in the fourth decimal and up. Microsoft explicitly warns against using `money` in calculations — use `decimal` with at least four decimal places.
-- **decimal division result scale is derived from operands' DECLARED precision/scale, not their values.** *(Verified: Microsoft Learn.)* For `e1 / e2` the result scale is `max(6, s1 + p2 + 1)` (floor 6, absolute max 38); excess fraction is rounded to fit, so long division chains silently lose digits that PostgreSQL `numeric` keeps.
+- **`money`/`smallmoney` cause rounding errors through truncation in calculations.** The types carry a fixed 4-decimal scale, so intermediate division/multiplication results are truncated and a `money`→`numeric`/`NUMBER` remapping changes totals in the fourth decimal and up. Avoid `money` for any calculated value — use `decimal` with at least four decimal places.
+- **decimal division result scale is derived from operands' DECLARED precision/scale, not their values.** For `e1 / e2` the result scale is `max(6, s1 + p2 + 1)` (floor 6, absolute max 38); excess fraction is rounded to fit, so long division chains silently lose digits that PostgreSQL `numeric` keeps.
 - **`ROUND(x, n, <non-zero>)` truncates instead of rounding.** Any non-zero third argument switches `ROUND` to truncation; no other dialect's `ROUND` has that parameter, so a literal port turns truncation back into rounding.
 
 ### Dates
@@ -140,7 +140,7 @@ These are T-SQL constructs whose behavior silently changes meaning when logic is
 
 ### NULL and expression semantics
 
-- **`COALESCE` evaluates its argument more than once.** *(Verified: Microsoft Learn.)* It expands to a `CASE`, so a subquery or non-deterministic argument can execute twice and return two different values — the docs note it "can return NULL under the READ COMMITTED isolation level." `ISNULL` evaluates once, and PostgreSQL/Oracle `COALESCE` evaluate each argument once, so both side effects and results can differ after migration.
+- **`COALESCE` evaluates its argument more than once.** It expands to a `CASE`, so a subquery or non-deterministic argument can execute twice and return two different values, and it can return NULL under the READ COMMITTED isolation level. `ISNULL` evaluates once, and PostgreSQL/Oracle `COALESCE` evaluate each argument once, so both side effects and results can differ after migration.
 - **Data-type precedence in mixed comparisons.** `int` outranks `varchar`, so `WHERE varchar_col = 7` converts the *column* to `int` and `'007'` matches; the same predicate in application code or a strictly-typed target compares strings and doesn't. (A non-numeric value in the column raises a conversion error — the loud case.)
 
 ### Session settings
@@ -151,7 +151,7 @@ These are T-SQL constructs whose behavior silently changes meaning when logic is
 
 - **Statement-level error rollback vs. whole-transaction abort.** With `XACT_ABORT` OFF (the default), the common case is that an error rolls back only the failing statement and the transaction continues — the opposite of PostgreSQL, which dooms the entire transaction, and different again from Oracle's implicit per-statement savepoint. Caveat: actual T-SQL behavior varies by error class (some errors abort the batch, some leave the transaction uncommittable), so treat "only the statement rolls back" as the common case, not a rule.
 - **Nested `BEGIN TRAN` is not nested.** An inner `BEGIN TRAN` only increments `@@TRANCOUNT`; an inner `COMMIT` commits nothing (only the outermost commit is real), and a bare `ROLLBACK` discards the entire outermost transaction. PostgreSQL treats a nested `BEGIN` as a no-op warning, and both PostgreSQL and Oracle use `SAVEPOINT`, so ported error-handling silently commits or rolls back a different scope than intended.
-- **Table variables ignore ROLLBACK.** *(Verified: Microsoft Learn.)* `@table` contents survive a transaction rollback by design ("transaction rollbacks don't affect them"); the same logic on a temp table, a PostgreSQL temp table, or an app-side collection inside a transaction does not.
+- **Table variables ignore ROLLBACK.** `@table` contents survive a transaction rollback by design — rollbacks do not affect them; the same logic on a temp table, a PostgreSQL temp table, or an app-side collection inside a transaction does not.
 - **`NOLOCK` / READ UNCOMMITTED anomalies vanish under MVCC.** `WITH (NOLOCK)` permits dirty reads and allocation-scan anomalies (rows read twice or skipped). PostgreSQL and Oracle are MVCC with no such hint — it silently disappears and the query runs under snapshot/read-committed isolation. Relatedly, T-SQL's default READ COMMITTED uses shared locks (readers block writers) unless `READ_COMMITTED_SNAPSHOT` is on, so timing- and deadlock-dependent logic behaves differently in both directions.
 - **Trigger rowcount inflation.** Without `SET NOCOUNT ON` in the trigger body, the client receives the trigger's row counts too, so an ORM or driver checking "rows affected" for optimistic concurrency reads the wrong number. (See also the Trigger Model section: triggers fire once per statement, so `SELECT @v = col FROM inserted` silently grabs one arbitrary row of a multi-row change.)
 - **Temp table scope differs three ways.** A `#temp` created inside a stored procedure is dropped when that procedure exits, but a `#temp` created in the outer batch is session-scoped; PostgreSQL temp tables live for the whole session; and Oracle global temporary tables default to `ON COMMIT DELETE ROWS`, silently emptying at each commit. A naive port can reuse stale rows, fail on the second call, or lose a working set mid-procedure.
