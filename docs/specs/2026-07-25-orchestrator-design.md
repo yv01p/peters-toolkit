@@ -121,10 +121,10 @@ Selected at triage (G1): the orchestrator proposes a tier with its reasoning; th
 | Tier | Stage 4 (design) | Stage 5 (plan) | Stage 6 (implement) | Gates | Reasoning heuristic |
 |---|---|---|---|---|---|
 | **Trivial** | — | — | direct TDD fix | G1, G2, G8 | Fix obvious from root cause |
-| **Design-only** | `TB → CDR? → UDD` | — | direct TDD fix | G1, G2, **G4**, G8 | Approach unclear, but the change is localized |
-| **Full** | `TB → CDR? → UDD` | `TWP → CIR? → UIP` | **`subagent-driven-development`** | G1, G2, G4, **G5**, G8 (+ security review) | Approach unclear **and** multi-step / risky |
+| **Design-only** | `TB → CDR ⇄ UDD` | — | direct TDD fix | G1, G2, **G4**, G8 | Approach unclear, but the change is localized |
+| **Full** | `TB → CDR ⇄ UDD` | `TWP → CIR ⇄ UIP` | **`subagent-driven-development`** | G1, G2, G4, **G5**, G8 (+ security review) | Approach unclear **and** multi-step / risky |
 
-(`CDR?` / `CIR?` = optional adversarial review; `UDD`/`UIP` apply the findings.) The fourth combination — plan without design — is deliberately not offered (O5).
+(`CDR ⇄ UDD` / `CIR ⇄ UIP` = a mandatory review loop, run until the review is green: once `TB`/`TWP` runs, its review runs; if not green, `UDD`/`UIP` applies the findings and the review re-runs, repeating until green. What is optional is `TB`/`TWP` themselves — the tier selects whether they run.) The fourth combination — plan without design — is deliberately not offered (O5).
 
 ---
 
@@ -138,8 +138,8 @@ The orchestrator walks the umbrella's stages 0–9. At each stage it does exactl
 | 1 | Triage & route | **own judgment:** state expected-vs-actual; propose tier; post work-log | **G1** |
 | 2 | Reproduce & root cause | delegate: `systematic-debugging` (the shared spine, O6) → pause at G2 | **G2** |
 | 3 | Isolate + failing test | delegate: `using-git-worktrees` (branch, per harness convention) → `test-driven-development` (failing reproduction test on the branch) | — |
-| 4 | Solution options *(design-only, full)* | delegate: `thorough-brainstorming` → *(optional)* `critical-design-review` → `update-design-doc` | **G4** |
-| 5 | Plan *(full)* | delegate: `thorough-writing-plans` → *(optional)* `critical-implementation-review` → `update-implementation-plan` | **G5** |
+| 4 | Solution options *(design-only, full)* | delegate: `thorough-brainstorming` → `critical-design-review` ⇄ `update-design-doc` (loop until CDR green) | **G4** |
+| 5 | Plan *(full)* | delegate: `thorough-writing-plans` → `critical-implementation-review` ⇄ `update-implementation-plan` (loop until CIR green) | **G5** |
 | 6 | Implement | full: `subagent-driven-development`; trivial/design-only: direct TDD fix (make the test pass) | — |
 | 7 | Verify | delegate: `verification-before-completion` + run harness `format`/`test`; original reproduction gone | — |
 | 8 | Review | delegate: `requesting-code-review` / `receiving-code-review` (+ *optional* `critical-security-review` on full/security-relevant) (+ *optional* harness `review_skill`) | **G8** |
@@ -147,7 +147,7 @@ The orchestrator walks the umbrella's stages 0–9. At each stage it does exactl
 
 **The `systematic-debugging` fork (O6):** all tiers run Stage 2 identically to root cause and pause at G2. Trivial resumes straight into Stages 3→6→7 (systematic-debugging's natural continuation, which already points to TDD and verification-before-completion). Design-only/full detour through Stage 4 (and, for full, Stage 5) before Stage 6.
 
-**Why delegation composes cleanly (verified A3):** every chain-skill (`thorough-brainstorming`, `thorough-writing-plans`, CDR, CIR, UDD, UIP) hard-gates against auto-chaining — each stops at a committed artifact and hands back. The orchestrator is exactly the conductor that picks each one up, runs the gate, and moves to the next. Their natural stop points *are* the orchestrator's gates.
+**Why delegation composes cleanly (verified A3):** every chain-skill (`thorough-brainstorming`, `thorough-writing-plans`, CDR, CIR, UDD, UIP) hard-gates against auto-chaining — each stops at a committed artifact and hands back. The orchestrator is exactly the conductor that picks each one up, runs the gate, and moves to the next — looping `CDR ⇄ UDD` / `CIR ⇄ UIP` until the review is green before advancing past G4/G5. Their natural stop points *are* the orchestrator's gates.
 
 ### 6.1 Needs-info loop (umbrella §4.1)
 
