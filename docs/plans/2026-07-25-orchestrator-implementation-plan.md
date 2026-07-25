@@ -26,7 +26,7 @@
 
 **Modify**
 - `.gitignore` — add `!/skills/bugfix/` in the skills-whitelist block (alphabetical slot, between `!/skills/arch-review/` and `!/skills/cobol-xray/`)
-- `tests/run-tests.sh` — add a `node --test skills/bugfix/tests/` guard to the hermetic suite
+- `tests/run-tests.sh` — add a `node --test 'skills/bugfix/tests/**/*.test.mjs'` guard to the hermetic suite
 
 **Test**
 - `skills/bugfix/tests/status.test.mjs` + `tests/fixtures/*.json` (unit-tests the pure `computeStage`)
@@ -123,7 +123,7 @@ for (const f of readdirSync(dir).filter((x) => x.endsWith('.json'))) {
   test(name ?? f, () => assert.deepEqual(computeStage({ branches, artifacts }), expected));
 }
 ```
-- [ ] **Step 3: Run — watch it fail.** `node --test skills/bugfix/tests/` (no `status.mjs` yet → error).
+- [ ] **Step 3: Run — watch it fail.** `node --test 'skills/bugfix/tests/**/*.test.mjs'` (no `status.mjs` yet → error).
 - [ ] **Step 4: Implement `scripts/status.mjs`** — pure `computeStage` + I/O + CLI:
 ```js
 #!/usr/bin/env node
@@ -175,10 +175,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   console.log(JSON.stringify(results, null, 2));
 }
 ```
-- [ ] **Step 5: Run — watch it pass.** `node --test skills/bugfix/tests/` → green.
+- [ ] **Step 5: Run — watch it pass.** `node --test 'skills/bugfix/tests/**/*.test.mjs'` → green.
 - [ ] **Step 6: Wire into the guard suite.** In `tests/run-tests.sh`, add before the `fail` check:
 ```bash
-echo "== bugfix status =="; node --test skills/bugfix/tests/ || fail=1
+echo "== bugfix status =="; node --test 'skills/bugfix/tests/**/*.test.mjs' || fail=1
 ```
 - [ ] **Step 7: Run the full suite.** `bash tests/run-tests.sh` → `ALL TESTS PASSED`.
 - [ ] **Step 8: Commit.**
