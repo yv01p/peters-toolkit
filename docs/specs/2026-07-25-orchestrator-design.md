@@ -301,7 +301,7 @@ Plus one `.gitignore` line in the skills-whitelist block: `!/skills/bugfix/` (ve
 
 ## 15. Relationship to the umbrella
 
-This spec **refines** the umbrella in one place: the two-path model (D3/§3.2) becomes three tiers (O5/§5). Recommendation: update the umbrella spec (a git-ignored working file — verified A13) so the parent stays the source of truth. Whether that edit lands in this cycle or as a follow-up is the user's call; the divergence is noted here regardless. Everything else conforms to the umbrella (stages, gates, needs-info loop, generic-core/harness split, thorough-* skills, `subagent-driven-development` as executor).
+This spec conforms to the umbrella. It originally refined the umbrella's two-path model (D3/§3.2) into three tiers (O5/§5); that refinement has since been folded into the umbrella (§3.2), so the parent carries the three-tier model and no divergence remains. Everything else conforms to the umbrella (stages, gates, needs-info loop, generic-core/harness split, thorough-* skills, `subagent-driven-development` as executor).
 
 ---
 
@@ -321,7 +321,7 @@ Checked on 2026-07-25 against the real codebase before finalizing this spec:
 - **A10 — `run-tests.sh` stays green.** ✅ `check-version-lockstep.sh` compares only version markers (plugin.json/README/CHANGELOG) + Superpowers-target; `check-companion-provenance.sh` sha256-checks a fixed manifest + greps for removed tokens. A new skill touches neither. (Shipping still requires the coordinated version bump — a release step.)
 - **A11 — Umbraco harness values.** ✅ version `18.2.0-rc` → major 18; branch `v<version>/<type>/<desc>` (example `v17/bugfix/12345-…`); PR title `Area: Description (closes #ID)` + `Fixes #ID` on its own body line; `dotnet format` / `dotnet test`; `state/needs-investigation` label real; `umb-review` present. **Correction:** only `docs/criticalreviews/` exists in Umbraco today — `docs/specs/`, `docs/plans/` are created on first write (Finding 3 — §19).
 - **A12 — pipeline is test-stack-agnostic.** ✅ TDD's core ("write the test first, watch it fail" — jest is only its example); `verification-before-completion` runs "the project's" linter/build/test generically. UI seam viable.
-- **A13 — umbrella is a git-ignored working file.** ✅ `git check-ignore` matches it via `/*`; editable for the O5 refinement.
+- **A13 — umbrella is an editable working spec.** ✅ Editable for the O5 refinement (and the review-loop correction), applied and committed this session. Now git-tracked (per the per-skill `docs/` publishing policy), not ignored as originally verified.
 
 ---
 
