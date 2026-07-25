@@ -1,0 +1,8 @@
+{ "name": "prefix stripping (*/+/space)",
+  "branches": ["* v18/bugfix/104-cur", "+ v18/bugfix/105-wt", "  v18/bugfix/106-oth"],
+  "artifacts": { "specs": [], "plans": [] },
+  "expected": [
+    { "id": "104", "branch": "v18/bugfix/104-cur", "phase": "branch cut" },
+    { "id": "105", "branch": "v18/bugfix/105-wt", "phase": "branch cut" },
+    { "id": "106", "branch": "v18/bugfix/106-oth", "phase": "branch cut" }
+  ] }
