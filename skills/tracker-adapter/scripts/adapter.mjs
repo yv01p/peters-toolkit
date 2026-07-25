@@ -26,14 +26,17 @@ function runGh(args, input) {
 }
 
 // --- Error helper: emit contract error JSON on stdout, exit nonzero ----------
+// NOTE: Must NOT call process.exit() — it terminates before async pipe writes
+// flush, truncating large output (esp. getTicket JSON). Set exitCode and let
+// Node flush naturally.
 function fail(code, message) {
   process.stdout.write(JSON.stringify({ error: message, code }) + '\n');
-  process.exit(1);
+  process.exitCode = 1;
 }
 
 function ok(obj) {
   process.stdout.write(JSON.stringify(obj) + '\n');
-  process.exit(0);
+  process.exitCode = 0;
 }
 
 // --- Verb handlers (GitHub reference provider) -------------------------------
