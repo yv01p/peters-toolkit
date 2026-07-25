@@ -68,22 +68,22 @@ Each stage names the skill it **delegates** to and the **human gate** (in the ma
 | 1 | **Triage & route** — state expected-vs-actual; classify the **tier** (`trivial` / `design-only` / `full`); assistant proposes, human confirms | orchestrator logic *(new)* | **G1** — confirm bug + classification |
 | 2 | **Reproduce & root cause** — Iron Law: no fix without root cause; if not reproducible → *Needs-info* loop (§4.1) | `systematic-debugging` | **G2 — root-cause sign-off** *(the key gate)* |
 | 3 | **Isolate, then failing test first** — create the worktree/branch (per project convention *(harness)*) *before* authoring an automated test that fails now, so the test lands on the fix branch | `using-git-worktrees` → `test-driven-development` | — (artifact checkpoint) |
-| 4 | **Solution options** *(design-only, full)* — 2–3 options → design; optional adversarial review | `thorough-brainstorming` → *(optional pair)* `[critical-design-review → update-design-doc]` | **G4** — choose option / approve design |
-| 5 | **Plan** *(full only)* — implementation plan; optional adversarial review | `thorough-writing-plans` → *(optional pair)* `[critical-implementation-review → update-implementation-plan]` | **G5** — approve plan |
+| 4 | **Solution options** *(design-only, full)* — 2–3 options → design, adversarially reviewed to green | `thorough-brainstorming` → `critical-design-review` ⇄ `update-design-doc` (loop until the review is green) | **G4** — choose option / approve design |
+| 5 | **Plan** *(full only)* — implementation plan, adversarially reviewed to green | `thorough-writing-plans` → `critical-implementation-review` ⇄ `update-implementation-plan` (loop until the review is green) | **G5** — approve plan |
 | 6 | **Implement** — on the worktree/branch from Stage 3; make the test pass, minimal change | (`full`: `subagent-driven-development`; `trivial`/`design-only`: direct TDD fix) | — |
 | 7 | **Verify** — project's formatter/linter + test suite *(harness)*; original reproduction gone; evidence before claims | `verification-before-completion` | — |
 | 8 | **Review** — diff review; security review when relevant; project review skill if configured | `requesting-code-review` / `receiving-code-review` (+ *optional* `critical-security-review`) (+ *optional* project review skill *(harness)*) | **G8 — pre-PR review** |
 | 9 | **Finish & writeback** — open PR per project convention *(harness)*; link PR & set status on the ticket | `finishing-a-development-branch` + adapter writeback | — |
 
-**Optional review + apply run as a pair.** In Stages 4 and 5 the adversarial review is optional; when it runs, its apply-step (`update-design-doc` / `update-implementation-plan`) runs immediately after to fold in the findings — a no-op if the review found nothing. When the review is skipped, its apply-step is skipped too: `update-*` consume a review file and have nothing to do without one. Hence the `[review → update]` bracket in the table.
+**Review runs as a loop until green.** In Stages 4 and 5 the adversarial review is *mandatory whenever the stage runs* — what is optional is the stage itself (`thorough-brainstorming` / `thorough-writing-plans`), which the tier selects. Once the stage runs, its review runs; if the review is not green, its apply-step (`update-design-doc` / `update-implementation-plan`) folds in the findings and the review re-runs — the `review ⇄ update` cycle repeats until the review is green. `update-*` run only when their review found something to apply (a no-op otherwise). Hence the `review ⇄ update` loop notation in the table.
 
 ### 3.2 The three tiers
 
 Two independent dials at triage — does the fix need design exploration? does it need a formal plan? — give three tiers:
 
 - **Trivial:** `0 → 1 → 2 → 3 → 6 → 7 → 8 → 9`. Gates **G1, G2, G8**. No design, no plan — the fix is obvious from the root cause. The worktree/branch is created at Stage 3 (before the failing test); Stage 6 is a direct TDD fix on that branch (no `subagent-driven-development`).
-- **Design-only:** adds Stage **4** (`thorough-brainstorming` → optional `[critical-design-review → update-design-doc]`). Gates **G1, G2, G4, G8**. Design yes; no formal plan; Stage 6 is a direct TDD fix. The common middle case — a bug that needs real brainstorming but whose fix, once decided, is localized.
-- **Full / risky:** adds Stages **4** and **5** (`thorough-writing-plans` → optional `[critical-implementation-review → update-implementation-plan]`) and security review in Stage 8. Stage 6 executes the plan via `subagent-driven-development`. Gates **G1, G2, G4, G5, G8**.
+- **Design-only:** adds Stage **4** (`thorough-brainstorming` → `critical-design-review` ⇄ `update-design-doc`, looped until the review is green). Gates **G1, G2, G4, G8**. Design yes; no formal plan; Stage 6 is a direct TDD fix. The common middle case — a bug that needs real brainstorming but whose fix, once decided, is localized.
+- **Full / risky:** adds Stages **4** and **5** (`thorough-writing-plans` → `critical-implementation-review` ⇄ `update-implementation-plan`, looped until the review is green) and security review in Stage 8. Stage 6 executes the plan via `subagent-driven-development`. Gates **G1, G2, G4, G5, G8**.
 
 The fourth combination — plan without design — is deliberately not offered: a formal plan always follows design.
 
@@ -190,10 +190,10 @@ A Node project's harness config would instead read e.g. `npm run lint` / `npm te
 `0` ingest → `1` classify *trivial* (G1) → `2` reproduce + root cause (G2) → `3` isolate (worktree) + failing test → `6` direct fix → `7` verify (`dotnet format`/`dotnet test`) → `8` review + `umb-review` (G8) → `9` PR + writeback. No brainstorming, plan, or adversarial review.
 
 **Design-only bug** (wrong value shown in a component — the *right* behaviour needs thought, but the fix is localized):
-adds `4` `thorough-brainstorming` (→ optionally `[critical-design-review → update-design-doc]`) (G4); `6` is a direct TDD fix — no formal plan, no `subagent-driven-development`. Gates G1, G2, G4, G8.
+adds `4` `thorough-brainstorming` (→ `critical-design-review` ⇄ `update-design-doc`, looped until the review is green) (G4); `6` is a direct TDD fix — no formal plan, no `subagent-driven-development`. Gates G1, G2, G4, G8.
 
 **Full / risky bug** (caching invalidation defect with multiple viable fixes):
-adds `4` `thorough-brainstorming` (→ optionally `[critical-design-review → update-design-doc]`) (G4) and `5` `thorough-writing-plans` (→ optionally `[critical-implementation-review → update-implementation-plan]`) (G5); `6` executes the plan via `subagent-driven-development`; `8` also runs `critical-security-review` if the change touches a security-relevant surface.
+adds `4` `thorough-brainstorming` (→ `critical-design-review` ⇄ `update-design-doc`, looped until the review is green) (G4) and `5` `thorough-writing-plans` (→ `critical-implementation-review` ⇄ `update-implementation-plan`, looped until the review is green) (G5); `6` executes the plan via `subagent-driven-development`; `8` also runs `critical-security-review` if the change touches a security-relevant surface.
 
 ---
 
