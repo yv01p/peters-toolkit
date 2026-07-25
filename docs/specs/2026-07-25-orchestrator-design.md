@@ -5,8 +5,8 @@
 **Parent spec:** `docs/specs/2026-07-25-bug-fixing-workflow-design.md` (the umbrella bug-fixing workflow). This document resolves the orchestrator forks that spec deliberately left open (its §6/§12.3) and **refines** its trivial/non-trivial routing (see O5 / §17).
 **Sibling spec:** `docs/specs/2026-07-25-tracker-adapter-design.md` (the tracker adapter — already built on branch `tracker-adapter`). The orchestrator consumes its invocation contract (§11).
 **Test harness:** Umbraco CMS (`~/Umbraco-CMS`) — first project exercised. GitHub via `gh` CLI is the reference provider.
-**Status:** Design drafted (pending `critical-design-review`). Build follows as its own plan → build cycle.
-**Storage:** Git-ignored working file (the toolkit repo tracks only shippable plugin files).
+**Status:** Design reviewed through `critical-design-review` (round 3). Build follows as its own plan → build cycle.
+**Storage:** Git-tracked and published under the toolkit's per-skill `docs/` policy (the bug-fixing skill's artifacts ship so cloners can learn from the design/review discipline; other skills' artifacts stay private).
 
 ---
 
@@ -50,7 +50,7 @@ A second, explicit goal (per the user): the orchestrator is a **solid base that 
 | O7 | **UI / non-code bugs use the *same* pipeline; the base is test-stack-agnostic.** The reproduction/verification method is a seam (`repro_verify`): automated tests by default; browser/E2E/manual variants. **Manual fallback** when no automated UI-test path exists — recorded in the work-log, regression protection flagged manual. | A UI bug isn't a different pipeline — it's the same stages with a different test stack and reproduction surface. `systematic-debugging`, `test-driven-development`, and `verification-before-completion` are all framework-agnostic (verified A12). Hard-coding browser tooling would violate the customizable-base goal (O8). |
 | O8 | **"Solid, customizable base" is a first-class design goal.** Lean core; named + documented seams; decisions recorded with rationale; customize-by-editing (markdown + config), **no plugin/hook framework.** | Every feature in the base is something a customizer must understand and work around, so ruthless YAGNI keeps it forkable. A formal extensibility framework would itself violate the goal. |
 | O9 | **The orchestrator invokes the adapter by absolute path** — resolved from its harness-provided skill base directory → sibling `../tracker-adapter/scripts/adapter.mjs` — **while cwd = the target repo.** | `gh` infers the repo from cwd, so the adapter must run cwd'd in the target repo; a relative `node scripts/adapter.mjs` cannot resolve from there. Both skills ship in the same plugin, so they are siblings wherever installed (verified A5). |
-| O10 | **Documentation split.** The design spec (this file, in `docs/specs/`, git-ignored) is the deep decisions record *for the team*. The **shipped skill** carries its own condensed `references/customizing.md` with the essential "why," so an installer can customize safely without ever seeing this spec. | The spec never ships (repo tracks only plugin files). The user's requirement — "good documentation about the decisions and the basic functionality of `/bugfix`" — is met on both sides of that boundary. |
+| O10 | **Documentation split.** The design spec (this file, in `docs/specs/`) is the deep decisions record *for the team*; the **shipped skill** carries its own condensed `references/customizing.md` with the essential "why," so an installer gets a focused customization guide rather than the full decisions record. | The spec is now published under the per-skill `docs/` policy, so cloners who want the depth can read it — but an installer shouldn't have to wade through it to customize safely. `customizing.md` and the spec are two altitudes of the same "why." The user's requirement — "good documentation about the decisions and the basic functionality of `/bugfix`" — is met on both. |
 | O11 | **Status is advisory; `done` closes via the PR closing keyword, not a label** (inherited from adapter TA6 / umbrella D11). The harness `status_labels` map lists only statuses with a native label. | Consistency with the adapter's built behaviour; the orchestrator holds the label *names* (harness config), the adapter holds the mechanism. |
 
 ---
@@ -348,5 +348,4 @@ Checked on 2026-07-25 against the real codebase before finalizing this spec:
 2. `thorough-writing-plans` → `critical-implementation-review` → build the `bugfix` skill via `subagent-driven-development`.
 3. Add the `!/skills/bugfix/` whitelist line as part of the build; apply the coordinated version bump (A10) when shipping.
 4. Fold the one-line adapter-docs clarification (Finding 1) when the `tracker-adapter` branch is next touched.
-5. Optionally update the umbrella spec for the three-tier refinement (§15).
-6. Exercise end-to-end on real issues in the Umbraco harness; tune gates, tiers, and the work-log template.
+5. Exercise end-to-end on real issues in the Umbraco harness; tune gates, tiers, and the work-log template.
