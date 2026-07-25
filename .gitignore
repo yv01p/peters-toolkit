@@ -9,6 +9,12 @@
 !/.gitignore
 !/tests/
 
+# Workflow artifacts (design specs, plans, adversarial reviews) — published so
+# people cloning the toolkit can learn from and improve on the design/review
+# discipline. Transient pre-update snapshots (*.bak) stay out.
+!/docs/
+docs/**/*.bak
+
 # Skills subtree: ignore everything, then whitelist only the skills published
 # with this plugin. Anything not listed below is excluded by default; to publish
 # a new skill, add an "!" line for it here.
