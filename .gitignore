@@ -40,6 +40,7 @@ docs/**/*.bak
 # a new skill, add an "!" line for it here.
 /skills/*
 !/skills/arch-review/
+!/skills/bugfix/
 !/skills/cobol-xray/
 !/skills/create-handoff/
 !/skills/critical-design-review/
