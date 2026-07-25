@@ -16,7 +16,7 @@ The end goal is a small number of **Peter's Toolkit skills** that *run* the work
 
 **In scope (this document defines):**
 
-- The stage pipeline, the human gates, and the trivial/non-trivial routing.
+- The stage pipeline, the human gates, and the tier routing (`trivial` / `design-only` / `full`).
 - The minimal bug-information contract the workflow needs to succeed.
 - The tracker-adapter contract (the only tracker-specific part).
 - The generic core vs. per-project **harness configuration** split.
@@ -37,13 +37,13 @@ The end goal is a small number of **Peter's Toolkit skills** that *run* the work
 |---|----------|-----------|
 | D1 | **Local, developer-driven** first. A developer invokes the workflow in Claude Code and drives one bug through the stages, approving at gates. | Lets humans build comfort before any autonomy. |
 | D2 | **No autonomy dial.** Build only the fully-gated manual version. | YAGNI. The gates *are* the future dial — encode them now, add the dial later if wanted. |
-| D3 | **Human-judged trivial/non-trivial split at triage.** | Keeps ceremony proportional; a one-line fix must not drag through brainstorming + adversarial review + formal planning. |
+| D3 | **Human-judged complexity tier at triage — `trivial` / `design-only` / `full`.** Two independent dials: does the fix need design exploration? does it need a formal plan? | Keeps ceremony proportional. A one-line fix must not drag through brainstorming + planning; and a fix that needs real design but only a localized change must not be forced through formal planning + `subagent-driven-development`. The fourth combination (plan without design) never occurs and is not offered. |
 | D4 | **Tracker-agnostic.** A thin adapter at the two edges (ingest, writeback); the core pipeline is identical regardless of GitHub/Jira/other. | Every team has a different tracker and different fields; the core should not care. |
 | D5 | **Approach B — one orchestrator skill + a thin tracker adapter, delegating to existing skills.** (vs. docs-only, vs. many granular skills) | Makes the workflow *runnable* with the smallest new surface; the seams for finer skills aren't known yet. |
 | D6 | **Brainstorming and planning use the *thorough* skills only.** | Consistency with how this team works; empirical verification is exactly what a risky fix wants. No plain/`superpowers` brainstorming or planning. |
 | D7 | **Verification is generic.** Stage 7 runs *the project's configured* formatter/linter and test suite. | The workflow is generic; concrete commands are harness config (§7). |
 | D8 | **No codebase-context / arch-review input.** | Rely on the bug-scoped, always-fresh investigation inside `systematic-debugging` and `thorough-brainstorming`; a whole-repo map is the wrong altitude, staleness-prone, and duplicative. |
-| D9 | **Plan execution uses `subagent-driven-development`,** never `executing-plans`. | Team preference; it is also the executor `thorough-writing-plans` itself points to. Applies only where a plan exists (non-trivial path). |
+| D9 | **Plan execution uses `subagent-driven-development`,** never `executing-plans`. | Team preference; it is also the executor `thorough-writing-plans` itself points to. Applies only where a plan exists (the `full` tier). |
 | D10 | **Generic core, per-project harness config.** Anything project-specific (tracker provider, branch/PR conventions, build/test commands, optional project review skill) is supplied as harness configuration, not baked into the core. | The skills live in the toolkit and must run on any project; Umbraco is just the first harness. |
 | D11 | **Status is advisory, normalized per-adapter with a comment fallback.** `setStatus` is a one-way signal the core never reads back; each adapter maps it to native mechanisms, falling back to a comment where the tracker has none. | Resolves the GitHub status gap generically (CDR §3.1): GitHub lacks native `in-progress`/`in-review`, and every future tracker would re-raise it. Advisory + fallback means no status is ever silently lost and no per-tracker capability API is needed. |
 
@@ -65,24 +65,31 @@ Each stage names the skill it **delegates** to and the **human gate** (in the ma
 | # | Stage | Delegates to | Human gate |
 |---|-------|--------------|------------|
 | 0 | **Pickup / ingest** — fetch & normalize the ticket, assign to self, set status "in progress" | tracker adapter *(new)* | — (folded into G1) |
-| 1 | **Triage & route** — state expected-vs-actual; classify **trivial** vs **non-trivial**; assistant proposes, human confirms | orchestrator logic *(new)* | **G1** — confirm bug + classification |
+| 1 | **Triage & route** — state expected-vs-actual; classify the **tier** (`trivial` / `design-only` / `full`); assistant proposes, human confirms | orchestrator logic *(new)* | **G1** — confirm bug + classification |
 | 2 | **Reproduce & root cause** — Iron Law: no fix without root cause; if not reproducible → *Needs-info* loop (§4.1) | `systematic-debugging` | **G2 — root-cause sign-off** *(the key gate)* |
 | 3 | **Isolate, then failing test first** — create the worktree/branch (per project convention *(harness)*) *before* authoring an automated test that fails now, so the test lands on the fix branch | `using-git-worktrees` → `test-driven-development` | — (artifact checkpoint) |
-| 4 | **Solution options** *(non-trivial only)* — 2–3 options → design; optional adversarial review | `thorough-brainstorming` → *(optional)* `critical-design-review` → `update-design-doc` | **G4** — choose option / approve design |
-| 5 | **Plan** *(non-trivial only)* — implementation plan; optional adversarial review | `thorough-writing-plans` → *(optional)* `critical-implementation-review` → `update-implementation-plan` | **G5** — approve plan |
-| 6 | **Implement** — on the worktree/branch from Stage 3; make the test pass, minimal change | (non-trivial: `subagent-driven-development`; trivial: direct fix) | — |
+| 4 | **Solution options** *(design-only, full)* — 2–3 options → design; optional adversarial review | `thorough-brainstorming` → *(optional pair)* `[critical-design-review → update-design-doc]` | **G4** — choose option / approve design |
+| 5 | **Plan** *(full only)* — implementation plan; optional adversarial review | `thorough-writing-plans` → *(optional pair)* `[critical-implementation-review → update-implementation-plan]` | **G5** — approve plan |
+| 6 | **Implement** — on the worktree/branch from Stage 3; make the test pass, minimal change | (`full`: `subagent-driven-development`; `trivial`/`design-only`: direct TDD fix) | — |
 | 7 | **Verify** — project's formatter/linter + test suite *(harness)*; original reproduction gone; evidence before claims | `verification-before-completion` | — |
 | 8 | **Review** — diff review; security review when relevant; project review skill if configured | `requesting-code-review` / `receiving-code-review` (+ *optional* `critical-security-review`) (+ *optional* project review skill *(harness)*) | **G8 — pre-PR review** |
 | 9 | **Finish & writeback** — open PR per project convention *(harness)*; link PR & set status on the ticket | `finishing-a-development-branch` + adapter writeback | — |
 
-### 3.2 The two paths
+**Optional review + apply run as a pair.** In Stages 4 and 5 the adversarial review is optional; when it runs, its apply-step (`update-design-doc` / `update-implementation-plan`) runs immediately after to fold in the findings — a no-op if the review found nothing. When the review is skipped, its apply-step is skipped too: `update-*` consume a review file and have nothing to do without one. Hence the `[review → update]` bracket in the table.
 
-- **Trivial / localized:** `0 → 1 → 2 → 3 → 6 → 7 → 8 → 9`. Gates **G1, G2, G8**. Skips options, plan, and adversarial review — the fix is obvious from the root cause. The worktree/branch is created at Stage 3 (before the failing test); Stage 6 is a direct TDD fix on that branch (no formal plan, so no `subagent-driven-development`).
-- **Non-trivial / risky:** adds stages **4** and **5** (with their optional adversarial sub-chains) and security review in stage 8. Stage 6 executes the plan via `subagent-driven-development`. Gates **G1, G2, G4, G5, G8**.
+### 3.2 The three tiers
+
+Two independent dials at triage — does the fix need design exploration? does it need a formal plan? — give three tiers:
+
+- **Trivial:** `0 → 1 → 2 → 3 → 6 → 7 → 8 → 9`. Gates **G1, G2, G8**. No design, no plan — the fix is obvious from the root cause. The worktree/branch is created at Stage 3 (before the failing test); Stage 6 is a direct TDD fix on that branch (no `subagent-driven-development`).
+- **Design-only:** adds Stage **4** (`thorough-brainstorming` → optional `[critical-design-review → update-design-doc]`). Gates **G1, G2, G4, G8**. Design yes; no formal plan; Stage 6 is a direct TDD fix. The common middle case — a bug that needs real brainstorming but whose fix, once decided, is localized.
+- **Full / risky:** adds Stages **4** and **5** (`thorough-writing-plans` → optional `[critical-implementation-review → update-implementation-plan]`) and security review in Stage 8. Stage 6 executes the plan via `subagent-driven-development`. Gates **G1, G2, G4, G5, G8**.
+
+The fourth combination — plan without design — is deliberately not offered: a formal plan always follows design.
 
 ### 3.3 Gates (manual phase)
 
-Mandatory human checkpoints: **G1** (confirm bug + classification), **G2** (root-cause sign-off — highest value: agree on *why* before *how*), **G8** (human reviews before the PR is raised/merged); plus **G4** and **G5** on the non-trivial path. These gates are precisely the knobs a future autonomy phase would turn down (§11).
+Mandatory human checkpoints: **G1** (confirm bug + classification), **G2** (root-cause sign-off — highest value: agree on *why* before *how*), **G8** (human reviews before the PR is raised/merged); plus **G4** on the `design-only` and `full` tiers, and **G5** on the `full` tier. These gates are precisely the knobs a future autonomy phase would turn down (§11).
 
 ### 3.4 Relationship to `systematic-debugging` (coherence note)
 
@@ -143,7 +150,7 @@ Providers are pluggable. The GitHub provider is the reference implementation (§
 **Build (new Peter's Toolkit skills — each its own later spec → plan → build cycle):**
 
 1. **Tracker adapter** — the normalized `Ticket` shape + the four writeback verbs, with a GitHub reference provider. Likely a skill plus per-provider reference docs (`references/github.md`, `references/jira.md`), or a small script the orchestrator calls. Exact form decided in its own cycle.
-2. **`bugfix` orchestrator skill** — walks stages 0–9, enforces the gates, does the trivial/non-trivial routing, reads the harness configuration (§7), and calls the delegated skills + adapter in order. Holds the stage checklist and the ticket **work-log template** (RCA / options considered / testing done).
+2. **`bugfix` orchestrator skill** — walks stages 0–9, enforces the gates, does the tier routing (`trivial` / `design-only` / `full`), reads the harness configuration (§7), and calls the delegated skills + adapter in order. Holds the stage checklist and the ticket **work-log template** (RCA / options considered / testing done).
 
 Both new skills must be added to the toolkit `.gitignore` whitelist (`!/skills/<name>/`) to be tracked and shipped.
 
@@ -169,7 +176,7 @@ The generic core is parameterized by a small per-project configuration. For the 
 | PR convention | Title `Area: Description (closes #ID)` + closing keyword on its own line in the body | `CLAUDE.md` |
 | Formatter / tests | `dotnet format` / `dotnet test` | `CLAUDE.md` |
 | Project review skill (optional) | `umb-review` | `.claude/skills/umb-review` |
-| Full-path artifact locations | design → `docs/specs/`; adversarial reviews → `docs/criticalreviews/` | present in the Umbraco repo |
+| Full-path artifact locations | design → `docs/specs/`; plans → `docs/plans/`; adversarial reviews → `docs/criticalreviews/` | created on first write; only `docs/criticalreviews/` exists in the Umbraco repo today |
 
 A Node project's harness config would instead read e.g. `npm run lint` / `npm test`, a `fix/` branch convention, and no project review skill. None of this lives in the core.
 
@@ -182,8 +189,11 @@ A Node project's harness config would instead read e.g. `npm run lint` / `npm te
 **Trivial bug** (off-by-one in a helper):
 `0` ingest → `1` classify *trivial* (G1) → `2` reproduce + root cause (G2) → `3` isolate (worktree) + failing test → `6` direct fix → `7` verify (`dotnet format`/`dotnet test`) → `8` review + `umb-review` (G8) → `9` PR + writeback. No brainstorming, plan, or adversarial review.
 
-**Non-trivial / risky bug** (caching invalidation defect with multiple viable fixes):
-adds `4` `thorough-brainstorming` → `critical-design-review` → `update-design-doc` (G4) and `5` `thorough-writing-plans` → `critical-implementation-review` → `update-implementation-plan` (G5); `6` executes the plan via `subagent-driven-development`; `8` also runs `critical-security-review` if the change touches a security-relevant surface.
+**Design-only bug** (wrong value shown in a component — the *right* behaviour needs thought, but the fix is localized):
+adds `4` `thorough-brainstorming` (→ optionally `[critical-design-review → update-design-doc]`) (G4); `6` is a direct TDD fix — no formal plan, no `subagent-driven-development`. Gates G1, G2, G4, G8.
+
+**Full / risky bug** (caching invalidation defect with multiple viable fixes):
+adds `4` `thorough-brainstorming` (→ optionally `[critical-design-review → update-design-doc]`) (G4) and `5` `thorough-writing-plans` (→ optionally `[critical-implementation-review → update-implementation-plan]`) (G5); `6` executes the plan via `subagent-driven-development`; `8` also runs `critical-security-review` if the change touches a security-relevant surface.
 
 ---
 
