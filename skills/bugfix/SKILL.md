@@ -65,7 +65,7 @@ Selected at triage (G1): the orchestrator proposes a tier with its reasoning; th
 These close the failures agents fall into the instant the process isn't enforced. They are Iron Laws, not preferences.
 
 1. **G2 root-cause sign-off is a mandatory STOP before any fix — every tier, no exceptions.** Never verify your own hypothesis and proceed straight to the fix. Agree the *why* with the human first.
-2. **Stage 3: the failing reproduction test comes first — Iron Law.** Not manual-only, not test-after, not "add it tomorrow." The test lands on the fix branch and fails *before* the fix exists. The only honest fallback (no automated path exists, e.g. some UI bugs, §11) is a **documented manual reproduction recorded in the work-log AND flagged as manual regression protection** — never a silent skip.
+2. **Stage 3: the failing reproduction test comes first — Iron Law.** Not manual-only, not test-after, not "add it tomorrow." The test lands on the fix branch and fails *before* the fix exists. The only honest fallback (no automated path exists, e.g. some UI bugs) is a **documented manual reproduction recorded in the work-log AND flagged as manual regression protection** — never a silent skip.
 3. **Never under-tier.** Multiple defensible approaches, multiple subsystems touched, or an unclear approach ⇒ **design-only or full, NOT trivial** — even when the mechanical change sounds like a one-liner ("just bust all the caches, it's quick"). "Simple" chooses the tier; it never skips a gate.
 4. **Stage 7 verify + G8 review are STOP gates before the PR.** Full verify (harness `format` + `test`, original reproduction gone) and human sign-off precede the PR. No self-approve, no "ship and monitor," no opening the PR with the test deferred.
 
@@ -92,7 +92,7 @@ If you catch yourself thinking or writing any of these, you are rationalizing a 
 |---|---|
 | "Pragmatic, not dogmatic" / "pragmatic middle ground" | The staged path IS the pragmatic one — it is what stops a 6pm one-liner from becoming tomorrow's incident. Process discipline erodes one exception at a time. Run the stage. |
 | "Perfect is the enemy of done" | A fix with no failing test isn't "done," it's unverified. The failing-test-first law is the definition of done here, not gold-plating. |
-| "Manual testing is enough" / "reasonable confidence" | Manual testing proves the bug is gone once, on your machine — zero regression protection. If no automated path exists, record the manual repro AND flag protection as manual (§11); never silently substitute it for the test. |
+| "Manual testing is enough" / "reasonable confidence" | Manual testing proves the bug is gone once, on your machine — zero regression protection. If no automated path exists, record the manual repro AND flag protection as manual; never silently substitute it for the test. |
 | "Add the test tomorrow / before merge" | The test goes on the branch BEFORE the fix — that is what proves the fix works and the bug was real. A test written after passes immediately and proves nothing. "Tomorrow" tests don't get written. |
 | "Ship with monitoring" | Monitoring is not verification. Stage 7 (format+test, original repro gone) and G8 human review are STOP gates before the PR. You do not merge-then-watch. |
 | "The fix is simple / low-risk enough" | "Simple" chooses the tier; it never skips a gate. Multiple defensible approaches / multi-subsystem / unclear approach ⇒ design-only or full, NOT trivial. Even a true trivial still stops at G2 and writes the failing test. |

@@ -24,7 +24,7 @@ On every invocation, before touching a stage:
 
    Pass `branch` (as a glob) and the `artifacts.specs` / `artifacts.plans` dirs from the harness config. It emits JSON: one bug (`/bugfix <id>`) or all in-flight branch-cut bugs (`/bugfix`). The offline **phase** is coarse (`branch cut` / `design done` / `plan done`) — it cannot distinguish Stages 6–9, and a trivial bug stays `branch cut` its whole life.
 3. **Narrow, then confirm.** Read the picked bug's ticket work-log (`getTicket`) to narrow the precise stage from the last recorded milestone, then **present the resume point and wait for the human to confirm** before driving. Precision comes from work-log-plus-confirm, never from the offline script alone.
-4. **Pre-branch bugs** (Stages 0–2: no branch, no artifacts) are invisible to `status.mjs` — resume them by explicit id and recover context from the work-log (`getTicket`). This is why the G2 work-log entry matters (§work-log): it is the only durable record of a root-cause agreement made before the branch exists.
+4. **Pre-branch bugs** (Stages 0–2: no branch, no artifacts) are invisible to `status.mjs` — resume them by explicit id and recover context from the work-log (`getTicket`). This is why the G2 work-log entry matters (see work-log.md): it is the only durable record of a root-cause agreement made before the branch exists.
 
 ## The stage pipeline (0–9)
 
@@ -57,19 +57,19 @@ State **expected vs. actual** in one or two lines. Then **propose a tier** with 
 
 **Do not under-tier (non-negotiable #3).** The instant you notice *multiple defensible approaches*, *multiple subsystems touched* (e.g. three cache layers — CDN / Redis / in-process LRU — with several viable invalidation strategies), or *an unclear approach*, the tier is **design-only or full, NOT trivial** — no matter how quick the mechanical change ("just invalidate all three caches") sounds. "The mechanical act is simple, but WHICH calls, in WHAT order, with WHAT error handling are design questions" ⇒ that is a design-only (or full) bug, by definition.
 
-Post the Triage work-log entry (§work-log). Then **G1: present the bug statement + proposed tier + the echoed harness config, and wait for the human to confirm or override.** Do not proceed unconfirmed.
+Post the Triage work-log entry (see work-log.md). Then **G1: present the bug statement + proposed tier + the echoed harness config, and wait for the human to confirm or override.** Do not proceed unconfirmed.
 
 ### Stage 2 — Reproduce & root cause — **G2 (mandatory STOP)**
 
 `**REQUIRED SUB-SKILL:** Use superpowers:systematic-debugging`. This is the shared investigation spine for **all tiers** — every bug is investigated the same way, to root cause. Reproduce first (for a UI bug, reproduction happens in a browser instead of a REPL/test — the discipline is identical). Do not guess.
 
-**G2 — root-cause sign-off. This is the highest-value gate and a mandatory STOP before any fix, on every tier (non-negotiable #1).** Present the root cause — the *why* — and **wait for the human to sign off.** Never verify your own hypothesis and slide straight into the fix; agree the *why* before the *how*. Post the Root cause work-log entry (§work-log) at G2 — on a pre-branch bug this is the only durable record of the agreement.
+**G2 — root-cause sign-off. This is the highest-value gate and a mandatory STOP before any fix, on every tier (non-negotiable #1).** Present the root cause — the *why* — and **wait for the human to sign off.** Never verify your own hypothesis and slide straight into the fix; agree the *why* before the *how*. Post the Root cause work-log entry (see work-log.md) at G2 — on a pre-branch bug this is the only durable record of the agreement.
 
 **The `systematic-debugging` fork.** All tiers run Stage 2 identically and pause at G2. After sign-off:
 - **Trivial** resumes straight into Stages 3 → 6 → 7 (systematic-debugging's own natural continuation, which already points to TDD then verification-before-completion).
 - **Design-only / full** detour through Stage 4 (and, for full, Stage 5) before Stage 6.
 
-**Needs-info loop (§4.1).** If Stage 2 cannot reproduce for lack of information, post the "required to proceed" checklist (carried by the adapter skill), call `setStatus … needs-info --label <configured>`, post a work-log entry, and **pause**. The bug re-enters at Stage 2 by explicit id when the reporter responds (it is pre-branch, so not in the picker). Missing information never fails the run — and never licenses guessing at a root cause.
+**Needs-info loop.** If Stage 2 cannot reproduce for lack of information, post the "required to proceed" checklist (carried by the adapter skill), call `setStatus … needs-info --label <configured>`, post a work-log entry, and **pause**. The bug re-enters at Stage 2 by explicit id when the reporter responds (it is pre-branch, so not in the picker). Missing information never fails the run — and never licenses guessing at a root cause.
 
 ### Stage 3 — Isolate, then failing test first (Iron Law) — no gate, but non-negotiable #2
 
@@ -82,7 +82,7 @@ Then `**REQUIRED SUB-SKILL:** Use superpowers:test-driven-development` to author
 - **Not test-after** — a test written after the fix passes immediately and proves nothing.
 - **Not "add it tomorrow" / "before merge"** — the test comes first, on the branch, or the stage is not done.
 
-**The only honest fallback** — when the project genuinely has no automated path for this class of bug (e.g. some UI defects with no E2E harness; §11) — is a **documented manual reproduction** (steps + expected/actual) **recorded in the work-log, with regression protection explicitly flagged as manual, not automated.** Nothing is ever silently skipped. If an automated test is possible, it is mandatory.
+**The only honest fallback** — when the project genuinely has no automated path for this class of bug (e.g. some UI defects with no E2E harness) — is a **documented manual reproduction** (steps + expected/actual) **recorded in the work-log, with regression protection explicitly flagged as manual, not automated.** Nothing is ever silently skipped. If an automated test is possible, it is mandatory.
 
 ### Stage 4 — Solution options *(design-only, full)* — **G4**
 
