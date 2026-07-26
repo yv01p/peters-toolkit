@@ -7,6 +7,13 @@ import { readdirSync } from 'node:fs';
 
 // branches: raw `git branch --list <glob>` lines (may carry `* `/`+ `/`  ` prefixes)
 // artifacts: { specs: string[], plans: string[] } — filenames in the configured dirs
+// Match id as a distinct number token in the artifact filename's topic (after the date prefix).
+// Prevents false matches against the date (e.g. id "26" matching "2026" or "07-26").
+function artifactMatchesId(filename, id) {
+  const topic = filename.replace(/^\d{4}-\d{2}-\d{2}-/, '');  // drop YYYY-MM-DD- prefix
+  return new RegExp(`(^|[^0-9])${id}([^0-9]|$)`).test(topic); // id as whole number token
+}
+
 export function computeStage({ branches, artifacts }) {
   return branches
     .map((line) => line.replace(/^[*+]?\s+/, '').trim())   // strip current/worktree markers
@@ -14,8 +21,8 @@ export function computeStage({ branches, artifacts }) {
     .map((branch) => ({ branch, id: parseId(branch) }))
     .filter((b) => b.id !== null)
     .map(({ branch, id }) => {
-      const hasDesign = artifacts.specs.some((f) => f.includes(id));
-      const hasPlan = artifacts.plans.some((f) => f.includes(id));
+      const hasDesign = artifacts.specs.some((f) => artifactMatchesId(f, id));
+      const hasPlan = artifacts.plans.some((f) => artifactMatchesId(f, id));
       const phase = !hasDesign ? 'branch cut' : !hasPlan ? 'design done' : 'plan done';
       return { id, branch, phase };
     });

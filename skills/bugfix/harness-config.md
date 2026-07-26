@@ -1,6 +1,6 @@
 # Harness configuration
 
-Everything project-specific lives in one human-authored file, `.claude/bugfix.harness.md`, in the **target** repo — never in the skill. The orchestrator reads it on every invocation and **echoes the resolved values at G1** for the human to confirm (this catches drift). It passes `branch` (as a glob) and the `artifacts` dirs to `status.mjs` as CLI args, keeping the script a pure function of its inputs.
+Everything project-specific lives in one human-authored file, `.claude/bugfix.harness.md`, in the **target** repo — never in the skill. The orchestrator reads it on every invocation and **echoes the resolved values at G1** for the human to confirm (this catches drift). It passes `branch` (as a glob) and the `artifacts.specs` / `artifacts.plans` dirs to `status.mjs` as CLI args, keeping the script a pure function of its inputs.
 
 The generic core is parameterized by this small config; if a value would only ever be true for one project, it belongs here, not in the core.
 
