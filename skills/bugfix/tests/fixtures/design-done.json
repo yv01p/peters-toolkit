@@ -1,0 +1,4 @@
+{ "name": "design artifact present → design done",
+  "branches": ["  v18/bugfix/102-x"],
+  "artifacts": { "specs": ["2026-07-25-102-x-design.md"], "plans": [] },
+  "expected": [{ "id": "102", "branch": "v18/bugfix/102-x", "phase": "design done" }] }
