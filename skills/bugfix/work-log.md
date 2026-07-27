@@ -21,10 +21,10 @@ Post one entry per milestone below. Keep them lean — this is a durable summary
 | Milestone | Marker stage | Fields |
 |---|---|---|
 | Triage (G1) | `stage=1` | Classification: `trivial` \| `design-only` \| `full` · Expected: … · Actual: … |
-| Root cause (G2) | `stage=2` | Root cause (the *why*): … |
+| Root cause (G2) | `stage=2` | Root cause (the *why*): … · Unverified assumptions: … (each with the command/test that would settle it, or `none`) |
 | Design (G4) | `stage=4` | Options considered: … · Chosen: … · Design doc: `<path>` |
 | Plan (G5) | `stage=5` | Plan: `<path>` · Summary: … |
-| Verify (7) | `stage=7` | Test added: … · `format` ✅ · `test` ✅ · Original repro gone: ✅ |
+| Verify (7) | `stage=7` | Test added: … · `format` ✅ · `test` ✅ · Original repro gone: ✅ · G2 assumptions: verified ✅ / still unverified: … |
 | Done (9) | `stage=9` | PR: `<url>` · Status: done |
 
 Additional entries the orchestrator posts as they occur:

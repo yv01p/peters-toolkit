@@ -65,6 +65,8 @@ Post the Triage work-log entry (see work-log.md). Then **G1: present the bug sta
 
 **G2 — root-cause sign-off. This is the highest-value gate and a mandatory STOP before any fix, on every tier (non-negotiable #1).** Present the root cause — the *why* — and **wait for the human to sign off.** Never verify your own hypothesis and slide straight into the fix; agree the *why* before the *how*. Post the Root cause work-log entry (see work-log.md) at G2 — on a pre-branch bug this is the only durable record of the agreement.
 
+**Reasoning may inform the tier; it may not close a risk.** If you discharge a risk at G2 by *reading code* rather than by *running something* — "no internal callers, so nothing else is affected", "the dirty-flag hook already exists, so persistence is fine", "that layer can't reach this path" — record it in the work-log as an **unverified assumption**, together with the concrete command or test that would settle it. A risk you raised and then argued away is the easiest thing in the whole pipeline to lose: it looks resolved, the human signs off on your reasoning, and no later stage ever re-checks it. Stage 7 discharges these; G2 only names them.
+
 **The `systematic-debugging` fork.** All tiers run Stage 2 identically and pause at G2. After sign-off:
 - **Trivial** resumes straight into Stages 3 → 6 → 7 (systematic-debugging's own natural continuation, which already points to TDD then verification-before-completion).
 - **Design-only / full** detour through Stage 4 (and, for full, Stage 5) before Stage 6.
@@ -102,6 +104,10 @@ Each of these skills hard-gates against auto-chaining — it stops at a committe
 ### Stage 7 — Verify (STOP gate before the PR) — non-negotiable #4
 
 `**REQUIRED SUB-SKILL:** Use superpowers:verification-before-completion`, and run the harness `format` and `test` commands. **Evidence before claims:** confirm the suite is green AND the original reproduction is gone. For a visual UI defect, add a manual browser re-check on top of the suite.
+
+**Discharge every assumption recorded at G2.** Each one is either verified now, or reported to the human as *still unverified* — silence is not discharge. This is the stage that closes the loop G2 opened.
+
+**"Original reproduction gone" is necessary, not sufficient.** The reporter's repro is where their story starts, not where it ends. Ask what they do *next* — save and reload, restart the app, sync to another environment, run it again tomorrow — and verify that continuation. A fix can pass a green suite and a gone repro while the reporter still loses their data one layer down, because the repro stopped short of the layer that breaks. When the root cause sits in one layer and the reporter's workflow crosses into another, the crossing itself needs a test.
 
 **This is a hard gate. "Ship with monitoring," "merge and watch," or a manual smoke-test in place of the suite are all violations.** Post the Verify work-log entry (Test added / `format` ✅ / `test` ✅ / Original repro gone ✅).
 

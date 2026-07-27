@@ -83,6 +83,8 @@ If you catch yourself thinking or writing any of these, you are rationalizing a 
 - "The hard stop / deadline is non-negotiable" (used to justify skipping the test)
 - "I'm being transparent about the shortcut, so it's OK"
 - "Just bust all the caches, it's quick" (an under-tiering tell)
+- "No internal callers, so nothing else can be affected" / "the hook already exists, so that layer is fine" (closing a risk by reading code instead of running something)
+- "The repro passes now, so the reporter is unblocked" (their workflow may continue past the repro)
 
 **All of these mean: stop, return to the pipeline, and run the stage you were about to skip.**
 
@@ -100,6 +102,8 @@ If you catch yourself thinking or writing any of these, you are rationalizing a 
 | "The hard stop / deadline is non-negotiable" | The deadline is real; the shortcut is a choice. If a fix is urgent enough to bypass the workflow, that call belongs to a lead, made explicitly — not to you, made unilaterally under pressure. |
 | "I'm being transparent about the shortcut, so it's OK" | Announcing a violation doesn't authorize it. Transparency is necessary, not sufficient. Stop and run the stage. |
 | "Just bust all the caches, it's quick" | The mechanical change is quick; WHICH caches, in WHAT order, with WHAT invalidation strategy are design questions. Multi-subsystem ⇒ design-only or full. Route it, don't hack it. |
+| "No internal callers, so nothing else is affected" / "the hook already exists, so that layer is fine" | You closed a risk by reading code, not by running anything. That's a hypothesis. Record it at G2 as an unverified assumption with the test that would settle it, and discharge it at Stage 7 — otherwise the human signs off on your reasoning and nothing ever re-checks it. |
+| "The original repro passes now" | That is where the reporter's story *starts*. If their workflow continues — save and reload, restart, sync, run it tomorrow — verify the continuation. A fix can show a green suite and a gone repro while the reporter still loses data one layer down. |
 
 ## Reference docs
 
