@@ -1,0 +1,4 @@
+{ "name": "trivial or pre-design → branch cut",
+  "branches": ["  v18/bugfix/101-off-by-one"],
+  "artifacts": { "specs": [], "plans": [] },
+  "expected": [{ "id": "101", "branch": "v18/bugfix/101-off-by-one", "phase": "branch cut" }] }

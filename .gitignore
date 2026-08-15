@@ -9,11 +9,38 @@
 !/.gitignore
 !/tests/
 
+# Workflow artifacts (design specs, plans, adversarial reviews). Publishing is
+# decided PER SKILL: deny all of docs/ by default, then whitelist the artifacts of
+# the specific skill(s) we've chosen to share so people cloning the toolkit can
+# learn from the design/review discipline. Currently only the bug-fixing workflow
+# skill publishes; every other skill's artifacts (and all handoffs) stay private.
+#
+# docs/ is organized by type (specs/plans/criticalreviews/reviews), not by skill,
+# so a skill's artifacts are matched by the component name in the filename. To
+# publish another skill, add "!/docs/**/*<its-artifact-stem>*" line(s) below.
+!/docs/
+/docs/*
+!/docs/specs/
+!/docs/plans/
+!/docs/criticalreviews/
+!/docs/reviews/
+/docs/specs/*
+/docs/plans/*
+/docs/criticalreviews/*
+/docs/reviews/*
+# Shared skill — bug-fixing workflow (umbrella + orchestrator + tracker-adapter):
+!/docs/**/*bug-fixing-workflow*
+!/docs/**/*orchestrator*
+!/docs/**/*tracker-adapter*
+# Pre-update snapshots never ship — keep last so it overrides the stems above.
+docs/**/*.bak
+
 # Skills subtree: ignore everything, then whitelist only the skills published
 # with this plugin. Anything not listed below is excluded by default; to publish
 # a new skill, add an "!" line for it here.
 /skills/*
 !/skills/arch-review/
+!/skills/bugfix/
 !/skills/cobol-xray/
 !/skills/create-handoff/
 !/skills/critical-design-review/
@@ -23,5 +50,6 @@
 !/skills/thorough-brainstorming/
 !/skills/thorough-writing-plans/
 !/skills/tma/
+!/skills/tracker-adapter/
 !/skills/update-design-doc/
 !/skills/update-implementation-plan/

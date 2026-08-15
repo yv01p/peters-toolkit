@@ -1,0 +1,31 @@
+{
+  "number": 23464,
+  "title": "Can't click away the toast notification in infinite editing mode",
+  "body": "### Which Umbraco version are you using?\n\n18.0.0-rc\n\n### Bug summary\n\nIn infinite editing mode the toast notification cannot be dismissed.",
+  "comments": [
+    {
+      "author": { "login": "github-actions" },
+      "authorAssociation": "NONE",
+      "body": "Hi there @reporter! Thanks for reporting this issue.",
+      "createdAt": "2026-07-23T09:27:53Z",
+      "id": "IC_kwDOAAAAAA1",
+      "url": "https://github.com/umbraco/Umbraco-CMS/issues/23464#issuecomment-1",
+      "reactionGroups": [],
+      "viewerDidAuthor": false
+    },
+    {
+      "author": { "login": "someuser" },
+      "authorAssociation": "CONTRIBUTOR",
+      "body": "I can reproduce this on 18.0.0-rc.",
+      "createdAt": "2026-07-23T09:29:06Z",
+      "id": "IC_kwDOAAAAAA2",
+      "url": "https://github.com/umbraco/Umbraco-CMS/issues/23464#issuecomment-2",
+      "reactionGroups": [],
+      "viewerDidAuthor": false
+    }
+  ],
+  "labels": [
+    { "id": "MDU6TGFiZWwxMTM0Mzg4MTUy", "name": "state/needs-investigation", "description": "This requires input from HQ or community to proceed", "color": "eaf0f7" },
+    { "id": "LA_kwDOAAAAAA3", "name": "area/backoffice", "description": "", "color": "0e8a16" }
+  ]
+}
