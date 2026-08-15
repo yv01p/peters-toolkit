@@ -1,7 +1,7 @@
 ---
 name: thorough-brainstorming
 description: "You MUST use this before any creative work — creating features, building components, adding functionality, or modifying behavior. Like brainstorming, but with two enforced disciplines: every design proposed is the smallest one that solves the actual problem (ruthless YAGNI, strict DRY), and every load-bearing assumption is empirically verified against the real codebase before the spec is finalized."
-version: 2.1.1
+version: 2.2.0
 ---
 
 # Thorough Brainstorming: Ideas Into Designs (with Empirical Verification)
@@ -29,7 +29,7 @@ You MUST create a todo for each of these items and complete them in order:
 1. **Explore project context** — check files, docs, recent commits
 2. **Offer the visual companion just-in-time** — NOT upfront. The first time a question would genuinely be clearer shown than described, offer it then (its own message); on approval its browser tab opens for you. If no visual question ever arises, never offer it. See the Visual Companion section below.
 3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
-4. **Propose 2-3 approaches** — with trade-offs and your recommendation
+4. **Pressure-test and propose 2-3 approaches** — enumerate the decision axes, probe every differentiating claim, then present options with evidence-backed trade-offs, a `Probes:` block, and your recommendation (see "Exploring approaches (the fork contract)")
 5. **Present design** — in sections scaled to their complexity, get user approval after each section
 6. **List assumptions** — write each load-bearing assumption as a todo item before verifying any
 7. **Verify each assumption empirically** — read code, run commands, check docs; mark each todo complete with the evidence found
@@ -45,7 +45,7 @@ You MUST create a todo for each of these items and complete them in order:
 digraph thorough_brainstorming {
     "Explore project context" [shape=box];
     "Ask clarifying questions" [shape=box];
-    "Propose 2-3 approaches" [shape=box];
+    "Pressure-test & propose\n2-3 approaches" [shape=box];
     "Present design sections" [shape=box];
     "User approves design?" [shape=diamond];
     "List assumptions\n(one todo per item)" [shape=box];
@@ -59,8 +59,8 @@ digraph thorough_brainstorming {
     "Stop and wait" [shape=doublecircle];
 
     "Explore project context" -> "Ask clarifying questions";
-    "Ask clarifying questions" -> "Propose 2-3 approaches";
-    "Propose 2-3 approaches" -> "Present design sections";
+    "Ask clarifying questions" -> "Pressure-test & propose\n2-3 approaches";
+    "Pressure-test & propose\n2-3 approaches" -> "Present design sections";
     "Present design sections" -> "User approves design?";
     "User approves design?" -> "Present design sections" [label="no, revise"];
     "User approves design?" -> "List assumptions\n(one todo per item)" [label="yes"];
@@ -92,11 +92,25 @@ digraph thorough_brainstorming {
 - Only one question per message — if a topic needs more exploration, break it into multiple questions
 - Focus on understanding: purpose, constraints, success criteria
 
-**Exploring approaches:**
+**Exploring approaches (the fork contract):**
 
-- Propose 2-3 different approaches with trade-offs
-- Present options conversationally with your recommendation and reasoning
-- Lead with your recommended option and explain why
+The approaches message is the highest-leverage artifact in this skill: the user picks a branch based on the trade-offs you assert, and the post-approval verification pass only checks the branch that won — it cannot resurrect an option your framing killed. A trade-off asserted from memory at the fork is an unverified assumption that decides the design. So the fork gets the same empirical discipline as post-approval verification, resequenced in front of the decision:
+
+1. **Enumerate decision axes before naming options.** List the dimensions the options consequentially differ on. The axes MUST include behavior under failure (for each way the thing can go wrong: what does the system actually do — retry, fail terminally, silently continue?) and downstream consumer behavior (what does the code that consumes this artifact do with each variant?), alongside whatever structural axis the options naturally frame themselves in. The decisive axis is routinely the one the natural framing omits.
+2. **Probe every differentiating claim.** A differentiating claim is a factual assertion that changes which option wins: "X is blocked", "Y retries", "Z's errors are clearer", "the consumer handles both". Each gets probe-tier evidence: run a prototype against the real primitive, execute the command, read the actual consumer code path. Grep/diff is existence-tier evidence — it discharges "the symbol exists", never "the system behaves this way".
+3. **Hybrid check.** After probing, answer in the message: does a combination of options dominate every pure option? Did any proposed component turn out option-independent (needed no matter which option wins)? Option-independent components leave the fork and apply to every branch.
+4. **Present options conversationally with your recommendation**, leading with the recommended option and the probe evidence that picked it.
+
+**The `Probes:` block (structural, checkable).** When any differentiating claim is behavioral, the approaches message MUST contain a block headed `Probes:` — one line per differentiating claim: the claim, what was run or read, and the decisive evidence (e.g. `plain union emits anyOf — ran build_tool on a prototype model, passes`), or `UNVERIFIED: <claim> — <why it couldn't be probed in-round>`. A trade-off that appears in the options but not in the Probes block is, visibly, an asserted guess — the block exists so the user can see at a glance which trade-offs are measured and which are hopes. If no differentiating claim is behavioral (the options differ only on preference, naming, or file layout), skip the block and the probes: present the fork directly. Do not pad preference forks with ceremony.
+
+Red flags at the fork — these thoughts mean STOP:
+
+| Thought | Reality |
+|---|---|
+| "I'll present the natural 2-3 shapes with trade-offs; verification comes after approval anyway" | Post-approval verification checks the branch that won — it cannot resurrect an option your unprobed framing killed. Probe the differentiating claims first. |
+| "The user can ask me to pressure-test the options if they want more depth" | The user picks the branch from the message in front of them. A fork decided on unprobed claims is the failure, whether or not anyone asks for more. |
+| "I already explored this area earlier in the session — or the handoff records it — so the claims are grounded" | Exploration establishes existence, not behavior. And a claim carried across rounds or a handoff is transcript-tier: the words survived, the verification didn't. Probe the claim in-round; it costs a minute. |
+| "The trade-offs are well known for this kind of choice" | "Well known" is memory, not evidence. A fork decided on a wrong remembered claim costs the design. |
 
 **Presenting the design:**
 
@@ -366,7 +380,7 @@ The skill ends here. Do NOT invoke critical-design-review, writing-plans, fronte
 - **One question at a time** — Don't overwhelm with multiple questions
 - **Multiple choice preferred** — Easier to answer than open-ended when possible
 - **YAGNI ruthlessly, DRY strictly** — Solve exactly the problem in front of you with the smallest possible footprint, using what already exists. See the "Ruthless YAGNI and Strict DRY" section — this is enforceable, not aspirational.
-- **Explore alternatives** — Always propose 2-3 approaches before settling
+- **Explore alternatives** — Always propose 2-3 approaches before settling, with differentiating claims probed, not asserted
 - **Incremental validation** — Present design, get approval before moving on
 - **Evidence over confidence** — Every load-bearing assumption gets verified against the real codebase, not against your memory of how things usually work
 - **Be flexible** — Go back and clarify when something doesn't make sense

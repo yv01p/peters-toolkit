@@ -19,6 +19,20 @@ When cutting a new version, update in lockstep:
 4. A new `git tag vX.Y.Z`
 5. Regenerate `tests/provenance/companion-manifest.sha256` (and its `# target:` line) if the visual-companion files were re-synced to a new Superpowers target
 
+## [2.4.0] — 2026-08-15
+
+**Targets Superpowers 6.0.x–6.1.x** (verified against 6.1.1)
+
+### Added
+- TB 2.2.0: the fork contract — checklist step 4 becomes "Pressure-test and propose": decision axes enumerated before options (failure behavior and downstream-consumer behavior mandatory), every behavioral differentiating claim probed (probe-tier evidence, not grep/memory), hybrid check, and a structural `Probes:` block in the approaches message (per-claim evidence or `UNVERIFIED:`); preference-only forks explicitly exempt. Four fork-specific red-flag rows.
+- CDR 2.4.0 / CIR 2.3.0: "Proposed fixes are claims too" extended to §3 options; structural `Evidence:` line required on every §2 proposed fix and every §3 option (or `UNVERIFIED:`); falsifiable-probe requirement (a probe that constructs the state it claims to detect is fabricated coverage); the evidence-tier ladder now binds §2 findings symmetrically with `ok` rows (cheaply runnable failure claims get run before shipping as findings); ambient-state-consumer row in the negative-claims recipe ("X is unaffected" where a change sets/renames/removes an env var, global, config key, or fixture → grep every reader); §2/§3 output templates updated; four new rationalization rows.
+
+### Changed
+- CDR/CIR consolidation: the shared review machinery (reviewer mindset, evidence tiers, negative-claims verification + recipes, proposed-fixes/§3-options evidence rules, and the ~34 shared rationalization rows with tightened Reality columns) now lives once in `skills/critical-design-review/shared-review-discipline.md`, read at invocation by both skills (CIR via `../critical-design-review/`). Each SKILL.md keeps its checklist, input contract, §0 surface definitions, output templates, taxonomy, and skill-local rationalization rows. Fixes three pre-existing twin-section drifts (lost Critical-pitfall worked example in CIR; "before it may appear in §2" clause absent from CIR; designed-variant classification for negative-claims examples). New guard: `tests/shared-discipline/check-companion-wiring.sh`. Per-invocation size roughly unchanged (CDR 6.7k→6.2k words, CIR 8.2k→7.8k incl. companion); maintenance duplication eliminated (~3.4k twin words → 0).
+- §3 forced decisions: the option set itself is now a claim — each §3 item must state why no combination or unlisted variant dominates the listed options (motivated by a production round where the pressure test surfaced a dominant third variant after two options were presented).
+
+Motivated by fork-shallowness observed in 888l sessions (issue #80 union-shape fork; the editor-unions CIR round-2 fix): "pressure test the options" reliably overturned option sets whose differentiating claims were asserted, not probed. The additions are structural (checkable output slots) rather than prose mandates, because the CIR case violated an evidence rule the skill already stated in prose. Baseline/GREEN harness in `tests/fork-contract/`; full analysis in `docs/specs/2026-08-15-fork-contract-proposal.md`.
+
 ## [2.3.0] — 2026-07-12
 
 **Targets Superpowers 6.0.x–6.1.x** (verified against 6.1.1)

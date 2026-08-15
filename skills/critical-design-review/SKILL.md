@@ -1,7 +1,7 @@
 ---
 name: critical-design-review
 description: Use when reviewing a design spec produced by thorough-brainstorming, before the design is implemented. Use for adversarial design review, second-opinion on a finalized spec, or finding issues in a design before they become bugs. Multiple iterative passes supported.
-version: 2.3.0
+version: 2.4.0
 ---
 
 # Critical Design Review
@@ -9,6 +9,14 @@ version: 2.3.0
 ## Overview
 
 Adversarially review a design spec — typically produced by `thorough-brainstorming` — to surface things the design will literally break on and forced decisions the spec hasn't picked. Empty output is a valid result; this skill exists to find real problems, not to demonstrate value.
+
+## Shared discipline (read first)
+
+Read `shared-review-discipline.md` in this skill's directory before building §0.
+Its contents are binding for every review this skill produces: reviewer mindset,
+the evidence-tier ladder (which binds `ok` rows AND findings), negative-claims
+verification, the `Evidence:`-line requirement on §2 fixes and §3 options, and
+the shared rationalization table.
 
 ## Input contract
 
@@ -29,12 +37,6 @@ Implementation-level concerns (race conditions in called primitives, error-path 
 | Spec has a `Verified assumptions` section | Treat each item as ground truth. Do NOT re-question those facts. §1 of the output (verified-assumptions cross-check) becomes a fresh-read sanity check against the cited evidence — not a re-litigation. |
 | Spec has no `Verified assumptions` section | Proceed with the review. Emit a top-of-output warning: `⚠️ This spec lacks a 'Verified assumptions' section. Reviewer cannot distinguish verified facts from unverified assumptions; treat findings accordingly.` Skip §1 of the output entirely. |
 
-## Reviewer mindset
-
-Your job is to find the things in this spec that would literally break the user's stated outcome. You are not paid by the issue. An empty review is a valid output. Your job is correctness-defense, not value-demonstration.
-
-You are not playing a role. You are not a Senior Principal Architect. You are not graded on issues-found per review. The discipline emerges from the constraints in this skill — the literal-wrongness test, the bounded finding categories, the explicit delegation of security and implementation concerns to other skills — not from a persona.
-
 ## Coverage before candidates (the enumeration sweep)
 
 Precision machinery tells you what to drop; it does not tell you where to look. Before generating any candidate finding, enumerate the review surface as a checkable list — this becomes §0 of your output:
@@ -45,36 +47,10 @@ Precision machinery tells you what to drop; it does not tell you where to look. 
    - **Eligibility predicates** — for any scope test over a status or type ("all confirmed results", "case-law entries", "verified records"), enumerate every PRODUCER of that status/type in the code (grep the constructors/assignment sites that emit it) — one row per producer, checking the predicate's assumptions against what that producer actually populates. The input classes are defined by what the code can produce, not by the paths the spec happens to name; the producer the spec didn't mention is the classic unhandled input class.
 3. **Data-flow arrows:** one row per arrow, and an arrow ends at an **operation** — an API call, a computation, a comparison, a render — not at a stage name. For each consuming operation: list the parameters it requires, and trace each one back to a field that exists in the artifact the operation's stage actually reads. "The data reaches the stage" is not the check; "every parameter of the operation exists in what the stage received" is. Flag every arrow that crosses a persistence/serialization boundary (write-then-read of JSON/DB/file artifacts): the in-memory shape and the persisted shape are different objects — dump a real record's key set and check against it, don't reason from the in-memory type of the same concept. A single design concept ("a verified record") silently splitting into two incompatible shapes across a write-to-disk is a recurring real-failure class; so is a downstream operation whose required parameter exists nowhere in the artifact its stage enumerates from. An operation with more than one caller gets **one row per call site**, not one per operation — each caller sources the operation's parameters from its own artifacts, and verifying sourcing once "for the operation" hides the caller whose inputs come from somewhere else. The canonical instance: an eval/spike-side replica of a runtime call — same operation, but its parameters come from persisted artifacts that may lack fields the runtime path holds in memory.
 
-Work through the enumeration; give every row a disposition — one line for non-load-bearing rows, the evidence-tier ladder below for load-bearing ones: `ok — <what you checked>`, `→ §2/§3` (became a finding), or `dropped — <reason>` (candidate generated, failed the literal-wrongness test). Two disciplines on the rows themselves:
+Work through the enumeration; give every row a disposition — one line for non-load-bearing rows, the evidence-tier ladder in `shared-review-discipline.md` for load-bearing ones: `ok — <what you checked>`, `→ §2/§3` (became a finding), or `dropped — <reason>` (candidate generated, failed the literal-wrongness test). Two disciplines on the rows themselves:
 
 - **Proportionality:** the sweep scales with the artifact — a five-line spec gets a three-row sweep, not a template's worth of rows. §0 is a search discipline, not a form to fill; padding it with rows that check nothing is the same fabricated coverage as an unexamined `ok`.
 - **Finish the surface:** a row that yields a finding is not thereby disposed. Before moving on, check the surface's remaining named identifiers — types, functions, exceptions, fixtures, columns — against the codebase. A found defect marks where the scan continues, not where it stops; the second phantom identifier in a block routinely hides behind the first. **And the family:** a confirmed finding additionally obligates a recurrence sweep — enumerate the structurally similar siblings of the defective instance and check each for the same failure shape, bounded to the enclosing surface: the remaining checks in the same validator/file span, the sibling tests in the same module, the other outbound seams of the same test, the other fields under the same constraint kind, the sentences that follow in the same spec/plan paragraph. The family lives in the codebase as much as in the artifact. Record it as one §0 row per family member, or one row naming the family with a per-member disposition.
-
-### Evidence tiers: the disposition must match the claim class
-
-An `ok` disposition is only as strong as the evidence named in it. For
-**load-bearing rows** — any row whose failure would be a §1 or §2
-finding — the named check must meet the tier its claim class requires.
-Paste the decisive evidence into the row (the actual key list, the
-actual count, the command run); an evidence tier asserted but not shown
-is fabricated coverage.
-
-| Claim class | Minimum evidence | Never sufficient |
-|---|---|---|
-| Totality/coverage over a population ("the join holds", "every X maps", "all keys parse") | Run the rule over the full real population it will see, or inspect both the covered set and the residual set | One sampled instance generalized to the class (n=1 "spot check") |
-| Field present in a persisted artifact | Dump a real record's key set and cite the keys | Schema docstrings, Pydantic models, or the in-memory type of the same concept |
-| Field absent from a persisted artifact | A dump of a record that **reached the state that populates the field** (stratify by status before sampling) | Absence in a record that never reached the populating state (a stuck run proves nothing about completed ones) |
-| Artifact–consumer compatibility ("the harness consumes these files") | Push at least one real artifact through the consuming operation or its validator | Existence/count evidence — "67 files on disk" discharges "67 files exist", never "these files load" |
-| Bidirectional completeness ("every X is Y" mappings, span checks, listed↔required correspondences) | Both directions checked, each direction's disposition named in the row | A one-direction pass |
-
-Existence-level evidence discharges existence-level claims only. A
-load-bearing row that can't meet its tier in-round is not `ok`: upgrade
-the evidence, or surface it as a §3 forced decision (verify empirically /
-accept the risk / defer) — the "When grep can't verify" rule generalizes
-to evidence tiers. Non-load-bearing rows keep their one-line check;
-the ladder does not license padding.
-
-The sweep drives candidate **generation only**. §0 is bookkeeping, not a fifth finding category — findings live only in §1–§4, and every candidate still passes the literal-wrongness test before it may appear in §2. A `dropped` row must never be promoted to a finding to justify the sweep's cost. Empty §2 remains a valid output — but only after the surface is covered. "I found one real issue" is not a reason to stop; "every §0 row has a disposition and this is all that's wrong" is.
 
 ## Ruthless YAGNI for reviewers
 
@@ -115,42 +91,6 @@ When the asked-for behavior depends on a primitive the design calls, and the pri
 | "The session cookie is forgeable, so the endpoint can return any user's record" | Without addressing this, does the asked-for behavior (`return THE caller's record`) fail? The endpoint correctly returns the cookie's user's record. The forgery makes the authn trust model wrong, not the design wrong. | Drop from CDR. Goes to critical-security-review. |
 | "Endpoint references `requireSession` but `requireSession` throws raw `Error`, which Express does not turn into 401" | Without addressing this, does the asked-for behavior work? Only if the spec actually says 401 is expected. If the spec says "throws on unauth" matching what the primitive does, that's the asked-for behavior and it works. | Depends on the spec. If spec asserts 401 → §2. If spec just says "throws on unauth" → not literal-wrongness; drop. |
 
-## Negative claims require empirical evidence
-
-A **negative claim** asserts that something does NOT happen — "consumer X doesn't access internals of Y", "symbol Z has no callers", "feature F is unused", "module M doesn't depend on N". Spec authors often cite negative claims as the reason a deletion or change is safe ("we can delete Y because nothing depends on it"). When a negative claim is **load-bearing for the spec's safety**, you MUST treat it as a §2 candidate UNLESS you have grep evidence against the specific symbol whose absence is being claimed. A negative claim accepted on faith is the most common way a CDR misses a real literal-wrongness finding.
-
-### Verification recipe
-
-| Claim shape | Grep target | Hit means |
-|---|---|---|
-| "Consumer X doesn't access [internal/private/protected] members of provider Y" | The **specific internal symbol names** declared in Y — especially type names (`internal interface Foo`, `internal class Bar`) — grep'd in X's source. Not the public API around them. | Claim is FALSE → §2 finding. |
-| "Symbol Z is unused" / "Z has no callers" | `\bZ\b` across the codebase, excluding Z's own declaration site. | Any non-self hit → claim FALSE → §2. |
-| "Feature/flag F is dead" | `\bF\b` and any documented aliases / configuration keys. | Hit → claim FALSE → §2. |
-| "Module M has no external dependents" | Imports / `require` / project references / `using` statements naming M, across the codebase. | Hit → claim FALSE → §2. |
-| "Rule R produces correct output on all inputs of class C" (incl. recovery/coverage-rate claims: "recover the 180", "handles all variants") | Run R — or hand-trace it — over the real corpus/data it will see. Inspect BOTH the matched/covered set (spurious hits) AND the unmatched/residual set (silent misses). | Either failure direction on real data → §2. |
-
-### Critical pitfall — grep the right symbol
-
-"X uses only public API `foo()`" is NOT sufficient evidence that "X doesn't access internal type `T`". Public methods can return internal types; field declarations, parameter types, local-variable types, and base-class declarations all require the type itself to be accessible. **If T is the access-controlled symbol, grep X for `\bT\b` — not for the public method that happens to return T.**
-
-Worked example (real failure that motivated this section):
-- **Spec claim:** "Deleting `[InternalsVisibleTo(\"Enrichers.GlobalExecutionId\")]` is safe — that enricher uses only the public LibLog API."
-- **Wrong verification:** grep `LogProvider` in `GlobalExecutionId/`. Hit found — looks like a public-API call. Conclude: claim verified.
-- **Right verification:** grep `\bILog\b` in `GlobalExecutionId/`. Four hits: `private readonly ILog _logger = LogProvider.For<...>();`. The field type `ILog` is internal. Removing the IVT breaks compilation in 4 files.
-- **Verdict:** the public-API call returns an internal type; the consumer's field type leaks the access requirement; the claim is false; this is a §2 finding.
-
-### Input-cleanliness claims are negative claims
-
-"X is just the party name", "this field never carries suffixes", "input class C needs no special handling" — each asserts an absence of structure in an input. When a rule's correctness rests on one, it is load-bearing; test it against the real corpus, in both failure directions. Real failure that motivated this: a citation matcher extracted a first-party surname as "the last content token before `v.`"; the spec asserted the text before `v.` "is just the party name." Real corpus anchors had corporate parties — `Air Safety, Inc. v. …` extracts `inc.`, `Trammell Crow Co. No. 60 v. …` extracts `60` — so every corporate-first-party citation silently failed to match: a false-negative miss on the operand assumed clean. Three review rounds hunted over-inclusion only and accepted the cleanliness assertion without a corpus test; the enumeration sweep's both-directions rule plus this section exists so round 1 catches it.
-
-### When grep can't verify
-
-If access happens through reflection, dynamic dispatch, code generation, runtime DI registration, string-based lookup, or any mechanism that hides symbol references from grep — the negative claim is unverifiable at design-review time. Do NOT bless it as "probably fine." Surface as a §3 forced decision: "Verify empirically by attempting the change and observing the toolchain's response; defer the change if it fails." The user can then decide whether to spike-test now or accept the risk.
-
-### When the claim is incidental, not load-bearing
-
-The literal-wrongness test still applies. A throwaway "this isn't used elsewhere" remark in spec prose is NOT a CDR concern. An explicit "this is safe to delete because nothing depends on it" IS. The trigger is whether the spec's safety argument rests on the negative claim.
-
 ## The four finding categories
 
 These are the only categories that exist. There is no "miscellaneous." Each requires a *specific kind* of finding; none has a "fill this in" prompt.
@@ -170,61 +110,17 @@ These are the only categories that exist. There is no "miscellaneous." Each requ
 - No "Architectural Soundness" mandate (modularity / scalability / extensibility / maintainability). Replaced by the literal-wrongness test.
 - No "Questions for Clarification" section. If something is a real either/or the spec hasn't picked, it's a §3 forced decision. If it's speculation about intent, drop it.
 
-## Proposed fixes are claims too
-
-A §2 finding's proposed fix is reviewer-authored artifact text: the
-update skill applies it, often verbatim. A proposed fix that introduces a
-new load-bearing claim — names a function or signature, asserts a
-property of the data or corpus, claims an instrument capability, or
-asserts parity/safety "by construction" — must carry the same evidence
-this skill demands of the text it is replacing: grep, dump, signature
-read, or run, cited inline in the fix. If the evidence can't be produced
-in-round, prefix the fix with `UNVERIFIED:` so the update skill treats it
-as a claim to verify before applying, not a fact to transcribe. An
-unverified fix applied verbatim is how a review authors the next round's
-finding.
-
 ## Reviewer rationalization table
 
-These thoughts mean STOP — you're rationalizing your way into producing speculation:
+The shared table in `shared-review-discipline.md` applies in full. CDR-specific rows:
 
 | Thought | Reality |
 |---|---|
-| "I should propose at least one alternative architecture to be helpful." | Alternatives serve §2 findings. Without a §2 finding, an alternative is forced speculation. Drop. |
-| "I notice X could fail at scale" — but scale isn't in the spec. | Scale isn't in the spec because the user didn't ask. Apply the literal-wrongness test against the asked-for outcome. |
-| "There's no metrics / observability / audit trail." | Unless the user asked, this is generic over-instrumentation noise. Drop. |
-| "We could refactor X for clarity." | Adjacent improvement. Drop. |
-| "Best practice would be to add X." | Best-practice ≠ correctness. Apply the literal-wrongness test. |
-| "I haven't found anything critical, let me at least surface minor improvements." | Empty is a valid output. Filling categories is over-engineering. There is no "minor improvements" category to fill. |
-| "The verified-assumptions section claims X is true, but what if it changes?" | Verified facts are ground truth. "What if it changes" is speculation about a future the user hasn't asked about. |
-| "The spec doesn't address [edge case the user didn't mention]." | The spec covers the asked-for path. Edge cases come up during implementation, not in design review. |
-| "I should be thorough; quality reviews find at least N issues." | Quota-driven critique. The number of real findings is whatever the design actually has wrong. Often zero. |
-| "I'm an experienced architect; I should have an opinion on the tech choices." | The user picked the tech. Opinions on tech choices are noise unless they fail the literal-wrongness test. |
-| "The verified-assumptions section says X is true, but I should double-check by re-reasoning." | If you read the cited evidence and it still holds, the assumption is reconfirmed. If the evidence doesn't hold, the assumption fails — that's a §1 finding. Don't double-check via vibes. |
-| "This is a small spec — I should find at least one structural concern, otherwise the review looks lazy." | A small spec rests on smaller assumptions, not on weaker ones. If the asked-for behavior doesn't literally fail, there is no concern to surface, regardless of how the review "looks." |
-| "I noticed a security issue that doesn't fail literal-wrongness — I'll surface it as an FYI." | Security audit is `critical-security-review`'s job. CDR catches security issues only when they fail the literal-wrongness test against the spec's outcome. Surfacing security FYIs duplicates another skill and is noise here. |
-| "I'll surface this as a §3 forced decision so the user has to weigh in." | §3 is for choices the codebase or product constraints actually force. If you're inventing the choice to make the user think about something you find interesting, drop it. |
-| "The fix I'm proposing in §2 would also benefit from refactoring adjacent code, so I'll fold that in." | The §2 finding is the finding. The fix is the fix. Don't expand scope to justify additional cleanup. |
-| "I need to add 'questions for clarification' so the reviewee knows what to think about." | There is no Questions section. If something is a real either/or the spec hasn't picked, it's a §3 forced decision. If it's speculation about intent, drop it. |
-| "The 'asked-for behavior' obviously implies X (where X is something the spec doesn't say)." | Be honest about what the spec actually says vs. what you'd assume in the spec's place. If the spec doesn't say X, X is not part of the asked-for behavior — don't smuggle X in to manufacture a §2 finding. |
-| "The spec says consumer X doesn't access internals of Y, so removing the `[InternalsVisibleTo]` / unexporting Y / etc. is safe." | Negative claims are load-bearing when a deletion's safety depends on them. Verify by grep'ing the **specific internal symbol** in X's source — not the public API around it. Public methods can return internal types; field annotations leak access. See "Negative claims require empirical evidence." |
+| "The spec says consumer X doesn't access internals of Y, so removing the `[InternalsVisibleTo]` / unexporting Y / etc. is safe." | Negative claims are load-bearing when a deletion's safety depends on them. Verify by grep'ing the **specific internal symbol** in X's source — not the public API around it. See "Negative claims require empirical evidence" in the shared file. |
 | "I grep'd the consumer for the public API and it's all clean — claim verified." | You grep'd the wrong target. The access-controlled symbol is what matters. Re-grep for the internal type/member name itself. |
-| "I have a solid finding already; the rest of the spec is probably fine." | One finding proves the search worked, not that it finished. The sweep isn't done until every §0 row has a disposition. Stopping at the first defensible finding is how a defect survives four rounds one section over. |
-| "Enumerating the surface is overhead; I'll spot-check the likely sections." | §0 is part of the output and checkable — a section, rule, or arrow with no row is a visible hole. Spot-checking is exactly how silent-miss (false-negative) defects survive review after review. |
 | "This arrow just passes data between stages; no row needed." | Arrows crossing a write-then-read boundary are where in-memory and persisted shapes diverge. One line to confirm the consumer's required fields exist in the shape it actually reads. |
-| "The rule's other operand is obviously the same shape; checking one side covers both." | Structurally-similar operands treated differently by a rule is a named smell. Test the assumed-clean side against real data — the miss that motivated this discipline lived on exactly the operand nobody tested. |
-| "This mechanism is spike-tunable / experiment-calibrated, so it's out of scope for review." | Calibration sets values — thresholds, counts, wording. It cannot repair mechanics: identity keys, exclusion criteria, input availability. A key that conflates two distinct entities or an exclusion referencing a field the record doesn't carry is wrong at every calibrated value. Mechanics rows stay in the sweep. |
-| "The spec names the paths that produce this status, and I verified those." | The predicate matches whatever the CODE can produce, not what the spec lists. Grep the producers of that status/type; a producer the spec didn't name is an unhandled input class waiting in exactly the blind spot the spec's list creates. |
-| "The arrow reaches the stage with the right records, so the arrow is ok." | Records arriving is half the check. The stage's operation consumes specific parameters — name them and confirm each exists in the artifact the stage reads. An enumeration step that yields records lacking the fields its own next operation needs is the canonical silent break. |
-| "I verified this operation's parameter sourcing at its call site." | At *a* call site. An operation with several callers is sourced several ways — the eval-side replica of a runtime call reads persisted artifacts the runtime path never touches. One row per caller; the caller the spec treats as a copy of another is the one that breaks. |
-| "This block already gave me a finding; the rest of it is covered." | A finding disposes a defect, not a surface. The block's remaining named identifiers are unchecked until checked — the second phantom type in a block hides behind the first, and it has survived exactly this rationalization before. |
-| "I counted the artifacts, so the row is ok." | Counting proves existence; only the consumer proves compatibility. Push one real record through the consuming operation — 66/67 answer keys once failed a loader whose line number three rounds had cited as evidence. |
-| "I checked one case and it matched byte-identically." | n=1 verifies that case, not the class. Totality claims get the full population or both-sets inspection — 19/116 silent join failures lived behind exactly this spot check. |
-| "The schema/docstring says the field is there." | The persisted artifact is the operand, not the type. Dump a real record's keys — a field that existed in every docstring and no artifact has survived two rounds this way. |
-| "The field wasn't in the records I sampled, so it's absent." | Records that never reached the state that populates the field prove nothing. Sample where the field would be set. |
-| "I found the broken check; the rest of that validator is a different concern." | A found check has siblings enforcing the same invariant for other statuses and paths. Inventory the enclosing span — the `partial` twin of a found `success` check sat 30 lines down and cost a full round. |
-| "This test's outbound call is mocked; the test's row is done." | One row per outbound seam of the test, not one per test. The unmocked second seam is where the live call escapes. |
-| "The fix is my own analysis; it doesn't need the evidence treatment." | Reviewer-authored text bypasses every gate unless this one holds. Four late findings in one retrospective cycle were quoted verbatim from a prior round's proposed fix. |
+| "The rule's other operand is obviously the same shape; checking one side covers both." | Structurally-similar operands treated differently by a rule is a named smell. Test the assumed-clean side against real data. |
+| "The arrow reaches the stage with the right records, so the arrow is ok." | Records arriving is half the check. Name the consuming operation's parameters and confirm each exists in the artifact the stage reads. |
 
 ## Iterative review behavior
 
@@ -275,11 +171,11 @@ Print the summary. CDR ends after printing it; no further prompts.
 [If section missing: omit this entire section]
 
 ## 2. Literal-wrongness findings
-[Per finding: description / evidence (file:line) / proposed fix]
+[Per finding: description / evidence (file:line) / proposed fix / the fix's own `Evidence:` line (or `UNVERIFIED:`)]
 [OR: "No literal-wrongness findings."]
 
 ## 3. Forced decisions
-[Per item: the choice / why it's forced / the options]
+[Per item: the choice / why it's forced / the options, each ending with its `Evidence:` line (or `UNVERIFIED:`)]
 [OR: "No forced decisions found."]
 
 ## 4. Previously addressed
