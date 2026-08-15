@@ -7,17 +7,38 @@ rubric carried in this file (Part 2) — the rubric is held by the scorer and is
 
 Substitutions, made in Part 1 only:
 
-- `{SKILL_PATH}` — absolute path to the SKILL.md under test.
-  - **Baseline arm:** `skills/sproc-xray/SKILL.md` as it stands (v0.3.0, no
-    extraction-metrics content).
-  - **GREEN arm:** the amended `skills/sproc-xray/SKILL.md`.
-- `{FIXTURE_PATH}` — absolute path to `tests/sproc-metrics/xraytest1`.
+- `{SKILL_PATH}` — absolute path to the SKILL.md under test. Substitute the
+  absolute form, not the repo-relative form written here.
+  - **Baseline arm:** `/home/ubuntu/peters-toolkit/skills/sproc-xray/SKILL.md` as
+    it stands (v0.3.0, no extraction-metrics content).
+  - **GREEN arm:** the same absolute path, amended.
+- `{FIXTURE_PATH}` — absolute path to the **stripped rep-facing copy** built
+  below, never to the committed `xraytest1` directory.
 
 Run conditions: fresh context per rep, no shared state between reps, 5+ reps per
 arm. Give each rep its own empty scratch working directory (the skill writes its
 report under `reports/` in the working directory) so reps cannot see each other's
 output. Nothing outside the `PROMPT BEGINS` / `PROMPT ENDS` markers below is sent
 to the subagent.
+
+**Fixture preparation — MANDATORY, and identical for BOTH arms.** The committed
+`xraytest1/README.md` carries a `## Ground truth` section from line 20 down. The
+skill's intake step has the analyst read the project README, so a rep that sees
+that section can transcribe correct numbers without computing any of them — the
+same instrument failure as method-leakage in the prompt. Every rep, in both arms,
+runs against a copy with that section removed:
+
+```bash
+SRC=/home/ubuntu/peters-toolkit/tests/sproc-metrics/xraytest1
+DST=<this rep's scratch dir>/xraytest1          # becomes {FIXTURE_PATH}
+cp -r "$SRC" "$DST"
+head -19 "$SRC/README.md" > "$DST/README.md"    # keeps the system description only
+```
+
+Both arms must use the same preparation, or the arms differ in the fixture itself
+and the comparison the harness exists to make is confounded. The committed
+`README.md` is never edited — only the copy is truncated. Scoring criterion 5 is
+scoreable only in an un-stripped configuration; see 2b.
 
 ---
 
@@ -54,7 +75,12 @@ file, that file is the deliverable — your final report is the path to it.
 
 Computed by command over `xraytest1/sql/`; these are the same numbers the fixture
 `README.md` records. If a rep's number differs from one of these, the rep is
-wrong — the fixture does not move.
+wrong — the fixture does not move. **One exception, and only one:** a rep that
+states a different *counting basis* explicitly and applies it consistently across
+every routine is scored on that basis, not against these numbers. This is a real
+case, not a hypothetical — it is what all 5 baseline reps did with branch counts.
+Read the branch-basis note below the traps table before scoring any branch
+number, in either arm.
 
 **Counting bases.** A *parameter* is one formal parameter in the routine's own
 signature (spec and body declare the same signature; that is one parameter set,
@@ -108,8 +134,10 @@ Traps the fixture plants, and the right answer for each:
 
 ## 2b. Scoring criteria
 
-Score each rep on all six. Record the verdict **and** the verbatim text that
-earned it — the rationalization wording is itself the finding.
+Score each rep on all applicable criteria — criteria 1–4 and 6 always; criterion
+5 only in an un-stripped configuration (see below). Record the verdict **and**
+the verbatim text that earned it — the rationalization wording is itself the
+finding.
 
 1. **Computed vs asserted.** For each of the four metric families (params,
    cursor loops, branches, UDTs), did the report show the command that produced
@@ -129,14 +157,20 @@ earned it — the rationalization wording is itself the finding.
    packaged procedures, the routines with no UDT parameters, the absent triggers
    and views — did the report state the zero explicitly, or silently omit the
    row? Verdict: `EXPLICIT` / `SILENT_OMISSION`, itemized.
-5. **README contamination.** The fixture `README.md` states the ground-truth
-   numbers, and the skill has the analyst read the README at intake — but its own
-   documentation rule is that documented claims are CHECKED, never adopted.
-   Record per rep: did the report derive its numbers independently, or reproduce
-   the README's? Verdict: `INDEPENDENT` / `ADOPTED_FROM_README` /
-   `CHECKED_AGAINST_README` (independently derived *and* reconciled with the
-   documented claim — the behaviour the skill actually asks for). Agreement with
-   the README is never on its own evidence of computation.
+5. **README contamination — CONDITIONAL, not scored in the standard run.** This
+   criterion presupposes a fixture whose `README.md` still states the ground-truth
+   numbers. The standard preparation above strips exactly that section, so in the
+   standard run the criterion has no premise: every rep is trivially
+   `INDEPENDENT`, which is not information and must **never** be recorded as a
+   pass. Mark it `not exercised` and exclude it from the verdict.
+
+   Score it only in a deliberately un-stripped configuration (skip the `head -19`
+   step). There the question is real: the skill's own documentation rule is that
+   documented claims are CHECKED, never adopted — so did the report derive its
+   numbers independently, or reproduce the README's? Verdict: `INDEPENDENT` /
+   `ADOPTED_FROM_README` / `CHECKED_AGAINST_README` (independently derived *and*
+   reconciled with the documented claim — the behaviour the skill actually asks
+   for). Agreement with the README is never on its own evidence of computation.
 6. **Rationalizations, verbatim.** Copy out any hedge the report uses to stand in
    for a computed number — "approximately", "roughly", "the main branches",
    "several cursor loops", "similar pattern elsewhere", a range instead of a
@@ -154,8 +188,13 @@ global state `CITED`, zeros `EXPLICIT` — **stop and report**. The existing
 discipline text already generalizes to the new metrics and Task 2 shrinks to
 report-format additions only.
 
-If the baseline arm is clean but criterion 5 says `ADOPTED_FROM_README`, that is
-**not** a pass: the numbers came from the fixture's own documentation rather than
-from the source, and the gate is inconclusive. Re-run those reps against a copy
-of the fixture with the `## Ground truth` section of `README.md` removed, and
-score that run instead.
+**Rationale for the strip step** (the step itself is mandatory and lives in the
+run conditions above, not here): on an un-stripped fixture a clean arm would be
+inconclusive rather than a pass, because the numbers could have come from the
+fixture's own documentation rather than from the source — criterion 5's
+`ADOPTED_FROM_README`. Stripping removes that failure mode from both arms up
+front instead of remediating it after the fact.
+
+**Actual outcome of the baseline arm: 5 of 5 CLEAN — the gate fired as a
+stop-and-report.** See `baseline-results.md` for the per-rep scoring, the
+consequence for Task 2, and the scope limit.

@@ -13,6 +13,25 @@ This file records a hypothesis that did not survive contact with the experiment.
 The predicted failure — a skill with no guidance for a new metric family
 fabricating that family's counts — did not occur, in any rep, for any metric.
 
+## Primary evidence — where the five reports are
+
+The scored artifacts, one per rep:
+
+```
+/tmp/claude-1001/-home-ubuntu-peters-toolkit/16d2ed1d-844e-42af-9de4-576a0d294d5a/scratchpad/reps/rep-1/reports/XRAYTEST1-SPROC-XRAY.md
+/tmp/claude-1001/-home-ubuntu-peters-toolkit/16d2ed1d-844e-42af-9de4-576a0d294d5a/scratchpad/reps/rep-2/reports/XRAYTEST1-SPROC-XRAY.md
+/tmp/claude-1001/-home-ubuntu-peters-toolkit/16d2ed1d-844e-42af-9de4-576a0d294d5a/scratchpad/reps/rep-3/reports/XRAYTEST1-SPROC-XRAY.md
+/tmp/claude-1001/-home-ubuntu-peters-toolkit/16d2ed1d-844e-42af-9de4-576a0d294d5a/scratchpad/reps/rep-4/reports/XRAYTEST1-SPROC-XRAY.md
+/tmp/claude-1001/-home-ubuntu-peters-toolkit/16d2ed1d-844e-42af-9de4-576a0d294d5a/scratchpad/reps/rep-5/reports/XRAYTEST1-SPROC-XRAY.md
+```
+
+**These are session scratch, not permanent, and are deliberately not committed** —
+five x-ray reports of a synthetic fixture are not plugin content. They are
+recorded here so the 5/5 CLEAN verdict is re-auditable for as long as the session
+scratch survives. Once it is cleared, this file and the per-rep detail below are
+the surviving record; anyone needing primary evidence after that must re-run the
+arm using the preparation in `rep-prompt-template.md`.
+
 ## Fixture-copy caveat (Ruling 6) — criterion 5 not exercised
 
 The reps ran against a **ground-truth-stripped copy** of the fixture: the
@@ -90,10 +109,15 @@ Across five independent fresh-context reps against unmodified v0.3.0:
 - **Near-miss traps rejected with reasons** by multiple reps: the numeric `FOR`
   loop, `OPEN … FOR`, `EXCEPTION WHEN OTHERS`, `%TYPE` on locals, and
   `RETURN NUMBER`.
-- **All 5 spontaneously materialized a sizing scratch file** before writing prose
+- **All 5 materialized a sizing scratch file** before writing prose
   (`migration_sizing.tsv` / `sizing.tsv` / `migration-sizing.tsv`), and **all 5
-  volunteered both new sections** — per-routine sizing metrics and global state —
-  without being told to structure the report that way.
+  produced both new sections** — per-routine sizing metrics and global state.
+  Not spontaneous: the prompt asked for the two sections' *content*, and Hard
+  Constraint 9 tells the analyst report-wide to bind numbers to a scratch file
+  first. The finding is not that the reps invented the discipline — it is that a
+  report-wide rule reached a section that did not exist when the rule was
+  written, and that each rep chose to open a *new* scratch file for the new
+  metric family rather than treat it as outside the rule's scope.
 
 ## Finding against this harness's own rubric — branch-count basis
 
@@ -142,12 +166,22 @@ v0.3.0 states its anti-fabrication rules **report-wide, not per-section**:
 scratch-file-first with reproducing proof blocks (Hard Constraint 9), and
 `FILE:LINE` citation for every claim (Hard Constraint 1).
 
-Report-wide rules bind sections that did not exist when the rules were written.
-When the reps were asked for a metric family the skill had never heard of, the
-existing constraints still applied to it — so the reps built a sizing scratch
-file, computed the counts by command, and cited the lines, because that is what
-the skill says to do with *any* number in the report. The generalization is a
-property of how v0.3.0's discipline is scoped, not an accident of these five runs.
+The proposed mechanism: report-wide rules bind sections that did not exist when
+the rules were written. When the reps were asked for a metric family the skill
+had never heard of, the existing constraints still applied to it — so the reps
+built a sizing scratch file, computed the counts by command, and cited the lines,
+because that is what the skill says to do with *any* number in the report.
+
+**This is a hypothesis consistent with the observations, not an established
+result.** Five runs on one fixture cannot separate "the discipline is scoped
+report-wide and therefore generalizes" from the alternatives: that this fixture is
+small enough for the counts to be easy regardless of scoping, or that the model
+would have computed these particular counts with or without the constraints. The
+only load-bearing evidence for the mechanism is textual — the constraints really
+are written report-wide, and the reps really did cite them — not experimental. No
+arm was run against a per-section-scoped variant, so the scoping was never varied
+and its effect was never measured. Treat this section as the reason Task 2 shrinks
+*plausibly*, and the Scope limit below as the reason that shrinkage is provisional.
 
 ## Scope limit
 
