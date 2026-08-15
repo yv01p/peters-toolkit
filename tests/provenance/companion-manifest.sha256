@@ -1,7 +1,7 @@
 # Superpowers visual-companion provenance manifest
-# target: 6.0.x
-# generated-from: superpowers 6.0.3 (provenance note — not asserted by the lockstep test)
-60cbad29b9dd7eaf08da020e301c498a72230b2e13c1813fa967a135ffcc1d71  skills/thorough-brainstorming/visual-companion.md
+# target: 6.3.x
+# generated-from: superpowers 6.3.0 (provenance note — not asserted by the lockstep test)
+77eb44a4ec3408bb3dafb872288ecd94beb8cf21da4f2bafa54fd08255d7808b  skills/thorough-brainstorming/visual-companion.md
 2d2961ea8d11f56c5f4c3a1a68d22709efa5d7601a2246d8c880774e7e9e8412  skills/thorough-brainstorming/scripts/server.cjs
 43c6d69954a46ec34a2a262bcc62a9a7e83e839c739f199cb72646d397c686e3  skills/thorough-brainstorming/scripts/helper.js
 a4e5ae84275bcaacd2f84345afeabe59cf7b00ba080e123da7cc1fb226f12847  skills/thorough-brainstorming/scripts/start-server.sh

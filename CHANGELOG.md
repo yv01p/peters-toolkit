@@ -19,6 +19,15 @@ When cutting a new version, update in lockstep:
 4. A new `git tag vX.Y.Z`
 5. Regenerate `tests/provenance/companion-manifest.sha256` (and its `# target:` line) if the visual-companion files were re-synced to a new Superpowers target
 
+## [2.4.1] — 2026-08-15
+
+**Targets Superpowers 6.3.x** (verified against 6.3.0; compatible back to 6.0.x)
+
+### Changed
+- Superpowers 6.3 compatibility release. Verified against upstream v6.3.0: all ten referenced Superpowers skill names exist; SDD's 6.2–6.3 internal restructure (plan-scoped workspace, resume-based fix loop, five-round breaker) leaves its plan-file input contract intact — `thorough-writing-plans`' plan header (`Source spec:`, `Global Constraints`) already feeds SDD 6.3's spec-as-authority read; no path removed in 6.0 reappeared.
+- Re-synced `skills/thorough-brainstorming/visual-companion.md` verbatim from Superpowers 6.3.0 (fork was verbatim 6.0.3; the only delta is the Copilot CLI launch-instruction block — the five companion scripts are byte-identical upstream across 6.0.3–6.3.0 and are unchanged). Regenerated `tests/provenance/companion-manifest.sha256` with `# target: 6.3.x`.
+- README: target line and install-requirement prose updated; dropped the now-false "toolkit-facing skills are unchanged across that range" claim in favor of the actual compatibility contract. `critical-security-review`: destaled "Superpowers 6.0's SDD workflow" phrasing (the described review structure still holds at 6.3).
+
 ## [2.4.0] — 2026-08-15
 
 **Targets Superpowers 6.0.x–6.1.x** (verified against 6.1.1)
