@@ -31,7 +31,7 @@ CSR is **explicitly user-invoked**. No auto-trigger. No chain-from-other-skill.
 
 CSR is optional and explicitly user-invoked. It is not a mandatory pipeline stage. Best run once implementation is complete — typically post-SDD on the finished code — as the dedicated, comprehensive security pass.
 
-In Superpowers 6.0's SDD workflow, each task's implementation is reviewed by a merged `task-reviewer` that returns spec-compliance and code-quality verdicts; these per-task reviews are scoped to requirements and maintainability, not security. After all tasks complete, SDD dispatches one broad whole-branch final review using the general code-reviewer template, which may surface high-level security concerns among broader quality checks. CSR remains the only dedicated security-focused review in the toolkit family.
+In Superpowers' SDD workflow, each task's implementation is reviewed by a merged `task-reviewer` that returns spec-compliance and code-quality verdicts; these per-task reviews are scoped to requirements and maintainability, not security. After all tasks complete, SDD dispatches one broad whole-branch final review using the general code-reviewer template, which may surface high-level security concerns among broader quality checks. CSR remains the only dedicated security-focused review in the toolkit family.
 
 When a TMA threat model exists, CSR's `tma_path` parameter grounds the attack-surface map in the TMA's findings (see "tma_path Consumption Logic" below). CSR does not auto-chain from other skills; the user invokes it explicitly when security review is warranted.
  

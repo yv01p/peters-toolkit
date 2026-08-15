@@ -1,0 +1,18 @@
+{ "name": "id 26 with date collisions (year 2026, day 26) → branch cut when no topic match",
+  "branches": [
+    "  v18/bugfix/26-real-bug",
+    "  v18/bugfix/999-otherbug"
+  ],
+  "artifacts": {
+    "specs": [
+      "2026-07-25-999-otherbug-design.md",
+      "2026-07-26-999-anotherbug-design.md",
+      "2026-07-25-26-real-bug-design.md"
+    ],
+    "plans": []
+  },
+  "expected": [
+    { "id": "26", "branch": "v18/bugfix/26-real-bug", "phase": "design done" },
+    { "id": "999", "branch": "v18/bugfix/999-otherbug", "phase": "design done" }
+  ]
+}
