@@ -123,13 +123,14 @@ Dimension 1's `### Extraction Metrics` table is computed by command, not read of
 T-SQL parameters are the `@`-prefixed declarations between the object name and the `AS` that opens the body — parenthesised or not, and one per line by convention:
 
 ```bash
-grep -niE '^[[:space:]]*(CREATE|ALTER)[[:space:]]+(OR[[:space:]]+ALTER[[:space:]]+)?(PROCEDURE|PROC|FUNCTION)[[:space:]]' sql/
+grep -niE '^[[:space:]]*(CREATE|ALTER)[[:space:]]+(OR[[:space:]]+ALTER[[:space:]]+)?(PROCEDURE|PROC|FUNCTION|TRIGGER)[[:space:]]' sql/
 ```
 
 - Read each declaration from the object name through the `AS` (procedures) or the `RETURNS` clause (functions), and count the comma-separated `@param` formals. One count per formal regardless of `OUTPUT`/`OUT`, `READONLY`, or a `= <default>` value.
 - **Only the parameter list counts.** `DECLARE @x …` statements inside the body are local variables, not parameters, and the `@`-sigil makes them look identical to a naive grep — bound the search to the declaration region.
 - A function's `RETURNS <type>` clause is the return type, never a parameter. For a table-valued function, `RETURNS @t TABLE (…)` names a return variable and its column list — neither the variable nor its columns are parameters.
 - A procedure with no parameters has `0`. `0` is written; the row is not omitted and the cell is not left blank.
+- **A trigger (`CREATE [OR ALTER] TRIGGER …`) carries no parameter list → `Params 0`, and has no signature → `UDT Usage none`; the `inserted`/`deleted` pseudo-tables are not parameters.** Its Cursor Loops and Branches are still counted from the trigger body.
 
 ### Cursor loops
 
