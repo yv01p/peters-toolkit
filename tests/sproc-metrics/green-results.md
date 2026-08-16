@@ -46,6 +46,46 @@ three numeric columns and the row order are character-identical in all five. Per
 writing-skills, variance across reps means the wording is not yet binding; there is
 none here on the numbers.
 
+### Two of the six rows were transcribable, and the claim is narrowed accordingly
+
+**The version of the skill these reps read carried an example table whose two rows
+replicated the fixture's own answers.** The example rows were
+`pkg_billing.load_batch | 3 | 0 | 0 | %ROWTYPE, VARRAY | 03-pkg_billing.pkb` and
+`prc_purge_holds | 0 | 0 | 0 | none | 06-prc_purge_holds.sql` — same numbers, same
+file indices, near-identical names to the fixture's `pkg_fleet_billing.load_driver_batch`
+(3/0/0, `03-pkg_fleet_billing.pkb`) and `prc_purge_stale_holds` (0/0/0,
+`06-prc_purge_stale_holds.sql`). A rep could have produced those two rows by copying
+the skill text it had just read, without computing anything.
+
+Consequences, stated plainly:
+
+- **Two of the six rows are tainted** — `load_driver_batch` and `prc_purge_stale_holds`.
+  Their agreement with ground truth is not evidence of computation.
+- **The convergence claim rests on the other four rows** — `post_batch_totals` (1/1/0),
+  `prc_apply_rate_rules` (4/0/11), `prc_settlement_sweep` (2/2/1), and
+  `fn_trip_surcharge` (2/0/2) — **and on the entire Branches column**, none of whose
+  values (11, 1, 2) appeared anywhere in the skill text. Four untainted rows agreeing
+  character-for-character across five independent reps is still convergence; it is
+  simply a four-row result, not a six-row one.
+- **The regression evidence for the zero case is weakened.** `prc_purge_stale_holds =
+  0|0|0` is the row this file would otherwise lean on to show zeros are still written
+  explicitly. It is tainted, so it carries little weight. The zero case survives on
+  weaker but non-zero evidence: `post_batch_totals` and `load_driver_batch` both carry
+  a `0` Branches cell and a `none` UDT cell that no example supplied, and all five reps
+  wrote `prc_purge_stale_holds` as a full row rather than omitting it — a *structural*
+  behavior the example could prompt but not guarantee.
+- **It also disarmed the skill's own copy-detector** for those two rows.
+  `SKILL.md`'s manifest rule and Hard Constraint 8 promise that example numbers come
+  from a fictional larger system, precisely so that an example number surfacing in a
+  report proves it was copied. That guarantee did not hold here.
+
+**The example has since been re-cast** onto the fictional blog system used by every
+other example in the file (`dbo.SP_Create_Post_Notifications` 5/2/17,
+`dbo.SP_Rebuild_Post_Index` 0/1/3 — no combination that appears in the fixture). A
+re-run of this arm against the current skill would not be tainted, and re-running it is
+the way to convert this from a four-row result back to a six-row one. It has not been
+re-run; this file reports the arm that was actually scored.
+
 ## Pre-registered prediction — CONFIRMED 5/5
 
 The Task 2 implementation report (concern 2) predicted, **before any GREEN rep was
@@ -65,7 +105,9 @@ in either direction, so the two arms remain comparable.
 
 No count regressed against the baseline arm. No global-state fact was lost. No zero
 was silently dropped: `prc_purge_stale_holds` is `0 | 0 | 0` in all five, with `none`
-for UDTs, written as a row rather than omitted. The near-miss traps stay rejected —
+for UDTs, written as a row rather than omitted — **but that row is one of the two
+tainted by the example table (see the narrowing above), so read the zero-case evidence
+there, not here.** The near-miss traps stay rejected —
 the numeric `FOR` at `03:21` and the `OPEN … FOR` at `03:30` are still excluded from
 cursor-loop counts, and `EXCEPTION WHEN OTHERS` at `05:45-47` is still excluded from
 branches (now by a stated rule rather than by each rep's own reasoning).
@@ -100,6 +142,12 @@ fixture plants:
 | `g_last_driver_id` | `load_driver_batch` only | single toucher, correctly weaker |
 | `g_batch_id` | `post_batch_totals` only | single toucher, correctly weaker |
 | `SYS_CONTEXT` | 2 objects, 3 occurrences | both numbers stated separately |
+| `seq_settlement_batch` | `prc_settlement_sweep` only (`05:22` `NEXTVAL`, defined `01-schema.sql:75`) | single consumer, correctly weaker |
+
+All six resources the fixture plants are in the table above — the sequence included, and
+recovered as a `GLOBAL_STATE` row by all five reps (`grep -c seq_settlement_batch` → 5–8
+hits per report). An earlier draft of this file listed five of the six, which read as a
+miss by the reps; it was a gap in the write-up, not in the arm.
 
 The `tmp_settlement_stage` pair is the one that matters: two routines functionally
 sequenced through a global temporary table with **zero call-graph edge between
@@ -163,6 +211,10 @@ Identical to the baseline arm's, and it has not moved:
   verdict is trivially true and carries no information.
 - The clean baseline means this arm can report *no regression* and *contract
   conformance*. It cannot report improved fact quality, and does not.
+- Two of the six metric rows were transcribable from the skill's own example table at
+  the time the reps ran (see the narrowing above). The example has been re-cast, but
+  this arm's numbers were scored before that fix, so the convergence result stands on
+  four rows plus the whole Branches column rather than on all six.
 
 ## Evidence
 

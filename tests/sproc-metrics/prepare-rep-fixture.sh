@@ -41,6 +41,17 @@ fi
 mkdir -p "$1"
 DEST="$(cd "$1" && pwd)/xraytest1"
 
+# The next step is `rm -rf "$DEST"`. If the destination resolves to the committed fixture
+# itself — which it does for `<repo>/tests/sproc-metrics`, or for `.` when the caller's cwd
+# is that directory — that rm would DELETE THE FROZEN FIXTURE. Compare resolved paths and
+# refuse. This is the one failure mode of this script that is not recoverable by re-running it.
+if [ "$DEST" = "$SRC" ]; then
+  echo "FATAL: destination resolves to the committed fixture itself ($SRC)." >&2
+  echo "       Refusing to delete the frozen fixture. Pass a scratch directory, not the" >&2
+  echo "       tests/sproc-metrics directory (and note the destination gets an /xraytest1 suffix)." >&2
+  exit 1
+fi
+
 rm -rf "$DEST"
 cp -r "$SRC" "$DEST"
 head -n "$((marker_line - 1))" "$SRC/README.md" > "$DEST/README.md"

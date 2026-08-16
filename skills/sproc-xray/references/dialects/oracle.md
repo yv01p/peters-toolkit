@@ -152,20 +152,21 @@ Exclusions this raw output will contain, each of which is removed before countin
 
 ### Branch keywords
 
-Dimension 1 fixes the branch basis — counted: `IF`, `ELSIF`, `CASE` `WHEN` arms, `WHILE`; not counted: `ELSE`, `EXCEPTION WHEN`, `FOR`/bare `LOOP` heads, `END IF`/`END CASE`. In PL/SQL the traps are lexical:
+Dimension 1 fixes the branch basis — counted: `IF`, `ELSIF`, `CASE` `WHEN` arms, non-cursor `WHILE` heads, non-cursor `EXIT WHEN`; not counted: `ELSE`, `EXCEPTION WHEN`, `FOR`/bare `LOOP` heads, `END IF`/`END CASE`, and any loop test the Cursor Loops column already counts. In PL/SQL the traps are lexical:
 
 ```bash
-grep -nEw 'IF|ELSIF|WHEN|WHILE|ELSE|EXCEPTION' sql/
+grep -nEw 'IF|ELSIF|WHEN|WHILE|ELSE|EXCEPTION|EXIT' sql/
 ```
 
 - `ELSIF` and `END IF` both contain the letters `IF`; a substring match over-counts badly. Word-boundary matching separates `ELSIF`, and `END IF` hits must still be dropped from the `IF` set explicitly — state that drop.
-- `WHEN` is overloaded. A `CASE … WHEN` arm counts. An `EXCEPTION WHEN <exc>` / `WHEN OTHERS` handler does not (it is an error path — Dimension 4 owns it). A trigger's `WHEN (<condition>)` clause is a firing predicate, not a branch in the body.
+- `WHEN` is overloaded, and PL/SQL has four kinds. A `CASE … WHEN` arm **counts**. An `EXCEPTION WHEN <exc>` / `WHEN OTHERS` handler **does not** (error path — Dimension 4 owns it). A trigger's `WHEN (<condition>)` clause **does not** — it is a firing predicate, not a branch in the body. An **`EXIT WHEN <cond>`** counts, UNLESS it is the termination test of a loop the Cursor Loops column already counted (`EXIT WHEN c%NOTFOUND` closing an explicit `OPEN`/`FETCH` cursor loop) — that one is part of the cursor loop, not a separate branch.
+- **`EXIT WHEN` in a bare `LOOP` is the case that would otherwise fall through both columns.** A `LOOP … EXIT WHEN <cond> … END LOOP;` counter loop is not a cursor loop, so the Cursor Loops column does not see it, and its `LOOP` head is not a branch — so counting its `EXIT WHEN` is what keeps its one real decision point from being counted nowhere. Same for `WHILE <cond> LOOP` that is not draining a cursor: count the `WHILE` head. No construct is ever counted in both columns.
 - `CASE` appears both as a statement (`CASE x WHEN … END CASE;`) and as an expression (inside an assignment, a `RETURN`, or a `SELECT` list). The `WHEN` arms of BOTH count.
 - Keywords inside `--` or `/* … */` comments and inside string literals are not code. Oracle header comments routinely carry example `IF`/`CASE` text, and ADempiere/Compiere-style banners are full of it.
 
 ### User-defined types in signatures
 
-The `UDT Usage` column records the user-defined / non-scalar type constructs appearing in the routine's OWN SIGNATURE, copied verbatim:
+The `UDT Usage` column records the user-defined / non-scalar type constructs appearing in the routine's OWN SIGNATURE — its parameter list **and, for a function, its `RETURN <type>` clause** — copied verbatim:
 
 ```bash
 grep -nE '%ROWTYPE|%TYPE|IS[[:space:]]+RECORD|VARRAY|IS[[:space:]]+TABLE[[:space:]]+OF|REF[[:space:]]+CURSOR|SYS_REFCURSOR' sql/
@@ -176,7 +177,7 @@ grep -nE '%ROWTYPE|%TYPE|IS[[:space:]]+RECORD|VARRAY|IS[[:space:]]+TABLE[[:space
 - `TYPE … IS VARRAY(n) OF …` — a bounded collection.
 - `TYPE … IS TABLE OF …` — a nested table or associative array (with or without `INDEX BY`).
 - `REF CURSOR` / `SYS_REFCURSOR` — a cursor handed across the call boundary. It has no direct application-code equivalent and is always worth recording.
-- **Signature only.** `%TYPE` and `%ROWTYPE` on LOCAL variable declarations inside the body are schema anchors, not parameters, and never enter this column. Confirm each hit's line falls inside a declaration's parameter list, not inside the `DECLARE`/`IS` local block.
+- **Signature only, but the whole signature.** `%TYPE` and `%ROWTYPE` on LOCAL variable declarations inside the body are schema anchors, not signature types, and never enter this column — confirm each hit's line falls inside a declaration, not inside the `DECLARE`/`IS` local block. A function's `RETURN SYS_REFCURSOR` or `RETURN emp%ROWTYPE` **does** enter this column: the return type is part of the signature, and a `REF CURSOR` crossing the call boundary is the same extraction problem whichever direction it crosses in. (It never enters the `Params` count — see the Parameter lists rule above.)
 - A routine whose signature carries none of these gets the literal word `none`, never a blank cell.
 
 ### Global and shared state (the `GLOBAL_STATE` footgun class)
@@ -184,10 +185,15 @@ grep -nE '%ROWTYPE|%TYPE|IS[[:space:]]+RECORD|VARRAY|IS[[:space:]]+TABLE[[:space
 State that outlives one call, or that is shared between routines. Record one `findings.tsv` row per OBJECT per resource — cluster detection joins two objects on one shared resource, so a merged row naming several objects destroys the finding.
 
 ```bash
-# package-level variable declarations (spec or body, outside any routine)
-grep -nE '^[[:space:]]*g_[A-Za-z0-9_]+[[:space:]]+' sql/
-# every read and write of them
-grep -nE '\bg_[A-Za-z0-9_]+\b' sql/
+# STEP 1 — print each package's DECLARATION REGION: everything between the package header
+# and its first nested PROCEDURE/FUNCTION. Whatever is declared here is package-level state,
+# whatever it is named. This is a region search, not a name search — do not filter by prefix.
+awk 'toupper($0) ~ /^[[:space:]]*CREATE[[:space:]]+(OR[[:space:]]+REPLACE[[:space:]]+)?PACKAGE/ {inpkg=1}
+     inpkg && toupper($0) ~ /^[[:space:]]*(PROCEDURE|FUNCTION)[[:space:]]/ {inpkg=0}
+     inpkg {print FILENAME":"FNR": "$0}' sql/*.pks sql/*.pkb
+# STEP 2 — for each identifier STEP 1 reported, find every read and write of it by name.
+# Build this pattern from STEP 1's output; do not guess it from a naming convention.
+grep -nE '\b(<name1>|<name2>|…)\b' sql/
 # global temporary tables and staging-table naming
 grep -niE 'CREATE[[:space:]]+GLOBAL[[:space:]]+TEMPORARY[[:space:]]+TABLE|ON[[:space:]]+COMMIT[[:space:]]+(DELETE|PRESERVE)[[:space:]]+ROWS|\b(TEMP|TMP)_[A-Za-z0-9_]+' sql/
 # ambient session state
@@ -196,7 +202,7 @@ grep -nE 'SYS_CONTEXT|DBMS_SESSION|USERENV' sql/
 grep -niE '\.NEXTVAL|\.CURRVAL|CREATE[[:space:]]+SEQUENCE' sql/
 ```
 
-- **Package variables** declared at package level rather than inside a routine are session-scoped: they survive across calls on the same connection and are shared by every routine in the package (see "Package-Based Modularity", above, for the connection-pool hazard). The `g_` prefix is a convention, not a rule — confirm each hit is declared OUTSIDE a routine body before recording it, and read the package spec and body for level declarations that do not follow the convention.
+- **Package variables** declared at package level rather than inside a routine are session-scoped: they survive across calls on the same connection and are shared by every routine in the package (see "Package-Based Modularity", above, for the connection-pool hazard). **Find them by REGION, never by name.** A `g_` prefix is a widespread convention but it is not a rule, and a prefix search silently reports zero on a codebase that does not use it — an under-report indistinguishable from a genuine absence, which is the worst failure this class can have. STEP 1's region search is what makes the search convention-free: it reports every declaration in the package's declarative part regardless of naming, including constants, package-level cursors, and package-level collection types, all of which are shared state. Note the two limits of the region heuristic and check them by eye: a package whose declarative part is empty prints nothing (correct), and a package body's `BEGIN`-block initializer sits AFTER the routines, so its writes are found by STEP 2's name search rather than by STEP 1.
 - Record, per variable: its declaration site, every WRITE site with the routine that writes it, and every READ site with the routine that reads it. A variable written by two different routines is a shared-state cluster. A variable with exactly one writer is a weaker finding and is recorded as such, with the writer named — the distinction only survives if both are recorded the same way.
 - **Global temporary tables are a handoff channel the call graph cannot see**: one routine `INSERT`s, another `SELECT`s, and no invocation edge exists between them. Record the GTT's definition site and each routine's touch site as separate rows so the writer/reader pair is visible. Copy the `ON COMMIT DELETE ROWS` / `PRESERVE ROWS` clause verbatim — it decides what survives the transaction boundary (see the GTT footgun below).
 - **`SYS_CONTEXT` / `USERENV` / `DBMS_SESSION`** read or set ambient session state established by something outside these files. Cite every occurrence with the object that contains it, and state occurrences AND distinct objects as two separate labeled numbers — they are different quantities.

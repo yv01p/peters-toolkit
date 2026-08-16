@@ -123,7 +123,7 @@ Dimension 1's `### Extraction Metrics` table is computed by command, not read of
 T-SQL parameters are the `@`-prefixed declarations between the object name and the `AS` that opens the body — parenthesised or not, and one per line by convention:
 
 ```bash
-grep -niE '^[[:space:]]*CREATE[[:space:]]+(OR[[:space:]]+ALTER[[:space:]]+)?(PROCEDURE|PROC|FUNCTION)[[:space:]]' sql/
+grep -niE '^[[:space:]]*(CREATE|ALTER)[[:space:]]+(OR[[:space:]]+ALTER[[:space:]]+)?(PROCEDURE|PROC|FUNCTION)[[:space:]]' sql/
 ```
 
 - Read each declaration from the object name through the `AS` (procedures) or the `RETURNS` clause (functions), and count the comma-separated `@param` formals. One count per formal regardless of `OUTPUT`/`OUT`, `READONLY`, or a `= <default>` value.
@@ -140,14 +140,16 @@ grep -niE 'DECLARE[[:space:]]+[^[:space:]]+[[:space:]]+CURSOR|OPEN[[:space:]]+|F
 ```
 
 - The canonical shape is `DECLARE <c> CURSOR FOR <select>` → `OPEN <c>` → `FETCH NEXT FROM <c> INTO …` → `WHILE @@FETCH_STATUS = 0 … END` → `CLOSE` / `DEALLOCATE`. **Count the loop once per cursor**, not once per `FETCH` — the priming fetch before the `WHILE` and the fetch inside it belong to the same loop.
-- **A `WHILE` that is not driven by a cursor is not a cursor loop.** `WHILE @i <= @n` over a counter, or a `WHILE` draining a `@table` variable with `DELETE … OUTPUT`, iterates rows without a cursor; it is a branch keyword (below), not a cursor loop. Record it in the branch count only.
+- **A `WHILE` that is not driven by a cursor is not a cursor loop.** `WHILE @i <= @n` over a counter, or a `WHILE` draining a `@table` variable with `DELETE … OUTPUT`, iterates rows without a cursor; it is a branch keyword (below), not a cursor loop. Record it in the branch count only. **The converse is the rule that matters more here:** a `WHILE @@FETCH_STATUS = 0` IS the cursor loop, so it is counted in THIS column and **not** in Branches. Because every T-SQL cursor loop is a `WHILE`, skipping that exclusion double-counts every cursor in the corpus.
 - **A cursor DECLARATION is not a loop.** A declared-but-never-opened cursor is noted as such, not counted.
 - **Nesting is depth, not one loop.** An inner cursor inside an outer cursor's `WHILE` body is TWO cursor loops; report the count and state the nesting depth alongside it.
 - Set-based DML (`UPDATE … FROM`, `MERGE`) processes many rows with no loop at all and contributes `0` here — that is a real `0`, not a gap.
 
 ### Branch keywords
 
-Dimension 1 fixes the branch basis — counted: `IF`, `ELSE IF`, `CASE` `WHEN` arms, `WHILE`; not counted: bare `ELSE`, `CATCH` handlers, `END`/`END IF` terminators.
+Dimension 1 fixes the branch basis — counted: `IF`, `ELSE IF`, `CASE` `WHEN` arms, non-cursor `WHILE` heads, conditional `BREAK`; not counted: bare `ELSE`, `CATCH` handlers, `END`/`END IF` terminators, and any `WHILE` the Cursor Loops column already counted.
+
+**The `WHILE` split, restated because T-SQL is where it bites.** A `WHILE @@FETCH_STATUS = 0` belongs to Cursor Loops and contributes `0` to Branches. Every other `WHILE` — a counter loop, a queue-draining loop, a retry loop — contributes `1` to Branches and `0` to Cursor Loops. No construct is counted in both columns, and no loop is counted in neither.
 
 ```bash
 grep -niEw 'IF|ELSE|CASE|WHEN|WHILE|BEGIN|END|CATCH' sql/
@@ -171,7 +173,7 @@ grep -niE 'READONLY|CREATE[[:space:]]+TYPE|AS[[:space:]]+TABLE|EXTERNAL[[:space:
 - **Table-valued parameters (TVPs)** — a parameter whose type is a user-defined table type, mandatorily `READONLY`. `READONLY` in a parameter list is the reliable TVP marker; the type itself comes from a `CREATE TYPE … AS TABLE (…)` that may or may not be in the provided source (if it is not, it is a missing reference, not an invented shape).
 - **CLR / assembly types** — a `CREATE TYPE … EXTERNAL NAME <assembly>.<class>` alias, or a parameter typed by one. These carry host-machine coupling as well as a type.
 - **System types with no plain application equivalent** — `hierarchyid`, `geography`, `geometry`, `sql_variant`, and `xml` are not user-defined, but a signature carrying one is the same extraction problem the column exists to surface. Record them, labeled as system types so the distinction is not lost.
-- **Signature only.** A `DECLARE @t <table type>` local, or a `CREATE TYPE` sitting in the DDL that no signature uses, is not a signature UDT.
+- **Signature only, but the whole signature** — the parameter list AND the function's `RETURNS` clause. A table-valued function's `RETURNS @t TABLE (…)` (multi-statement) or `RETURNS TABLE` (inline), and a scalar function returning a CLR alias type, all enter this column even when the parameter list is UDT-free. A `DECLARE @t <table type>` local, or a `CREATE TYPE` sitting in the DDL that no signature uses, is not a signature UDT. The `RETURNS` clause never enters the `Params` count — see the Parameter lists rule above.
 - A routine whose signature carries none of these gets the literal word `none`, never a blank cell.
 
 ### Global and shared state (the `GLOBAL_STATE` footgun class)
@@ -184,11 +186,13 @@ grep -nE '#{1,2}[A-Za-z_][A-Za-z0-9_]*' sql/
 grep -niE 'tempdb\.\.|tempdb\.dbo\.' sql/
 # ambient session state
 grep -niE 'CONTEXT_INFO|SESSION_CONTEXT|sp_set_session_context' sql/
-# sequences
-grep -niE 'NEXT[[:space:]]+VALUE[[:space:]]+FOR|CREATE[[:space:]]+SEQUENCE' sql/
-# server- and database-scoped configuration read as state
-grep -niE 'SET[[:space:]]+ROWCOUNT|@@SPID|@@IDENTITY|SCOPE_IDENTITY|@@TRANCOUNT' sql/
+# sequences, and the connection-scoped identity read
+grep -niE 'NEXT[[:space:]]+VALUE[[:space:]]+FOR|CREATE[[:space:]]+SEQUENCE|@@IDENTITY' sql/
+# session SET options that outlive the statement
+grep -niE 'SET[[:space:]]+(ROWCOUNT|ANSI_NULLS|QUOTED_IDENTIFIER|ANSI_WARNINGS|DATEFIRST|LANGUAGE)' sql/
 ```
+
+One command per construct, one bullet per command — every search above has a rule below, and every rule below has a search above. Constructs deliberately NOT searched here, with their reasons: `@@TRANCOUNT` is transaction state (Dimension 4 owns it), `SCOPE_IDENTITY()` is statement-scoped and therefore not shared state, and `@@SPID` merely identifies the session rather than carrying state across calls.
 
 T-SQL has no package construct, so its shared state is table- and session-shaped instead of variable-shaped. What to record:
 
@@ -196,7 +200,7 @@ T-SQL has no package construct, so its shared state is table- and session-shaped
 - **`#local` temp tables** are session-scoped, and that is broader than a single call: a `#temp` created by an outer procedure is visible to every procedure it calls, which is a documented, load-bearing handoff channel with no invocation edge to show it. Record the creator and each consumer separately; a `#temp` created and dropped inside one routine is intra-call scratch and is recorded as such, not as shared state.
 - **`CONTEXT_INFO` / `SESSION_CONTEXT`** are ambient per-connection key/value state, commonly set by a login procedure or the application and read far away — the T-SQL analogue of Oracle's `SYS_CONTEXT`. Under a **connection pool** the value outlives the logical request and leaks into whichever request reuses the connection. Cite every read and every write with its object, and state occurrences AND distinct objects as two separate labeled numbers.
 - **Sequences** (`NEXT VALUE FOR <seq>`) are shared, cross-session, gap-prone counters. Record the sequence's definition site and each consuming routine. `IDENTITY` columns are table-scoped rather than shared and belong in Dimension 3, but `@@IDENTITY` (connection-scoped, and wrong across triggers) is session state — record it here with the reason.
-- **Session `SET` options** (`SET ROWCOUNT`, and the `SET ANSI_NULLS` / `SET QUOTED_IDENTIFIER` pair captured at create time) change behavior for the rest of the session, not just the statement. Where a routine sets one and does not restore it, that is state escaping the call.
+- **Session `SET` options** change behavior for the rest of the session, not just the statement, so a routine that sets one and does not restore it leaks state into everything the connection does next — and under a connection pool, into the next request. `SET ROWCOUNT` silently caps rows for subsequent DML (see the footgun below). `SET ANSI_NULLS` / `SET QUOTED_IDENTIFIER` are captured at CREATE time and stored with the module, so the scripted header is a property of the object, not a runtime statement — record those two as object metadata rather than as a leak, and record any `SET` inside a routine body as a leak unless it is restored before every exit path. `SET DATEFIRST` / `SET LANGUAGE` shift week-boundary and date-parsing behavior for the session and have no target equivalent.
 - If a class returns no hits, state that explicitly and show the empty output. An unlisted class reads as "not searched".
 
 ## Silent-Behavior Footguns (Migration)
