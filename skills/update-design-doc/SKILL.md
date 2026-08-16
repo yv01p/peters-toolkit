@@ -1,7 +1,7 @@
 ---
 name: update-design-doc
 description: Use when a critical-design-review v2 output exists and the design spec needs to be revised to address its findings. Takes one or more CDR v2 review file paths as arguments. Processes each finding sequentially with user approval. Commits pre-state and post-state when the spec is in a git repo. Empty review = no edits made.
-version: 2.2.0
+version: 2.3.0
 ---
 
 # Update Design Document
@@ -99,8 +99,8 @@ The discipline is the same as `thorough-brainstorming`'s: every line you add mus
      artifact will now rest on (a named function or signature, a data or
      corpus property, an instrument capability, a derivation rule over real
      inputs), verify it the way the review skills would: grep the symbol,
-     read the signature, dump or run against the real data — and cite the
-     evidence in the proposal shown to the user. A review fix prefixed
+     read the signature, dump or run against the real data — and record it on
+     the proposal's `Evidence:` line (see "Present the fix proposal" below). A review fix prefixed
      `UNVERIFIED:`, or carrying no evidence for such a claim, is a claim to
      verify, not a fact to transcribe. If verification fails, surface that
      back to the user with the evidence instead of applying; do not
@@ -121,7 +121,23 @@ The discipline is the same as `thorough-brainstorming`'s: every line you add mus
      proposal, so the fact survives into the artifact the next round
      re-reads. This generalizes the existing rule for invalidated
      assumptions to newly load-bearing ones.
-   - **End with:** `Apply this fix? (yes / no / modify)` — wait for the user.
+   - **Present the fix proposal in this shape** (message text, not only a widget):
+       - **Finding** — the restated finding.
+       - **Fix** — the smallest change that resolves it.
+       - **Evidence** — the probe behind each new load-bearing claim the fix introduces
+         (grep / signature read / dump / run, with its result). When the reviewer's §2 fix
+         carries an Evidence line, re-confirm its probe against the current codebase and cite
+         the confirmed result — never copy it unchecked (a new load-bearing claim is verified
+         before applying regardless of whether the reviewer attached evidence); write
+         `UNVERIFIED: <why>` for a claim you could not probe in-round; write `none —
+         prose-only / transcribes a reviewer fix that introduces no new claim` when the fix
+         introduces none. **This line is always present** — a proposal without it is
+         incomplete, and "the reviewer already verified it" or "it's obviously right" is not
+         an exemption.
+       - **Gate** — `Apply this fix? (yes / no / modify)`, then wait for the user.
+     If you render the gate as an interactive widget, the Finding / Fix / Evidence lines
+     stay in the message body; never place the Evidence line only inside a widget option,
+     where it is truncated out of view.
    - **On approve: TRACK the change. Do NOT call the Edit or Write tool yet.** Note the (find-string, replace-string) for the spec text in your conversation context. All disk writes are deferred to step 9 — this guarantees step 8's snapshot operates on the unmodified spec. If the fix also invalidates an item in the spec's `Verified assumptions` section, track an update for that item too (match by bold-text key); surface the assumption update to the user as part of the proposal.
 
 6. **§4 (Previously addressed) findings:** skip. No action needed.
@@ -212,3 +228,4 @@ These thoughts mean STOP — you're rationalizing your way into producing specul
 | "The span-check item is unverified and proposes no fix — nothing for me to apply, skip it." | Uncovered dependencies are the span check's entire output. Present each to the user; ratchet verified ones into `Verified assumptions`; put unverifiable ones to the user as a choice. A silent drop here defeats the check one skill downstream of where it ran. |
 | "The reviewer proposed this exact fix; my job is to apply it faithfully." | Faithfully to the finding, not to unverified claims inside the fix text. Verify the claim; if it is false, surface it back with evidence — applying it verbatim manufactures the next round's finding. |
 | "The finding pointed at §5; touching §7 too would be scope creep." | Scope creep is adding improvements; propagation is finishing the fix. A dependent section still stating the replaced rule is a new defect authored by the update. |
+| "The reviewer already verified this / the fix is obviously right — I'll skip the Evidence line." | The line is always present. "Obviously right" is the judgment that failed last time. Re-confirm and cite the reviewer's evidence if it exists (never copy it unchecked), write `none` if prose-only, write `UNVERIFIED:` if you couldn't check — but never omit it. Omitting the line is exactly how the discipline evaporates. |

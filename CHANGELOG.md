@@ -19,6 +19,21 @@ When cutting a new version, update in lockstep:
 4. A new `git tag vX.Y.Z`
 5. Regenerate `tests/provenance/companion-manifest.sha256` (and its `# target:` line) if the visual-companion files were re-synced to a new Superpowers target
 
+## [2.4.2] — 2026-08-15
+
+**Targets Superpowers 6.3.x** (verified against 6.3.0; compatible back to 6.0.x)
+
+### Changed
+- UDD 2.3.0 / UIP 2.3.0: the evidence rule (step 5's "verify new load-bearing claims before
+  proposing") gains a structural output slot — every §1/§2 fix proposal now ends with a
+  required `Evidence:` line (the probe and its result, or `UNVERIFIED:`, or `none` for a
+  prose-only / reviewer-transcribed fix that introduces no new claim), rendered in the
+  message body (never widget-only). Forwarding a reviewer's Evidence line is confirm-then-cite,
+  not blind-copy. Completes the 2.4.0 structural-slot sweep (CDR 2.4.0 / CIR 2.3.0) that
+  reached the reviewers and stopped short of the updaters. New guard
+  `tests/evidence-slot/check-evidence-slot.sh` (wired into run-tests.sh); split-coverage
+  paired-arm harness in `tests/evidence-slot/`.
+
 ## [2.4.1] — 2026-08-15
 
 **Targets Superpowers 6.3.x** (verified against 6.3.0; compatible back to 6.0.x)
