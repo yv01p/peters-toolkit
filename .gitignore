@@ -47,6 +47,7 @@ docs/**/*.bak
 !/skills/critical-implementation-review/
 !/skills/critical-security-review/
 !/skills/resume-handoff/
+!/skills/sproc-migration-plan/
 !/skills/sproc-xray/
 !/skills/thorough-brainstorming/
 !/skills/thorough-writing-plans/
