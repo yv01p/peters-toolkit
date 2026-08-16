@@ -12,8 +12,8 @@
 # Workflow artifacts (design specs, plans, adversarial reviews). Publishing is
 # decided PER SKILL: deny all of docs/ by default, then whitelist the artifacts of
 # the specific skill(s) we've chosen to share so people cloning the toolkit can
-# learn from the design/review discipline. Currently only the bug-fixing workflow
-# skill publishes; every other skill's artifacts (and all handoffs) stay private.
+# learn from the design/review discipline. Currently no skill publishes its
+# artifacts; all of docs/ (and all handoffs) stays private.
 #
 # docs/ is organized by type (specs/plans/criticalreviews/reviews), not by skill,
 # so a skill's artifacts are matched by the component name in the filename. To
@@ -28,11 +28,10 @@
 /docs/plans/*
 /docs/criticalreviews/*
 /docs/reviews/*
-# Shared skill — bug-fixing workflow (umbrella + orchestrator + tracker-adapter):
-!/docs/**/*bug-fixing-workflow*
-!/docs/**/*orchestrator*
-!/docs/**/*tracker-adapter*
-# Pre-update snapshots never ship — keep last so it overrides the stems above.
+# (No skill currently publishes. Add "!/docs/**/*<its-artifact-stem>*" line(s)
+# here to share a specific skill's artifacts.)
+# Pre-update snapshots never ship — keep last so they stay excluded even if a
+# skill is re-published above.
 docs/**/*.bak
 
 # Skills subtree: ignore everything, then whitelist only the skills published

@@ -2,7 +2,7 @@
 
 A **solid, customizable base** is a first-class goal of this skill, not an afterthought. The core is lean; every seam is named and documented; you customize **by editing markdown and config**, never by working around a plugin/hook framework (there isn't one — that would itself be a feature you'd have to understand and defeat).
 
-This doc is installer-facing: the essential "why" so you can change the base safely. The full decisions record lives in the design spec (`docs/specs/2026-07-25-orchestrator-design.md`) for anyone who wants the depth.
+This doc is installer-facing: the essential "why" so you can change the base safely. The condensed decisions and their rationale are recorded below (O1–O11).
 
 ## Extension points
 
@@ -28,7 +28,7 @@ Condensed from the design spec's locked decisions (O1–O11). Knowing *why* each
 - **O7 — UI / non-code bugs use the *same* pipeline;** the base is test-stack-agnostic. The reproduction/verification method is the `repro_verify` seam. When no automated UI-test path exists, the manual fallback is **recorded and flagged manual** — never a silent skip. *Plug your own browser/E2E tooling in here.*
 - **O8 — "Solid, customizable base" is the design goal itself.** Lean core; named, documented seams; decisions recorded; customize-by-editing; **no plugin/hook framework.** Every feature in the base is something you'd have to understand to fork it, so ruthless YAGNI keeps it forkable.
 - **O9 — The adapter is invoked by absolute path, cwd = the target repo.** `gh` infers the repo from cwd, so the adapter runs cwd'd in the target repo; the orchestrator resolves the adapter as a sibling of its own skill base dir.
-- **O10 — Documentation at two altitudes.** This `customizing.md` is the focused, installer-facing "why"; the design spec is the full decisions record for the team. You shouldn't have to read the spec to customize safely — but it's there if you want the depth.
+- **O10 — Documentation at two altitudes.** This `customizing.md` is the focused, installer-facing "why", condensing the load-bearing decisions below; the full design spec and reviews are kept privately by the maintainer, not shipped with the plugin. You shouldn't have to read the spec to customize safely.
 - **O11 — Status is advisory; `done` closes via the PR closing keyword, not a label.** The harness `status_labels` map lists only statuses with a native label; the rest fall back to a comment. The orchestrator holds the label *names* (harness config); the adapter holds the mechanism.
 
 ## Deliberately not built (so you don't go looking)
