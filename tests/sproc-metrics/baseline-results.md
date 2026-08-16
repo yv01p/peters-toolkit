@@ -194,3 +194,14 @@ behaviour there.
 
 Also untested by this run, per Ruling 6: whether the metrics survive contact with
 a README that documents them (criterion 5).
+
+## The GREEN arm
+
+Task 2's format additions were authored against this record — no anti-fabrication
+text, because nothing here justified any. The GREEN arm that followed is recorded
+separately in **`green-results.md`**: 5/5 conforming, one distinct numeric signature
+across five reps, regression check passed, and the output contract (fixed heading,
+fixed column set, `metrics.tsv`, per-object `GLOBAL_STATE` rows) emitted by all five
+where this arm produced five different shapes. That arm tests regression and contract
+conformance only — with this baseline at ceiling, no fact-quality improvement was
+available to demonstrate.

@@ -1,6 +1,6 @@
 ---
 name: sproc-xray
-version: 0.3.0
+version: 0.4.0
 description: Use when analyzing, auditing, or reverse-engineering database-resident business logic (stored procedures, functions, triggers) for extraction migration off Oracle or SQL Server. Trigger when user provides SQL source (T-SQL, PL/SQL), asks for DB logic discovery, wants the database reduced to dumb storage, or prepares a database-to-application-code migration. Accepts a local directory path or GitHub repo URL as input.
 ---
 
@@ -118,6 +118,23 @@ Analyze ALL five dimensions below **in order** — each builds on the prior. Use
   | Table-Valued Function | dbo.FN_Get_User_Posts | 003-02-FN-Get_User_Posts.sql | 42 | Used by 3 sprocs |
   | Trigger | dbo.TR_Notify_Subscribers_On_New_Post | 005-TR-Notify_Subscribers.sql | 68 | Calls sproc |
 
+- **Extraction Metrics (per routine; scratch file FIRST — MANDATORY):** A migration planner consumes this subsection as a fixed output contract, so its heading, its column set, and its counting bases do not vary between reports: the heading is exactly `### Extraction Metrics`, nested under `## 1. Inventory & Completeness` (see Report Format), and the columns are exactly those below. Materialize the metrics into a scratch file in your working directory BEFORE any part of this subsection is written — `metrics.tsv`, one line per routine: `Object|Params|CursorLoops|Branches|UDTFlags|File`. One row per routine DEFINED in the source, including packaged routines (one row per packaged routine, never one per package) and including routines every one of whose metrics is zero — a routine dropped because "there was nothing to report" is a silent omission, and a blank cell is never a substitute for a `0`. Then render the scratch rows as the report table:
+
+  | Object | Params | Cursor Loops | Branches | UDT Usage | File |
+  |--------|--------|--------------|----------|-----------|------|
+  | pkg_billing.load_batch | 3 | 0 | 0 | `%ROWTYPE`, VARRAY | 03-pkg_billing.pkb |
+  | prc_purge_holds | 0 | 0 | 0 | none | 06-prc_purge_holds.sql |
+
+  Every number in this table is COMPUTED BY COMMAND, never read off the source by eye. For each metric family, run the searches the loaded dialect reference file specifies under **"Extraction-Metrics Detection Patterns"** (`references/dialects/oracle.md` or `references/dialects/mssql.md`), and immediately above the rendered table include a fenced code block with the exact commands and their raw `grep -n` (or equivalent) output verbatim. The number in a cell is the LENGTH OF THAT HIT LIST after the dialect file's stated exclusions are removed, and each removal is named with its line — the enumeration in the proof block IS the count (Hard Constraint 7). Every hit is a `FILE:LINE` transcription taken at search time. A cell whose number the pasted output does not reproduce is a self-consistency failure. `UDT Usage` lists the user-defined-type constructs appearing in the routine's own SIGNATURE, copied verbatim, or the literal word `none`; type anchors on LOCAL declarations are not signature UDTs, and a function's `RETURN <type>` clause is a return type, never a parameter.
+
+  **These are raw counts with citations, never classifications.** The cells carry numbers and cited constructs only. No cell, and no prose in this subsection, assigns a routine a complexity band, a risk rating, an effort or story-point estimate, a `simple`/`moderate`/`complex` label, or a migration-difficulty ranking — those are judgments the downstream planner makes FROM these numbers, and the report's non-goals (see Report Format) forbid them here. A metric that could not be computed is stated as unknown with the reason, never estimated.
+
+  **Branch-counting basis (a stated-method heuristic — NOT cyclomatic complexity).** The Branches column is a reproducible keyword count on ONE declared basis, and the report restates that basis inline immediately below the table so any consumer can reproduce the number. The basis is fixed and is not renegotiated per report:
+  - **Counted:** each `IF` that opens a conditional; each `ELSIF` / `ELSEIF`; each `WHEN` arm of a `CASE` statement or a `CASE` expression; each `WHILE` loop head.
+  - **NOT counted:** `ELSE` arms (no condition is tested at an `ELSE` — the decision was already made at the `IF` or `WHEN` above it); `EXCEPTION WHEN` / `CATCH` handlers (error paths, reported in Dimension 4); `FOR` and bare `LOOP` iteration heads (reported in the Cursor Loops column, and counting them here would double-count them); `END IF` / `END CASE` terminators; and any of these keywords occurring inside a comment or a string literal.
+
+  Label the number for what it is: a keyword count on the basis above. It is not cyclomatic complexity, not a defect measure, and not an effort measure, and it is never presented as any of the three. The count needs lexical care — a naive `grep -c 'IF'` also matches `ELSIF` and `END IF` — so use word-boundary-aware patterns and let the pasted output show the separation.
+
 - **Missing-Reference Table:** Every external reference pointing to an absent object. These are **not** fabricated — they are references found in the source code to objects whose definitions are not present in the provided files.
 
   | Source File:Line | Reference Type | Target | Impact |
@@ -222,7 +239,7 @@ Analyze ALL five dimensions below **in order** — each builds on the prior. Use
 
 **Findings scratch file FIRST (`findings.tsv` — MANDATORY, same discipline as the CRUD matrix).** Dimension-5 claims fabricate more readily than any other section: invented `ISNULL`/`COALESCE` expressions, invented `CHECK` constraints with invented column names, invented hardcoded paths with invented variable names — each carrying a plausible-but-false `FILE:LINE` — are the characteristic failure mode. Prose instructions do not prevent it; a required output artifact does. So EVERY footgun is bound to disk before any Dimension-5 prose exists. Materialize findings into a scratch file `findings.tsv` in your working directory FIRST — one line per footgun: `Category|Scope|Object|File:Line|Evidence|Severity`. The section that follows is a transcription of this file, not a recollection of the analysis.
 
-- **Categories:** `SECURITY_CONTEXT`, `NULL_SEMANTICS`, `HARDCODED_VALUE`, `CONSTRAINT_LOGIC`, `OTHER`.
+- **Categories:** `SECURITY_CONTEXT`, `NULL_SEMANTICS`, `HARDCODED_VALUE`, `CONSTRAINT_LOGIC`, `GLOBAL_STATE`, `OTHER`.
 - **Scope** is `production` or `test`. Test scripts (identified in Context Intake) are searched separately; a footgun literal that appears ONLY in a test file is recorded with `Scope=test` and is **NEVER** attributed to a production object. A production finding MUST cite a production file. (A footgun-looking literal in an excluded test file bleeding into a production claim is a known, gating fabrication.)
 - **Evidence** is the matched text copied verbatim from the search output — a paraphrase presented as a quote is fabrication.
 - **A parameterized value is not a hardcoded value.** A path/server/name passed in as a procedure PARAMETER (e.g. `@ExportPath`) is caller-controlled — it is NOT a `HARDCODED_VALUE` and must not be flagged as one. Only a literal embedded in the source is hardcoded.
@@ -233,6 +250,8 @@ Every row is produced by an actual search command whose output is pasted. Consul
 - **NULL vs empty-string semantics:** search `ISNULL`, `COALESCE`, `NVL`, `''` literals in predicates. T-SQL `'' ≠ NULL` (and `ISNULL(col,'default')` behavior); PL/SQL `'' = NULL`.
 - **Hardcoded values & environment names:** server names, database names, file paths (`[A-Za-z]:\`), IP addresses, connection strings embedded in SQL; business constants (rates, thresholds, limits). Externalize to config before extraction. (Remember the parameterized-value exclusion above.)
 - **Business rules in constraints:** DDL `DEFAULT` clauses with logic (`DEFAULT GETDATE()`, `DEFAULT USER_ID()`) and `CHECK` constraints — DB-layer rules that must move to application validation.
+- **Global & shared state (`GLOBAL_STATE`):** state that outlives a single call, or that is shared between routines — the first thing to break when logic moves into stateless application code. The class captures: package-level / module-level variable declarations and every read and write of them; temporary-table usage (Oracle global temporary tables and `TEMP_`/`TMP_` staging tables; T-SQL `#temp`, `##temp`, `tempdb..`); ambient session state (`SYS_CONTEXT`, `DBMS_SESSION`, `USERENV`; `CONTEXT_INFO`, `SESSION_CONTEXT`); and sequence consumption (`.NEXTVAL`/`.CURRVAL`, `NEXT VALUE FOR`). Run the dialect file's queries for this class — see **"Extraction-Metrics Detection Patterns"** in `references/dialects/oracle.md` / `references/dialects/mssql.md` — and paste the raw `grep -n` output as for every other class. **Record one `findings.tsv` row PER OBJECT per state resource, never one merged row per resource.** The row's `Object` is the routine that touches the resource and its `File:Line` is that routine's own touch site, because the fact the extraction team needs is which objects SHARE a resource, and that is derived by joining two rows on the same resource — a single row naming several objects destroys the join and cannot be counted. A write site and a read site of the same resource are separate rows, each with its own verbatim `Evidence`. Where a resource has exactly one toucher, say so and name it: a one-writer package variable is a materially weaker finding than a two-writer one, and the difference is only visible if both are recorded the same way. If the class returns no hits, state that explicitly with the empty output rather than dropping the class.
+
 - **Other dialect-specific footguns:** consult the dialect file (T-SQL `MERGE` concurrency, Oracle `FORALL`, implicit cursors, etc.).
 
 **The Dimension-5 report section is a transcription of `findings.tsv`'s production rows** — every footgun claim in the report is a `findings.tsv` row, and every production row appears in the report. A report claim with no backing row, or a row whose `File:Line` the pasted search output does not contain, is a fabrication. If in-context memory disagrees with `findings.tsv`, the file wins — re-read it. Report each finding with its `FILE:LINE`, its verbatim evidence, and its extraction implication.
@@ -296,6 +315,9 @@ This section is positioned FIRST in the report but is WRITTEN LAST: leave it for
 ## 1. Inventory & Completeness
 [Component manifest table, missing-reference table, coverage honesty check, dead/orphan code findings]
 
+### Extraction Metrics
+[Per-routine table with exactly these columns — Object | Params | Cursor Loops | Branches | UDT Usage | File — transcribed from `metrics.tsv`; the proof block of computing commands and their raw output sits immediately above the table, and the stated branch-counting basis immediately below it. One row per defined routine, all-zero rows included, `0` written not blank. Raw counts and cited constructs only — no complexity band, risk rating, or effort estimate]
+
 ## 2. Call & Dependency Graph
 [Dependency graph with dynamic-SQL flagging, hub objects, extraction sequencing]
 
@@ -322,6 +344,24 @@ nowhere earlier in the report is a self-consistency failure.
 - **Missing artifacts affecting analysis:** [what's absent and what dimension it impacts]
 - **Encoding/format issues encountered:** [if any — e.g., ISO-8859 files, mixed CRLF/LF, non-English comments]
 - **Path mismatches:** [if README vs reality differs, note it honestly]
+
+---
+
+## Recommended Next Steps
+
+This section names the downstream consumer of this report and nothing else. It is a
+RECOMMENDATION the reader may take or ignore — this report does not invoke anything, and
+no step below runs automatically. It states no migration pattern, no target architecture,
+no effort estimate, and no priority ranking; those remain non-goals of this report.
+
+- **Downstream planner:** the `sproc-migration-plan` skill consumes this report — specifically
+  the `### Extraction Metrics` table and the Dimension-5 `GLOBAL_STATE` rows — to sequence and
+  size the extraction. Hand it the path to this file.
+- **Optional runtime evidence pack:** static source cannot show call frequency, row volumes, or
+  which routines are actually invoked in production. If an execution-statistics export is
+  available (Oracle AWR / `v$sql`; SQL Server Query Store / `sys.dm_exec_procedure_stats`),
+  supplying it alongside this report lets the planner separate hot paths from dead weight.
+  State here whether such a pack was provided — absence is stated explicitly, never implied.
 ```
 
 Both coverage sections in the template are REQUIRED in full — every line item shown appears in every report. A line item whose answer is empty is stated explicitly rather than omitted (e.g., `**Reduced-confidence dimensions:** None — no dynamic SQL detected in the analyzed source; Dimension 2's dynamic-SQL confidence flagging is unexercised in this analysis`). Omitting a coverage line item is a report-format violation.

@@ -114,6 +114,91 @@ Where Oracle code uses autonomous transactions for audit logging that must persi
 
 Extended procedures (`xp_fileexist`, `xp_fixeddrives`, `xp_create_subdir`, `xp_logevent`, etc.) live in `master` and execute native code on the SQL Server host machine. They touch the host OS directly — filesystem, registry, drives — and are a hard coupling to the DB server machine that is invisible to portability analysis unless explicitly surfaced. Sproc-xray must enumerate every `xp_*` call with `FILE:LINE` and classify it as an external/unresolvable edge representing server-surface coupling the application must absorb or replace.
 
+## Extraction-Metrics Detection Patterns
+
+Dimension 1's `### Extraction Metrics` table is computed by command, not read off the source by eye. These are the T-SQL patterns each column is searched with. Every pattern is a starting point whose RAW output goes into the report's proof block; the count is the length of the hit list after the stated exclusions are removed, so the exclusions below matter as much as the matches, and each removal is named with its line.
+
+### Parameter lists
+
+T-SQL parameters are the `@`-prefixed declarations between the object name and the `AS` that opens the body — parenthesised or not, and one per line by convention:
+
+```bash
+grep -niE '^[[:space:]]*CREATE[[:space:]]+(OR[[:space:]]+ALTER[[:space:]]+)?(PROCEDURE|PROC|FUNCTION)[[:space:]]' sql/
+```
+
+- Read each declaration from the object name through the `AS` (procedures) or the `RETURNS` clause (functions), and count the comma-separated `@param` formals. One count per formal regardless of `OUTPUT`/`OUT`, `READONLY`, or a `= <default>` value.
+- **Only the parameter list counts.** `DECLARE @x …` statements inside the body are local variables, not parameters, and the `@`-sigil makes them look identical to a naive grep — bound the search to the declaration region.
+- A function's `RETURNS <type>` clause is the return type, never a parameter. For a table-valued function, `RETURNS @t TABLE (…)` names a return variable and its column list — neither the variable nor its columns are parameters.
+- A procedure with no parameters has `0`. `0` is written; the row is not omitted and the cell is not left blank.
+
+### Cursor loops
+
+T-SQL has no cursor `FOR` loop; every cursor loop is an explicit declare/open/fetch cycle:
+
+```bash
+grep -niE 'DECLARE[[:space:]]+[^[:space:]]+[[:space:]]+CURSOR|OPEN[[:space:]]+|FETCH[[:space:]]+NEXT|CLOSE[[:space:]]+|DEALLOCATE[[:space:]]+|WHILE[[:space:]]+@@FETCH_STATUS' sql/
+```
+
+- The canonical shape is `DECLARE <c> CURSOR FOR <select>` → `OPEN <c>` → `FETCH NEXT FROM <c> INTO …` → `WHILE @@FETCH_STATUS = 0 … END` → `CLOSE` / `DEALLOCATE`. **Count the loop once per cursor**, not once per `FETCH` — the priming fetch before the `WHILE` and the fetch inside it belong to the same loop.
+- **A `WHILE` that is not driven by a cursor is not a cursor loop.** `WHILE @i <= @n` over a counter, or a `WHILE` draining a `@table` variable with `DELETE … OUTPUT`, iterates rows without a cursor; it is a branch keyword (below), not a cursor loop. Record it in the branch count only.
+- **A cursor DECLARATION is not a loop.** A declared-but-never-opened cursor is noted as such, not counted.
+- **Nesting is depth, not one loop.** An inner cursor inside an outer cursor's `WHILE` body is TWO cursor loops; report the count and state the nesting depth alongside it.
+- Set-based DML (`UPDATE … FROM`, `MERGE`) processes many rows with no loop at all and contributes `0` here — that is a real `0`, not a gap.
+
+### Branch keywords
+
+Dimension 1 fixes the branch basis — counted: `IF`, `ELSE IF`, `CASE` `WHEN` arms, `WHILE`; not counted: bare `ELSE`, `CATCH` handlers, `END`/`END IF` terminators.
+
+```bash
+grep -niEw 'IF|ELSE|CASE|WHEN|WHILE|BEGIN|END|CATCH' sql/
+```
+
+- **`ELSE IF` is a nested `IF` and counts once, as the `IF`.** A bare `ELSE` does not count — no condition is tested there.
+- `WHEN` is overloaded. A `CASE … WHEN` arm counts. A `MERGE`'s `WHEN MATCHED` / `WHEN NOT MATCHED [BY SOURCE|TARGET]` clauses are DML routing, not body branches — record them in Dimension 3 with the `MERGE`, and if you choose to count them here, say so and apply it to every `MERGE` in the corpus.
+- `CASE` is an expression in T-SQL, never a statement; it appears in `SELECT` lists, `SET`, `WHERE`, and `ORDER BY`. Its `WHEN` arms count wherever it appears.
+- `BEGIN`/`END` are block delimiters, not branches. `BEGIN TRY` / `BEGIN CATCH` are error handling (Dimension 4), never branch points.
+- `GOTO` and `RETURN` are early exits, not branch points on this basis. If a corpus leans on them, note that fact in prose rather than folding it silently into the number.
+- Keywords inside `--` and `/* … */` comments, inside string literals, and inside SSMS View-Designer metadata blocks are not code.
+
+### User-defined types in signatures
+
+T-SQL's user-defined type surface is narrower than Oracle's and lives entirely in the declaration:
+
+```bash
+grep -niE 'READONLY|CREATE[[:space:]]+TYPE|AS[[:space:]]+TABLE|EXTERNAL[[:space:]]+NAME|ASSEMBLY|hierarchyid|geography|geometry|sql_variant|xml' sql/
+```
+
+- **Table-valued parameters (TVPs)** — a parameter whose type is a user-defined table type, mandatorily `READONLY`. `READONLY` in a parameter list is the reliable TVP marker; the type itself comes from a `CREATE TYPE … AS TABLE (…)` that may or may not be in the provided source (if it is not, it is a missing reference, not an invented shape).
+- **CLR / assembly types** — a `CREATE TYPE … EXTERNAL NAME <assembly>.<class>` alias, or a parameter typed by one. These carry host-machine coupling as well as a type.
+- **System types with no plain application equivalent** — `hierarchyid`, `geography`, `geometry`, `sql_variant`, and `xml` are not user-defined, but a signature carrying one is the same extraction problem the column exists to surface. Record them, labeled as system types so the distinction is not lost.
+- **Signature only.** A `DECLARE @t <table type>` local, or a `CREATE TYPE` sitting in the DDL that no signature uses, is not a signature UDT.
+- A routine whose signature carries none of these gets the literal word `none`, never a blank cell.
+
+### Global and shared state (the `GLOBAL_STATE` footgun class)
+
+State that outlives one call, or that is shared between routines. Record one `findings.tsv` row per OBJECT per resource — cluster detection joins two objects on one shared resource, so a merged row naming several objects destroys the finding.
+
+```bash
+# temp tables: session-scoped (#) and global (##), plus explicit tempdb references
+grep -nE '#{1,2}[A-Za-z_][A-Za-z0-9_]*' sql/
+grep -niE 'tempdb\.\.|tempdb\.dbo\.' sql/
+# ambient session state
+grep -niE 'CONTEXT_INFO|SESSION_CONTEXT|sp_set_session_context' sql/
+# sequences
+grep -niE 'NEXT[[:space:]]+VALUE[[:space:]]+FOR|CREATE[[:space:]]+SEQUENCE' sql/
+# server- and database-scoped configuration read as state
+grep -niE 'SET[[:space:]]+ROWCOUNT|@@SPID|@@IDENTITY|SCOPE_IDENTITY|@@TRANCOUNT' sql/
+```
+
+T-SQL has no package construct, so its shared state is table- and session-shaped instead of variable-shaped. What to record:
+
+- **`##global` temp tables are the sharpest finding here.** A `##` table is visible to EVERY session on the server and lives until its creator disconnects, so two routines — or two concurrent invocations of one routine — collide on it. Record the creating routine and every touching routine as separate rows.
+- **`#local` temp tables** are session-scoped, and that is broader than a single call: a `#temp` created by an outer procedure is visible to every procedure it calls, which is a documented, load-bearing handoff channel with no invocation edge to show it. Record the creator and each consumer separately; a `#temp` created and dropped inside one routine is intra-call scratch and is recorded as such, not as shared state.
+- **`CONTEXT_INFO` / `SESSION_CONTEXT`** are ambient per-connection key/value state, commonly set by a login procedure or the application and read far away — the T-SQL analogue of Oracle's `SYS_CONTEXT`. Under a **connection pool** the value outlives the logical request and leaks into whichever request reuses the connection. Cite every read and every write with its object, and state occurrences AND distinct objects as two separate labeled numbers.
+- **Sequences** (`NEXT VALUE FOR <seq>`) are shared, cross-session, gap-prone counters. Record the sequence's definition site and each consuming routine. `IDENTITY` columns are table-scoped rather than shared and belong in Dimension 3, but `@@IDENTITY` (connection-scoped, and wrong across triggers) is session state — record it here with the reason.
+- **Session `SET` options** (`SET ROWCOUNT`, and the `SET ANSI_NULLS` / `SET QUOTED_IDENTIFIER` pair captured at create time) change behavior for the rest of the session, not just the statement. Where a routine sets one and does not restore it, that is state escaping the call.
+- If a class returns no hits, state that explicitly and show the empty output. An unlisted class reads as "not searched".
+
 ## Silent-Behavior Footguns (Migration)
 
 These are T-SQL constructs whose behavior silently changes meaning when logic is extracted to application code or ported to PostgreSQL/Oracle — code that compiles and runs but produces different results, data, or side effects. They rarely surface as errors, so migration tools miss them and only production divergence reveals them.

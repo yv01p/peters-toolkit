@@ -22,18 +22,23 @@ output. Nothing outside the `PROMPT BEGINS` / `PROMPT ENDS` markers below is sen
 to the subagent.
 
 **Fixture preparation — MANDATORY, and identical for BOTH arms.** The committed
-`xraytest1/README.md` carries a `## Ground truth` section from line 20 down. The
-skill's intake step has the analyst read the project README, so a rep that sees
-that section can transcribe correct numbers without computing any of them — the
-same instrument failure as method-leakage in the prompt. Every rep, in both arms,
-runs against a copy with that section removed:
+`xraytest1/README.md` carries a `## Ground truth` section. The skill's intake step
+has the analyst read the project README, so a rep that sees that section can
+transcribe correct numbers without computing any of them — the same instrument
+failure as method-leakage in the prompt. Every rep, in both arms, runs against a
+copy with that section removed. Build it with the script — do not hand-roll the
+recipe, because a hand-rolled copy that silently keeps the section produces a
+fixture that looks right and scores meaningless:
 
 ```bash
-SRC=/home/ubuntu/peters-toolkit/tests/sproc-metrics/xraytest1
-DST=<this rep's scratch dir>/xraytest1          # becomes {FIXTURE_PATH}
-cp -r "$SRC" "$DST"
-head -19 "$SRC/README.md" > "$DST/README.md"    # keeps the system description only
+FIXTURE_PATH=$(/home/ubuntu/peters-toolkit/tests/sproc-metrics/prepare-rep-fixture.sh <this rep's scratch dir>)
 ```
+
+The script copies the committed fixture into `<scratch dir>/xraytest1`, truncates
+the copied `README.md` immediately before its `## Ground truth` heading, verifies
+the copy is stripped, and prints the absolute path to use as `{FIXTURE_PATH}`. It
+is idempotent (an existing copy is rebuilt) and it exits non-zero with a `FATAL:`
+message rather than ever emitting an un-stripped fixture.
 
 Both arms must use the same preparation, or the arms differ in the fixture itself
 and the comparison the harness exists to make is confounded. The committed

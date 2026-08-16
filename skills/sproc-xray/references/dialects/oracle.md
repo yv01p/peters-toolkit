@@ -114,6 +114,95 @@ An exception handler that does not re-raise (via `RAISE;` with no arguments insi
 
 **`SELECT ... INTO` turns cardinality into control flow — and `WHEN OTHERS` hides it.** A PL/SQL `SELECT ... INTO` raises `NO_DATA_FOUND` on zero rows and `TOO_MANY_ROWS` on more than one — these are *implicit control flow*, not ordinary errors. Application-code data access (JDBC/ORM) instead returns an empty result or the first row *without throwing*, so a naive reimplementation silently drops that control flow: a no-rows case that today short-circuits into an exception handler (often `RETURN <default>`) will instead fall through with a `NULL`/uninitialized value. When the `SELECT INTO` sits under a blanket `WHEN OTHERS`, the raised `NO_DATA_FOUND` is *also* swallowed, so an entire "no matching row ⇒ return default" branch is invisible unless you know both facts. A `WHERE ROWNUM = 1` guard suppresses `TOO_MANY_ROWS` but not `NO_DATA_FOUND` (see the ROWNUM footgun). Migration must reproduce the zero-row / multi-row contract explicitly.
 
+## Extraction-Metrics Detection Patterns
+
+Dimension 1's `### Extraction Metrics` table is computed by command, not read off the source by eye. These are the PL/SQL patterns each column is searched with. Every pattern is a starting point whose RAW output goes into the report's proof block; the count is the length of the hit list after the stated exclusions are removed, so the exclusions below matter as much as the matches, and each removal is named with its line.
+
+### Parameter lists
+
+A routine's parameters are the formal parameters between the parentheses of its own declaration — `PROCEDURE name (p_a IN NUMBER, p_b OUT VARCHAR2)`. Locate the declarations first, then read each one through its closing `)` and count the comma-separated formals:
+
+```bash
+grep -nE '^[[:space:]]*(CREATE[[:space:]]+(OR[[:space:]]+REPLACE[[:space:]]+)?)?(PROCEDURE|FUNCTION)[[:space:]]+[A-Za-z_][A-Za-z0-9_$#]*' sql/
+```
+
+- A parameter list spans lines. One count per formal regardless of mode (`IN`, `OUT`, `IN OUT`, `NOCOPY`) and regardless of whether it carries a `DEFAULT` or `:=` value.
+- **A package SPEC and its BODY declare the SAME routine.** `pkg_x.load_batch` has one parameter set, not two; counting both declarations doubles every packaged routine's parameter count. Cite either or both lines, but count the signature once.
+- **A function's `RETURN <type>` clause is not a parameter.** It is the return type and never increments the count.
+- A routine declared with no parameter list at all (`PROCEDURE prc_purge;`) has `0` parameters. `0` is written; the row is not omitted and the cell is not left blank.
+
+### Cursor loops
+
+A cursor loop iterates a result set. Three PL/SQL forms qualify:
+
+- `FOR <rec> IN <declared cursor>[(args)] LOOP` — a cursor declared by `CURSOR c_x IS …`, driven by a cursor `FOR` loop.
+- `FOR <rec> IN (SELECT …) LOOP` — an inline-query cursor `FOR` loop.
+- An explicit `OPEN <cursor>` / `FETCH <cursor> INTO …` / `CLOSE <cursor>` sequence driven by a `LOOP` or `WHILE` — count the loop ONCE, not once per `FETCH`.
+
+```bash
+grep -nE 'CURSOR[[:space:]]+[A-Za-z_]|FOR[[:space:]]+[A-Za-z_][A-Za-z0-9_$#]*[[:space:]]+IN[[:space:]]|OPEN[[:space:]]+|FETCH[[:space:]]+' sql/
+```
+
+Exclusions this raw output will contain, each of which is removed before counting and named with its line:
+
+- **A numeric `FOR` loop is not a cursor loop.** `FOR i IN 1 .. n LOOP`, `FOR i IN REVERSE lo..hi LOOP`, and `FOR i IN 1 .. coll.COUNT LOOP` iterate a range or a collection index; none of them opens a cursor.
+- **`OPEN <ref cursor> FOR <query>` is not a loop at all.** It opens a `REF CURSOR` and hands it to the caller; nothing iterates at that line.
+- **A cursor DECLARATION is not a loop.** `CURSOR c_x IS SELECT …` declares; the loop is the `FOR … IN c_x LOOP` that drives it. A declared-but-never-driven cursor is worth noting as such, not counted as a loop.
+- **Nesting is depth, not one loop.** An inner cursor `FOR` loop inside an outer one is TWO cursor loops. Report the count and state the nesting depth alongside it — a depth-2 nest is a different extraction problem (N×M round trips) from two sibling loops.
+
+### Branch keywords
+
+Dimension 1 fixes the branch basis — counted: `IF`, `ELSIF`, `CASE` `WHEN` arms, `WHILE`; not counted: `ELSE`, `EXCEPTION WHEN`, `FOR`/bare `LOOP` heads, `END IF`/`END CASE`. In PL/SQL the traps are lexical:
+
+```bash
+grep -nEw 'IF|ELSIF|WHEN|WHILE|ELSE|EXCEPTION' sql/
+```
+
+- `ELSIF` and `END IF` both contain the letters `IF`; a substring match over-counts badly. Word-boundary matching separates `ELSIF`, and `END IF` hits must still be dropped from the `IF` set explicitly — state that drop.
+- `WHEN` is overloaded. A `CASE … WHEN` arm counts. An `EXCEPTION WHEN <exc>` / `WHEN OTHERS` handler does not (it is an error path — Dimension 4 owns it). A trigger's `WHEN (<condition>)` clause is a firing predicate, not a branch in the body.
+- `CASE` appears both as a statement (`CASE x WHEN … END CASE;`) and as an expression (inside an assignment, a `RETURN`, or a `SELECT` list). The `WHEN` arms of BOTH count.
+- Keywords inside `--` or `/* … */` comments and inside string literals are not code. Oracle header comments routinely carry example `IF`/`CASE` text, and ADempiere/Compiere-style banners are full of it.
+
+### User-defined types in signatures
+
+The `UDT Usage` column records the user-defined / non-scalar type constructs appearing in the routine's OWN SIGNATURE, copied verbatim:
+
+```bash
+grep -nE '%ROWTYPE|%TYPE|IS[[:space:]]+RECORD|VARRAY|IS[[:space:]]+TABLE[[:space:]]+OF|REF[[:space:]]+CURSOR|SYS_REFCURSOR' sql/
+```
+
+- `%ROWTYPE` — a row-shaped anchor to a table or a cursor.
+- `TYPE … IS RECORD` — a PL/SQL record type.
+- `TYPE … IS VARRAY(n) OF …` — a bounded collection.
+- `TYPE … IS TABLE OF …` — a nested table or associative array (with or without `INDEX BY`).
+- `REF CURSOR` / `SYS_REFCURSOR` — a cursor handed across the call boundary. It has no direct application-code equivalent and is always worth recording.
+- **Signature only.** `%TYPE` and `%ROWTYPE` on LOCAL variable declarations inside the body are schema anchors, not parameters, and never enter this column. Confirm each hit's line falls inside a declaration's parameter list, not inside the `DECLARE`/`IS` local block.
+- A routine whose signature carries none of these gets the literal word `none`, never a blank cell.
+
+### Global and shared state (the `GLOBAL_STATE` footgun class)
+
+State that outlives one call, or that is shared between routines. Record one `findings.tsv` row per OBJECT per resource — cluster detection joins two objects on one shared resource, so a merged row naming several objects destroys the finding.
+
+```bash
+# package-level variable declarations (spec or body, outside any routine)
+grep -nE '^[[:space:]]*g_[A-Za-z0-9_]+[[:space:]]+' sql/
+# every read and write of them
+grep -nE '\bg_[A-Za-z0-9_]+\b' sql/
+# global temporary tables and staging-table naming
+grep -niE 'CREATE[[:space:]]+GLOBAL[[:space:]]+TEMPORARY[[:space:]]+TABLE|ON[[:space:]]+COMMIT[[:space:]]+(DELETE|PRESERVE)[[:space:]]+ROWS|\b(TEMP|TMP)_[A-Za-z0-9_]+' sql/
+# ambient session state
+grep -nE 'SYS_CONTEXT|DBMS_SESSION|USERENV' sql/
+# sequences
+grep -niE '\.NEXTVAL|\.CURRVAL|CREATE[[:space:]]+SEQUENCE' sql/
+```
+
+- **Package variables** declared at package level rather than inside a routine are session-scoped: they survive across calls on the same connection and are shared by every routine in the package (see "Package-Based Modularity", above, for the connection-pool hazard). The `g_` prefix is a convention, not a rule — confirm each hit is declared OUTSIDE a routine body before recording it, and read the package spec and body for level declarations that do not follow the convention.
+- Record, per variable: its declaration site, every WRITE site with the routine that writes it, and every READ site with the routine that reads it. A variable written by two different routines is a shared-state cluster. A variable with exactly one writer is a weaker finding and is recorded as such, with the writer named — the distinction only survives if both are recorded the same way.
+- **Global temporary tables are a handoff channel the call graph cannot see**: one routine `INSERT`s, another `SELECT`s, and no invocation edge exists between them. Record the GTT's definition site and each routine's touch site as separate rows so the writer/reader pair is visible. Copy the `ON COMMIT DELETE ROWS` / `PRESERVE ROWS` clause verbatim — it decides what survives the transaction boundary (see the GTT footgun below).
+- **`SYS_CONTEXT` / `USERENV` / `DBMS_SESSION`** read or set ambient session state established by something outside these files. Cite every occurrence with the object that contains it, and state occurrences AND distinct objects as two separate labeled numbers — they are different quantities.
+- **Sequences** are shared, cross-session, gap-prone counters (see the sequence footgun below). Record the sequence's definition site and each consuming routine's `NEXTVAL`/`CURRVAL` site.
+- If a class returns no hits, state that explicitly and show the empty output. An unlisted class reads as "not searched".
+
 ---
 
 ## Oracle-Specific Footguns
