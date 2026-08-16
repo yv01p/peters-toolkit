@@ -123,13 +123,14 @@ Dimension 1's `### Extraction Metrics` table is computed by command, not read of
 A routine's parameters are the formal parameters between the parentheses of its own declaration — `PROCEDURE name (p_a IN NUMBER, p_b OUT VARCHAR2)`. Locate the declarations first, then read each one through its closing `)` and count the comma-separated formals:
 
 ```bash
-grep -nE '^[[:space:]]*(CREATE[[:space:]]+(OR[[:space:]]+REPLACE[[:space:]]+)?)?(PROCEDURE|FUNCTION)[[:space:]]+[A-Za-z_][A-Za-z0-9_$#]*' sql/
+grep -nE '^[[:space:]]*(CREATE[[:space:]]+(OR[[:space:]]+REPLACE[[:space:]]+)?)?(PROCEDURE|FUNCTION|TRIGGER)[[:space:]]+[A-Za-z_][A-Za-z0-9_$#]*' sql/
 ```
 
 - A parameter list spans lines. One count per formal regardless of mode (`IN`, `OUT`, `IN OUT`, `NOCOPY`) and regardless of whether it carries a `DEFAULT` or `:=` value.
 - **A package SPEC and its BODY declare the SAME routine.** `pkg_x.load_batch` has one parameter set, not two; counting both declarations doubles every packaged routine's parameter count. Cite either or both lines, but count the signature once.
 - **A function's `RETURN <type>` clause is not a parameter.** It is the return type and never increments the count.
 - A routine declared with no parameter list at all (`PROCEDURE prc_purge;`) has `0` parameters. `0` is written; the row is not omitted and the cell is not left blank.
+- **A trigger (`CREATE [OR REPLACE] TRIGGER …`) carries no formal parameter list at all → `Params 0`, and has no signature → `UDT Usage none`; `:NEW`/`:OLD` pseudo-record fields and a `REFERENCING` clause are NOT parameters.** Its Cursor Loops and Branches are still counted from the trigger body.
 
 ### Cursor loops
 
