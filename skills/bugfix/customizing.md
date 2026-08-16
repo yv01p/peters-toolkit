@@ -35,5 +35,5 @@ Condensed from the design spec's locked decisions (O1–O11). Knowing *why* each
 
 - **A tracker-side "list my in-flight bugs" query** — the picker is offline/branch-cut only.
 - **Browser-automation tooling** — `repro_verify` is a seam; the base ships automated-test + the flagged manual fallback only.
-- **An autonomy dial** — the gates are the future dial; only the fully-gated manual version is built.
+- **An autonomy dial** — the gates are the future dial; only the fully-gated manual version is built. See `roadmap.md` for ideas on how graduated, per-gate autonomy could work.
 - **A Jira provider** — a documented, unbuilt adapter slot.

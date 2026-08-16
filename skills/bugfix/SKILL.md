@@ -109,3 +109,4 @@ Detail lives in the flat reference files beside this one — read them as you dr
 - **harness-config.md** — the `.claude/bugfix.harness.md` format, the annotated Umbraco example, and how to author your own.
 - **work-log.md** — the ticket work-log template, the hidden-marker convention, and the milestone → fields table.
 - **customizing.md** — the extension points and the condensed decisions & rationale (why each seam is safe to change).
+- **roadmap.md** — ideas for the future: graduated, per-gate autonomy (manual now → autonomous later), not yet built.

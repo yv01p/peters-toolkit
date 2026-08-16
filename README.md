@@ -1,6 +1,6 @@
 # Peter's Agentic Toolkit
 
-**Version 2.4.2** · targets Superpowers 6.3.x (verified against 6.3.0; compatible back to 6.0.x)
+**Version 2.5.0** · targets Superpowers 6.3.x (verified against 6.3.0; compatible back to 6.0.x)
 
 Peter's Agentic Toolkit is a Claude Code plugin. It's a set of skills that shape how an agent handles design, planning, review, and implementation. The idea is simple: **agentic work deserves the same discipline you'd apply to writing critical software.** You brainstorm an idea into a spec, review the spec adversarially and revise it, turn the spec into a plan, review the plan adversarially and revise it, then hand the plan to sub-agents to build. Security gets assessed along the way.
 
@@ -97,6 +97,10 @@ When usage nears that threshold, the workflow is:
 
 Every session stays in the part of the window where the model still does its best work, and nothing gets lost in the switch.
 
+## Fixing bugs
+
+Most of the skills here are single-shot passes. You point one at a spec, a plan, or a diff and it does its job. `bugfix` is different. It's a conductor. It drives one bug, locally, from the moment you pick up the ticket to a merged fix, and it hands every hard step to skills that already exist (Superpowers and this Toolkit) plus a tracker adapter. It re-implements none of their logic. What it does is sequence the stages, enforce the human gates, route the bug by complexity, read a per-project config, and write the ticket work-log. It's designed for you to customize as you need. See `skills/bugfix/introduction.md` for the full write-up.
+
 ## Inventory
 
 | Category | Skill | One-liner |
@@ -107,6 +111,8 @@ Every session stays in the part of the window where the model still does its bes
 | **Planning cycle** | `thorough-writing-plans` | Turn an approved spec into an implementation plan, verifying plan-level assumptions before committing |
 | | `critical-implementation-review` | Adversarial review of an implementation plan, focused on literal wrongness, over multiple iterative rounds |
 | | `update-implementation-plan` | Apply `critical-implementation-review`'s findings to the plan, one by one with user approval |
+| **Bug fixing** | `bugfix` | Orchestrate one bug end to end (staged, tier-routed, human-gated), composing the Toolkit and Superpowers skills |
+| | `tracker-adapter` | Read a ticket and write status, comments, and PR links back to the issue tracker (GitHub reference provider, build your own for other trackers) |
 | **Security** | `critical-security-review` | Code-level security review (3-pass), optionally grounded by a TMA threat model |
 | | `tma` | Threat Model Analysis (STRIDE-per-element) with a prioritized findings roadmap |
 | **Context management** | `create-handoff` | Capture session state into a structured handoff document for resumption later |

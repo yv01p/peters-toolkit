@@ -19,6 +19,18 @@ When cutting a new version, update in lockstep:
 4. A new `git tag vX.Y.Z`
 5. Regenerate `tests/provenance/companion-manifest.sha256` (and its `# target:` line) if the visual-companion files were re-synced to a new Superpowers target
 
+## [2.5.0] — 2026-08-16
+
+**Targets Superpowers 6.3.x** (verified against 6.3.0; compatible back to 6.0.x)
+
+### Added
+- Documented the `bugfix` orchestrator and its `tracker-adapter` companion as
+  first-class, customizable workflow skills (implementations landed in 2.4.0 but
+  were undocumented until now): a "Fixing bugs" section + inventory rows in the
+  README, a skill introduction (`skills/bugfix/introduction.md`), and a
+  graduated-autonomy roadmap (`skills/bugfix/roadmap.md`). GitHub is the reference
+  tracker provider; build your own for other trackers.
+
 ## [2.4.2] — 2026-08-15
 
 **Targets Superpowers 6.3.x** (verified against 6.3.0; compatible back to 6.0.x)
