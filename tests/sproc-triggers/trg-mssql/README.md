@@ -32,8 +32,8 @@ arm; bare `ELSE`, `BEGIN`/`END` delimiters, and `CATCH` handlers are not
 branch points.
 
 **Trigger-specific basis.** Both triggers' `Params` are `0`, definitionally
-— T-SQL triggers take no parameters and never match the
-`CREATE|ALTER ... PROCEDURE|PROC|FUNCTION` search. `UDT Usage` is `none`
+— T-SQL triggers take no parameters, so there are no formals to count
+regardless of how the trigger banner is enumerated. `UDT Usage` is `none`
 for both triggers and for the procedure: this corpus has no table-valued
 parameter, no CLR/assembly type, and no system type (`hierarchyid`,
 `geography`, `geometry`, `sql_variant`, `xml`). Each trigger file opens
@@ -143,9 +143,9 @@ for all three objects.
 
 ### Traps this fixture plants
 
-- **Both triggers' `Params` are `0` by definition, not by search.** The
-  parameter-list search matches only `PROCEDURE`/`PROC`/`FUNCTION` banners;
-  `CREATE TRIGGER` never matches it. A blank cell or an omitted row for
+- **Both triggers' `Params` are `0` by definition.** A trigger takes no
+  parameters, so there are no formals to count — `0` regardless of how the
+  trigger banner is enumerated. A blank cell or an omitted row for
   either trigger is a miss.
 - **The out-of-body drop-guard is not a branch.** Each trigger file opens
   with `IF OBJECT_ID(...) IS NOT NULL DROP TRIGGER ...; GO` — idiomatic

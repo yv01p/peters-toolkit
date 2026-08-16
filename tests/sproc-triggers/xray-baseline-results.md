@@ -83,7 +83,7 @@ Criterion 2 (Fabrication) is 0/6 without qualification.
 - **o2** observes the identical structural fact and reaches the opposite, correct placement:
   *"trg_account_status_sync is a CREATE TRIGGER, which has no PROCEDURE/FUNCTION-style
   parameter-list syntax at all ... → Params = 0, a genuine zero, not a search miss"*
-  (rep-o2.md:10) — included directly in the canonical table.
+  (rep-o2.md:145) — included directly in the canonical table.
 - **o3** likewise: *"trg_account_status_sync is a trigger, not a PROCEDURE/FUNCTION; it has no
   formal parameter list at all ... its Params cell is 0, written as 0, not blank"*
   (rep-o3.md:168), and correctly excludes the trigger's local `%TYPE` declaration from `UDT

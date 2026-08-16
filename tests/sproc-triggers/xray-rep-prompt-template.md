@@ -191,7 +191,7 @@ the precedent this harness inherits — the same allowance applies here).
 
 | Trap | Correct handling |
 |---|---|
-| Trigger `Params` | Always `0` — a trigger has no parameter list, in either dialect. Never computed by the parameter-list search, which only matches `PROCEDURE`/`FUNCTION` banners. |
+| Trigger `Params` | Always `0` — a trigger has no parameter list, in either dialect, so there are no formal parameters to count (`0` regardless of how the trigger banner is enumerated). |
 | Trigger `UDT Usage` | Always `none` in both fixtures. Oracle: the one `%TYPE` hit (`trg-oracle` `:15`) anchors a LOCAL variable inside `DECLARE`, not a signature. T-SQL: no UDT-search hits at all in `trg-mssql`. |
 | Oracle header `WHEN (...)` firing predicate | `trg-oracle:13` — a firing condition in the trigger HEADER, not a `CASE WHEN` arm and not in the body. Excluded from the branch count. |
 | Oracle `REFERENCING` clause | `trg-oracle:11` — header syntax, contributes to no column. |

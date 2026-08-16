@@ -29,8 +29,8 @@ parameter in the routine's own signature. A *cursor loop* is a
 and `EXCEPTION WHEN` handlers are not branch points.
 
 **Trigger-specific basis.** A trigger has no parameter list — `Params` is
-always `0`, definitionally, never computed by the parameter-list search
-(which only matches `PROCEDURE`/`FUNCTION` banners). `UDT Usage` is always
+always `0`, definitionally: there are no formal parameters to count,
+whether or not the parameter-list search locates the trigger banner. `UDT Usage` is always
 `none` for a trigger in this fixture: the trigger has no signature at all,
 so anything a UDT search matches inside its `DECLARE` section is a local
 anchor, not a signature type — see the `%TYPE` trap below. The trigger's
@@ -109,9 +109,9 @@ signature for it to appear in. `UDT Usage` for the trigger is `none`.
 
 ### Traps this fixture plants
 
-- **Trigger `Params` is `0` by definition, not by search.** The
-  parameter-list search only matches `PROCEDURE`/`FUNCTION` banners; a
-  trigger's banner never matches it. Reporting the trigger with a blank
+- **Trigger `Params` is `0` by definition.** A trigger has no parameter
+  list, so there are no formal parameters to count — `0` regardless of how
+  the trigger banner is enumerated. Reporting the trigger with a blank
   `Params` cell, or omitting the row, is a miss — `0` must be written.
 - **Trigger `UDT Usage` is `none`, and the one `%TYPE` hit in the corpus is
   the reason why.** `v_open_holds account_holds.hold_amount%TYPE` at `:15`
