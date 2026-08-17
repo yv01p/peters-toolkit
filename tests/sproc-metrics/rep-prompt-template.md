@@ -100,8 +100,8 @@ and `EXCEPTION WHEN` handlers are not branch points.
 | `prc_settlement_sweep` | 2 | 2 (nested, depth 2) | 1 | none | 49 |
 | `prc_purge_stale_holds` | 0 | 0 | 0 | none | 15 |
 | `fn_trip_surcharge` | 2 | 0 | 2 | none | 16 |
-| `pkg_fleet_billing.load_driver_batch` | 3 | 0 | 0 | `%ROWTYPE`, VARRAY, `REF CURSOR` (all three) | 27 |
-| `pkg_fleet_billing.post_batch_totals` | 1 | 1 | 0 | none | 25 |
+| `pkg_fleet_billing.load_driver_batch` | 3 | 0 | 0 | `%ROWTYPE`, VARRAY, `REF CURSOR` (all three) | 28 |
+| `pkg_fleet_billing.post_batch_totals` | 1 | 1 | 0 | none | 26 |
 | **Totals** | **12** | **3** | **14** | — | — |
 
 Traps the fixture plants, and the right answer for each:
