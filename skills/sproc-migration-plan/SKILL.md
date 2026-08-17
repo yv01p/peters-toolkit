@@ -47,7 +47,7 @@ unique to `sproc-xray`'s current report format:
 |---|---|
 | A `## Coverage Declaration` section | Present in every sproc-xray report |
 | At least one unique dimension title — `CRUD Matrix & Trigger Cascade Map` or `Dialect Footguns & Hidden Risks` | These titles appear only in sproc-xray's format, never in cobol-xray's |
-| The `### Extraction Metrics` **heading** (the heading, not the words in prose) | Marks a current-format report — carries the params/cursor-loop/branch/UDT facts the complexity dimensions and pattern assignment need |
+| The `### Extraction Metrics` **heading** (the heading, not the words in prose) | Marks a current-format report — carries the params/cursor-loop/branch/UDT/LOC facts the complexity dimensions and pattern assignment need |
 | The `-SPROC-XRAY.md` filename suffix (secondary check) | Corroborates provenance |
 
 A report predating the `### Extraction Metrics` table and the `GLOBAL_STATE` category is
@@ -167,7 +167,7 @@ is flagged.** Each dimension is 1–3.
 
 | # | Dimension | Fed from (cited) | 1 | 2 | 3 |
 |---|---|---|---|---|---|
-| 1 | LOC | Component Manifest LOC column | < 50 | 50–150 | > 150 |
+| 1 | LOC | Extraction Metrics LOC | < 50 | 50–150 | > 150 |
 | 2 | Branching | Extraction Metrics `Branches` | 0–3 | 4–10 | 11+ |
 | 3 | Tables accessed | CRUD Matrix distinct resources for the object | 1–2 | 3–5 | 6+ |
 | 4 | Parameters | Extraction Metrics `Params` | 0–2 | 3–5 | 6+ |
