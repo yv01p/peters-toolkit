@@ -146,7 +146,7 @@ Scratch file `metrics.tsv` (`Object|Params|CursorLoops|Branches|UDTFlags|File`),
 
 ```console
 $ cat metrics.tsv
-prc_log_status_change|3|0|0|none|02-prc_log_status_change.sql
+prc_log_status_change|3|0|0|none|02-prc_log_status_change.sql|13
 ```
 
 **One row per routine defined in the source.** `trg_account_status_sync` is a trigger, not a procedure or a function — it does not appear in this table. Its definition site, its role as an entry point, and its cascade into `prc_log_status_change` are covered in the Component Manifest above and in the Trigger Cascade Map (Dimension 3) instead.
@@ -179,9 +179,9 @@ $ grep -nE '%ROWTYPE|%TYPE|IS[[:space:]]+RECORD|VARRAY|IS[[:space:]]+TABLE[[:spa
 
 Zero UDT-search hits — `UDT Usage` is `none`.
 
-| Object | Params | Cursor Loops | Branches | UDT Usage | File |
-|---|---|---|---|---|---|
-| `prc_log_status_change` | 3 | 0 | 0 | none | `02-prc_log_status_change.sql` |
+| Object | Params | Cursor Loops | Branches | UDT Usage | LOC | File |
+|---|---|---|---|---|---|---|
+| `prc_log_status_change` | 3 | 0 | 0 | none | 13 | `02-prc_log_status_change.sql` |
 
 **Branch-counting basis** (restated per the fixed basis this skill uses): counted — `IF`, `ELSIF`, `CASE`/`WHEN` arms, non-cursor `WHILE` heads, non-cursor `EXIT WHEN`; not counted — `ELSE` arms, `EXCEPTION WHEN` handlers, `FOR`/bare `LOOP` heads, `END IF`/`END CASE`, and any loop test the Cursor Loops column already counts. This is a reproducible keyword count on a stated basis, not cyclomatic complexity, not a defect measure, and not an effort measure.
 

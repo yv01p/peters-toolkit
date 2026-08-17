@@ -40,7 +40,7 @@ in this corpus: the standalone procedure and the trigger.
 |---|---|
 | App-called, 2 call sites | `app/src/main/java/com/bankcore/accounts/AccountStatusService.java` — `{call prc_log_status_change(?, ?, ?)}` (support-desk audit-trail backfill for a manually corrected account); `app/src/main/java/com/bankcore/accounts/batch/StatusChangeBackfillJob.java` — `{call prc_log_status_change(?, ?, ?)}` (nightly bulk-loader status-log backfill) |
 | DB-internal-called, 1 caller | The trigger — report Dimension 3, `03-trg_account_status_sync.sql:38`, cited in the report's Component Manifest ("Called by trigger at `03:38`", line ~115) and Dimension 2's Liveness Claims ("`prc_log_status_change` HAS a caller — cited at `03-trg_account_status_sync.sql:38`", line ~232) |
-| Extraction Metrics row | `prc_log_status_change\|3\|0\|0\|none\|02-prc_log_status_change.sql` (report line ~149) — 3 params, 0 cursor loops, 0 branches, no UDT usage |
+| Extraction Metrics row | `prc_log_status_change\|3\|0\|0\|none\|02-prc_log_status_change.sql\|13` (report line ~149) — 3 params, 0 cursor loops, 0 branches, no UDT usage, 13 LOC |
 
 This unit is unambiguous: it has both an app caller and a DB-internal caller, and it is the corpus's
 one Extraction Metrics row. A correct plan places it as a normal, live migration unit.

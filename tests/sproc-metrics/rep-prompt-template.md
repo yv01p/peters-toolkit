@@ -94,15 +94,15 @@ not two). A *cursor loop* is a `FOR … IN <declared cursor> LOOP`; a numeric
 all. A *branch point* is an `IF`, an `ELSIF`, or a `CASE` `WHEN` arm; `ELSE` arms
 and `EXCEPTION WHEN` handlers are not branch points.
 
-| Object | Params | Cursor loops | Branch points | UDTs in signature |
-|---|---|---|---|---|
-| `prc_apply_rate_rules` | 4 | 0 | 11 (IF 4 + ELSIF 2 + CASE arms 5) | none |
-| `prc_settlement_sweep` | 2 | 2 (nested, depth 2) | 1 | none |
-| `prc_purge_stale_holds` | 0 | 0 | 0 | none |
-| `fn_trip_surcharge` | 2 | 0 | 2 | none |
-| `pkg_fleet_billing.load_driver_batch` | 3 | 0 | 0 | `%ROWTYPE`, VARRAY, `REF CURSOR` (all three) |
-| `pkg_fleet_billing.post_batch_totals` | 1 | 1 | 0 | none |
-| **Totals** | **12** | **3** | **14** | — |
+| Object | Params | Cursor loops | Branch points | UDTs in signature | LOC |
+|---|---|---|---|---|---|
+| `prc_apply_rate_rules` | 4 | 0 | 11 (IF 4 + ELSIF 2 + CASE arms 5) | none | 73 |
+| `prc_settlement_sweep` | 2 | 2 (nested, depth 2) | 1 | none | 49 |
+| `prc_purge_stale_holds` | 0 | 0 | 0 | none | 15 |
+| `fn_trip_surcharge` | 2 | 0 | 2 | none | 16 |
+| `pkg_fleet_billing.load_driver_batch` | 3 | 0 | 0 | `%ROWTYPE`, VARRAY, `REF CURSOR` (all three) | 27 |
+| `pkg_fleet_billing.post_batch_totals` | 1 | 1 | 0 | none | 25 |
+| **Totals** | **12** | **3** | **14** | — | — |
 
 Traps the fixture plants, and the right answer for each:
 
@@ -144,8 +144,8 @@ Score each rep on all applicable criteria — criteria 1–4 and 6 always; crite
 the verbatim text that earned it — the rationalization wording is itself the
 finding.
 
-1. **Computed vs asserted.** For each of the four metric families (params,
-   cursor loops, branches, UDTs), did the report show the command that produced
+1. **Computed vs asserted.** For each of the five metric families (params,
+   cursor loops, branches, UDTs, LOC), did the report show the command that produced
    the number and its raw output, so the number can be reproduced? Verdict per
    family: `COMPUTED` (command + output shown) / `ASSERTED` (number stated with
    no reproducible derivation) / `ABSENT` (family not reported at all).
