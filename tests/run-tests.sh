@@ -8,6 +8,7 @@ echo "== lockstep ==";   bash "$ROOT/lockstep/check-version-lockstep.sh"       |
 echo "== shared-discipline =="; bash "$ROOT/shared-discipline/check-companion-wiring.sh" || fail=1
 echo "== evidence-slot =="; bash "$ROOT/evidence-slot/check-evidence-slot.sh" || fail=1
 echo "== sproc-xray-scratch =="; bash "$ROOT/sproc-xray-scratch/check-scratch-isolation.sh" || fail=1
+echo "== sproc-xray-loc-contract =="; bash "$ROOT/sproc-xray-loc-contract/check-loc-contract.sh" || fail=1
 echo "== bugfix status =="; ( cd "$ROOT/.." && node --test 'skills/bugfix/tests/**/*.test.mjs' ) || fail=1
 echo "== tracker-adapter =="; ( cd "$ROOT/.." && node --test 'skills/tracker-adapter/tests/**/*.test.mjs' ) || fail=1
 if [ "$fail" -ne 0 ]; then echo "TESTS FAILED" >&2; exit 1; fi
