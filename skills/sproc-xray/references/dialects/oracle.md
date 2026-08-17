@@ -181,6 +181,27 @@ grep -nE '%ROWTYPE|%TYPE|IS[[:space:]]+RECORD|VARRAY|IS[[:space:]]+TABLE[[:space
 - **Signature only, but the whole signature.** `%TYPE` and `%ROWTYPE` on LOCAL variable declarations inside the body are schema anchors, not signature types, and never enter this column — confirm each hit's line falls inside a declaration, not inside the `DECLARE`/`IS` local block. A function's `RETURN SYS_REFCURSOR` or `RETURN emp%ROWTYPE` **does** enter this column: the return type is part of the signature, and a `REF CURSOR` crossing the call boundary is the same extraction problem whichever direction it crosses in. (It never enters the `Params` count — see the Parameter lists rule above.)
 - A routine whose signature carries none of these gets the literal word `none`, never a blank cell.
 
+### Lines of code
+
+The per-routine `LOC` column in the Extraction Metrics table records each routine and trigger's source-code line span. The span depends on whether the routine is standalone or packaged:
+
+**Standalone routine (procedure, function, trigger):**
+- Span: `CREATE [OR REPLACE]` header line → the terminating `END[;]` line or `/` line (whichever appears last).
+- For a one-routine file, this equals the file's entire code span.
+- Example: a two-line `create or replace` / `function` header wrapper (`nextBusinessDay.sql`) — the span includes both header lines plus the body through `END;`.
+
+**Packaged routine (procedure or function inside a package body):**
+- Span: the routine's declaration line (`PROCEDURE name` or `FUNCTION name`) → the line before the next routine declaration within the same package body.
+- For the last routine in the package body, the span runs from its declaration line → the line before the package body's closing `END <package>;` or, if a `BEGIN`-block initializer exists, the line before that initializer's `BEGIN`.
+- **Routine-end names are optional in PL/SQL** — many routines end with a bare `END;`, not `END <name>;` — so the span is bounded by the next routine's declaration or the package-body terminator, not by a literal `END <name>;` match.
+
+**Trigger:**
+- Body span: `CREATE [OR REPLACE] TRIGGER` header → terminating `END[;]` line (trailing trigger name optional).
+
+**Basis:** Raw line span (not comment/blank-stripped) — the total source lines the routine occupies in its file. This feeds the three-band LOC bucket used by the downstream migration planner.
+
+Compute each span by command (`wc -l` on the extracted range, or `awk` line arithmetic) and paste the proof block showing the exact command and its raw output above the Extraction Metrics table.
+
 ### Global and shared state (the `GLOBAL_STATE` footgun class)
 
 State that outlives one call, or that is shared between routines. Record one `findings.tsv` row per OBJECT per resource — cluster detection joins two objects on one shared resource, so a merged row naming several objects destroys the finding.

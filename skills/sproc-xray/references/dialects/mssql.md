@@ -177,6 +177,18 @@ grep -niE 'READONLY|CREATE[[:space:]]+TYPE|AS[[:space:]]+TABLE|EXTERNAL[[:space:
 - **Signature only, but the whole signature** — the parameter list AND the function's `RETURNS` clause. A table-valued function's `RETURNS @t TABLE (…)` (multi-statement) or `RETURNS TABLE` (inline), and a scalar function returning a CLR alias type, all enter this column even when the parameter list is UDT-free. A `DECLARE @t <table type>` local, or a `CREATE TYPE` sitting in the DDL that no signature uses, is not a signature UDT. The `RETURNS` clause never enters the `Params` count — see the Parameter lists rule above.
 - A routine whose signature carries none of these gets the literal word `none`, never a blank cell.
 
+### Lines of code
+
+The per-routine `LOC` column in the Extraction Metrics table records each routine and trigger's source-code line span. T-SQL has no package construct, so the span basis is straightforward:
+
+**Per-routine span (procedure, function, trigger):**
+- Span: `CREATE [OR ALTER]` header line → the batch terminator (`GO`) if present, otherwise → the routine's closing `END` line.
+- For a one-routine file, this equals the file's entire code span.
+
+**Basis:** Raw line span (not comment/blank-stripped) — the total source lines the routine occupies in its file. This feeds the three-band LOC bucket used by the downstream migration planner.
+
+Compute each span by command (`wc -l` on the extracted range, or `awk` line arithmetic) and paste the proof block showing the exact command and its raw output above the Extraction Metrics table.
+
 ### Global and shared state (the `GLOBAL_STATE` footgun class)
 
 State that outlives one call, or that is shared between routines. Record one `findings.tsv` row per OBJECT per resource — cluster detection joins two objects on one shared resource, so a merged row naming several objects destroys the finding.
