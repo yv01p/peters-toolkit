@@ -247,3 +247,53 @@ this unaided baseline already avoided on its own. The GREEN arm must reuse this 
 `plantest1` fixture and `prepare-rep-fixture.sh`, and must additionally comply with the
 REP-ISOLATION requirements in `rep-prompt-template.md` (Ruling 14) — including staging the skill
 itself into the neutral sandbox rather than pointing `{SKILL_PATH}` at this checkout.
+
+---
+
+## Addendum — finding #6 (per-routine LOC) baseline re-run — 2026-08-17
+
+**Scope.** The 6-valid-rep arm above (Sonnet-pinned) predates finding #6 and is preserved verbatim
+as the authoritative baseline record; its conclusions stand. This section records a scoped re-run
+against the **LOC-bearing** FLEETBILL fixture (the `### Extraction Metrics` table now carries a
+per-routine `LOC` column), for the finding-#6 comparison against the GREEN arm. It does **not**
+supersede the arm above.
+
+**Setup.** 5 fresh no-skill reps (`B/r1..r5`), general-purpose subagents, neutral sandboxes
+(`/tmp/t5w/B/r{n}`), README-excluded fixture via `prepare-rep-fixture.sh`. Two deviations from the
+arm above, both material to reading the result:
+- **New isolation channel closed.** `sproc-migration-plan` is now a published plugin, so a
+  general-purpose subagent can invoke it via its Skill tool even with no skill instruction — which
+  would silently convert a "no-skill" baseline into a skill-run. (A first pass did exactly this on
+  every rep.) Every rep in this re-run carries an explicit **TASK CONSTRAINTS** block forbidding any
+  installed/plugin/slash skill invocation; all 5 self-attested first-principles, and a
+  skill-methodology fingerprint scan (Safe-to-Fail / Patterns A–E / 10-dim matrix / shadow tiers /
+  Gate 1–5) came back clean on all 5.
+- **Model NOT pinned to Sonnet** (unlike the arm above). This confounds any direct comparison to the
+  6/6-RESPECTED result above and is the most likely explanation for the divergence below.
+
+**Finding-#6-relevant result:** the per-routine LOC now in the report is picked up — **C1 CITED 5/5
+includes LOC** (e.g. `prc_apply_rate_rules` 73, `prc_purge_stale_holds` 15, and the packaged
+`load_driver_batch` 27 / `post_batch_totals` 25 cited distinctly). The LOC column flows through to
+unaided planners as intended.
+
+**Two orthogonal findings this re-run surfaced (recorded, not smoothed over — they concern the
+unaided planner under a non-pinned model, not finding #6):**
+1. **Cluster split 2/5.** `B/r4` and `B/r5` placed `load_driver_batch` in a separate wave from
+   `prc_settlement_sweep` + `post_batch_totals` (criterion 3 = `SPLIT`), each on a *correct*
+   observation that `g_run_total` is data-inert (write-write; `post_batch_totals` re-initializes it
+   at `03:46` before reading, so `load_driver_batch`'s write never flows) and each retiring the
+   package state by sequencing. The arm above scored 6/6 RESPECTED under pinned Sonnet; this is very
+   likely the stronger unaided model reasoning its way to a defensible-but-rubric-failing split. The
+   sibling GREEN re-run (same unpinned model) split **0/5** — the skill's cluster rule held where the
+   unaided model did not. It arguably also suggests the fixture's "cluster inseparable" ground truth
+   is stricter than necessary for `load_driver_batch` specifically; that is a fixture-design
+   question for a future pass, not a finding-#6 change.
+2. **One fabricated usage claim.** `B/r1` called the sweep a "hot path" with no runtime data
+   (criterion 5 `FABRICATED_USAGE_CLAIM`); the other 4 did not fabricate (mix of `SILENTLY_IGNORED`
+   and gated liveness). This is the same class of gap the existing "Stated Unknowns" required output
+   slot already addresses, and the GREEN arm stated the runtime-data absence 5/5.
+
+Neither finding changes the shipped skill (which already forbids splitting and requires Stated
+Unknowns) or finding #6 (the LOC repoint). Recorded here as an honest divergence under changed
+run conditions (unpinned model), with the Sonnet-pinned arm above remaining the authoritative
+baseline record.

@@ -241,3 +241,42 @@ own worked examples feed this fixture's short-name decoy, so decoy-catching here
 evidence of anything. As `baseline-results.md` already states, Task 5 (ADempiere, ~50 objects) is
 where the skill's judgment-carrying value must be demonstrated at a scale this 6-routine fixture
 cannot exercise.
+
+---
+
+## Addendum — finding #6 (per-routine LOC) GREEN re-run — 2026-08-17
+
+**Scope.** The arm above predates finding #6 and is preserved verbatim. This section records the
+finding-#6 consumer check on the **LOC-bearing** FLEETBILL fixture: now that
+`FLEETBILL-SPROC-XRAY.md`'s `### Extraction Metrics` table carries a per-routine `LOC` column and
+the skill's Dimension-1 was repointed to feed from it, do GREEN reps score Dim-1 on the
+per-**routine** LOC — including the two packaged routines that share one file?
+
+**Setup.** 5 fresh reps (`C/r1..r5`), general-purpose subagents, neutral sandboxes
+(`/tmp/t5w/C/r{n}`), each reading a **staged copy** of `skills/sproc-migration-plan/SKILL.md`.
+Isolation note: `sproc-migration-plan` is now a published plugin, so — beyond the Ruling-15 staged
+copy — each rep also received an explicit **TASK CONSTRAINTS** block forbidding invocation of any
+installed/plugin skill and pinning it to the staged file (a new channel the original arm did not
+face). All 5 used the staged copy. Model not pinned to Sonnet this round (noted; immaterial to the
+LOC-citation check, which is structural).
+
+**Outcome: 5/5 confirm the finding-#6 Dim-1 repoint.** Every rep's 10-dimension complexity matrix
+uses per-routine LOC as **Dimension 1 (D1)**, explicitly cited to the `### Extraction Metrics`
+table. The acid test — the two packaged routines sharing `03-pkg_fleet_billing.pkb` — passes in all
+5: they are scored on **distinct** per-routine LOC, `load_driver_batch` = 27 and `post_batch_totals`
+= 25 (the values the FLEETBILL report's own Extraction Metrics table carries), never the shared
+per-file (~64) value the pre-fix Component-Manifest feed would have produced. Standalone D1 LOC is
+cited too (apply_rate_rules 73, settlement_sweep 49, purge 15).
+
+**Regression (RED-arm 6 criteria) held, consistent with the arm above:** C1 CITED 5/5, C2
+LEFT_NEUTRAL 5/5, **C3 cluster RESPECTED 5/5** (all three shared-state members in one wave; zero
+`SPLIT`), C4 both uncalled TRIAGED + decoy caught 5/5, C5 Stated-Unknowns present / runtime-absence
+STATED 5/5, C6 SINGLE_CLASS 5/5. (See the sibling `baseline-results.md` addendum: the unaided
+re-run split the cluster in 2/5 reps under the same unpinned model — this GREEN arm split 0/5, i.e.
+the skill's cluster rule held even where the stronger unaided model over-reasoned its way into a
+split.)
+
+**Note on 27/25 vs the metrics fixture's 28/26.** This fixture's Extraction Metrics reports the two
+packaged routines at 27/25 (its hand-authored, File-column-consistent basis); the `sproc-metrics`
+fixture rubric fixes the same routines at 28/26. Intentional (Task-4 ruling); each internally
+consistent; does not cross fixtures.

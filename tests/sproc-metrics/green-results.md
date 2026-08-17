@@ -223,3 +223,56 @@ repository, alongside the controller's per-rep scoring. As with the baseline arm
 x-ray reports of a synthetic fixture are not plugin content and are deliberately not
 committed; this file is the surviving record. Re-running either arm uses the same
 preparation: `prepare-rep-fixture.sh` plus `rep-prompt-template.md` Part 1.
+
+---
+
+## Addendum — finding #6 (per-routine LOC) GREEN re-run — 2026-08-17
+
+**Scope of this addendum.** The arm scored above predates finding #6 and predates the
+example-table re-cast; it is preserved verbatim as the historical record. This section records the
+re-run that the "Evidence"/"Scope limit" notes above explicitly invited ("re-running it is the way
+to convert this from a four-row result back to a six-row one. It has not been re-run"). It is the
+finding-#6 producer check: does the amended `sproc-xray` skill make reps **compute** the new
+per-routine `LOC` column, including the packaged-routine span the rubric fixes at 28/26?
+
+**Setup.** 5 fresh-context reps (`A/r1..r5`), general-purpose subagents, each in a neutral opaque
+sandbox (`/tmp/t5w/A/r{n}`), stripped fixture via `prepare-rep-fixture.sh`, reading a **staged copy**
+of `skills/sproc-xray/SKILL.md` (v0.4.0 with the `### Extraction Metrics` LOC column + the
+distinct-measure rule). Two isolation notes specific to this re-run:
+- **New channel closed (installed-skill).** `sproc-xray` is now a published plugin (`peters-toolkit`
+  @2.5.0), so general-purpose subagents can invoke it via their Skill tool — a contamination/version
+  channel the original harness did not have. Every rep was sent an explicit **TASK CONSTRAINTS**
+  block pinning it to the staged file and forbidding invocation of any installed/plugin skill. All 5
+  read the staged copy; none invoked the installed one.
+- **Model not pinned.** Unlike the original arm (Sonnet-pinned), these reps ran on the default
+  general-purpose model. For the mechanical LOC/params/cursor/branch counts this is immaterial (the
+  numbers are command-derived), and convergence was total; it is noted for completeness.
+
+**Outcome: 6 of 6 rows converge, LOC included — a clean six-row result (the taint the arm above
+narrowed around is gone).** All 5 reps' `metrics.tsv` are byte-identical on every numeric cell:
+
+| Object | Params | Cursor loops | Branches | LOC | vs rubric 2a |
+|---|---|---|---|---|---|
+| `prc_apply_rate_rules` | 4 | 0 | 11 | 73 | matches |
+| `prc_settlement_sweep` | 2 | 2 | 1 | 49 | matches |
+| `prc_purge_stale_holds` | 0 | 0 | 0 | 15 | matches |
+| `fn_trip_surcharge` | 2 | 0 | 2 | 16 | matches |
+| `pkg_fleet_billing.load_driver_batch` | 3 | 0 | 0 | **28** | matches (packaged) |
+| `pkg_fleet_billing.post_batch_totals` | 1 | 1 | 0 | **26** | matches (packaged) |
+
+- **LOC is `COMPUTED`, not `ASSERTED` (criterion 1).** Every rep pasted a proof block. The packaged
+  spans are the acid test — reps computed them by the skill's declaration→line-before-next-declaration
+  basis, e.g. r1: `load_driver_batch` span `03:9→03:36` = 28, `post_batch_totals` span `03:37→03:62`
+  = 26 (`echo $((36-9+1))` / `$((62-37+1))`), never a package-wide file count. This is the finding-#6
+  producer behavior working: per-**routine** LOC, distinct for two routines sharing one package body.
+- **Taint resolved.** The skill's example table is now the fictional blog system; a grep of
+  `skills/sproc-xray/SKILL.md` for the fixture routine names is empty, so no row is transcribable.
+  The six-row convergence stands on its own (contrast the historical four-row narrowing above).
+- **Cosmetic variance (not a defect).** System-name derivation differed: r1/r2/r3/r5 named the
+  report `FLEETBILL` (from the README H1), r4 named it `DATA` (from the sandbox dir). The metric
+  cells are identical regardless.
+
+**Note on 28/26 vs the planning fixture's 27/25.** The sibling `sproc-planning` FLEETBILL fixture
+reports the same two packaged routines at 27/25 (its own hand-authored, File-column-consistent
+basis); this metrics fixture rubric fixes them at 28/26 (raw decl→next-decl span). Each is internally
+consistent; the divergence is intentional (Task-4 ruling) and does not cross fixtures.

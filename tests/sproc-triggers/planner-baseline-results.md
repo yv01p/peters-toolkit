@@ -195,3 +195,33 @@ produced by a version of `sproc-xray` that omits the Dimension-3 Cascade Map or 
 Code trigger-liveness note) surface the failure modes this fixture was built to bait, Component B
 would need to be reconsidered on that new evidence — this result closes it only as specified,
 against this fixture, today.
+
+---
+
+## Addendum — finding #6 (per-routine LOC) baseline re-run — 2026-08-17
+
+**Scope.** The 5-rep arm above predates finding #6 and is preserved verbatim; its conclusion —
+Component B UNJUSTIFIED, dropped, ship Component A only — stands unchanged. This section records a
+scoped re-run against the LOC-bearing `TRIGGER-SPROC-XRAY-baseline.md` fixture (its
+`### Extraction Metrics` table now carries a per-routine `LOC` column: `prc_log_status_change` = 13).
+
+**Setup.** 5 fresh no-skill reps (`D/r1..r5`), general-purpose subagents, neutral sandboxes
+(`/tmp/t5w/D/r{n}`), README-excluded fixture via `prepare-planner-fixture.sh`. Same two deviations
+as the sibling fleetbill re-run: an explicit **TASK CONSTRAINTS** block closing the now-published
+installed-skill invocation channel (all 5 clean on the skill-methodology fingerprint scan), and the
+**model not pinned to Sonnet**.
+
+**Result: 5/5 CLEAN on the RED axes, same direction as the arm above.** Every rep: trigger
+`trg_account_status_sync` placed `SINGLE` (one wave), classified `LIVE_ENTRY_POINT`, Dimension-3
+cascade `RESPECTED`, trigger claims `CITED`, `prc_log_status_change` placed `CORRECT`. The
+finding-#6 LOC flows through: reps cite the Extraction Metrics `LOC` (13) for
+`prc_log_status_change` alongside its other Dim-1 facts.
+
+**One divergence from the arm above (recorded honestly):** criterion 5 (runtime-data absence) came
+back **2/5 STATED, 3/5 SILENTLY_IGNORED, 0/5 FABRICATED**, versus 5/5 STATED under pinned Sonnet
+above. The three `SILENTLY_IGNORED` reps stated the *coverage* gap (the trigger's firing DML is
+outside the corpus) but not the *runtime-pack* absence as its own fact; none fabricated a usage
+characteristic. Per the arm above's own reasoning (a STATED/SILENTLY_IGNORED split with zero
+fabrication is the acceptable-imperfection band, not a RED-firing failure), the gate outcome is
+unchanged: **stop-and-report, Component B stays dropped.** Likely a non-pinned-model effect; noted,
+does not change finding #6 or the Component-B decision.
