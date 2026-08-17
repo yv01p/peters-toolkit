@@ -357,14 +357,14 @@ $ grep -nE 't_charge_code_list|t_charge_cur\b' sql/*
 `t_charge_code_list`), and `REF CURSOR` (`p_charges`, `02:10` / `03:12`, type `t_charge_cur`). No
 other routine's signature contains any UDT construct — each gets the literal word `none`.
 
-| Object | Params | Cursor Loops | Branches | UDT Usage | LOC | File |
-|--------|--------|--------------|----------|-----------|-----|------|
-| `prc_apply_rate_rules` | 4 | 0 | 11 | none | 73 | 04-prc_apply_rate_rules.sql |
-| `prc_settlement_sweep` | 2 | 2 | 1 | none | 49 | 05-prc_settlement_sweep.sql |
-| `prc_purge_stale_holds` | 0 | 0 | 0 | none | 15 | 06-prc_purge_stale_holds.sql |
-| `fn_trip_surcharge` | 2 | 0 | 2 | none | 16 | 07-fn_trip_surcharge.sql |
-| `pkg_fleet_billing.load_driver_batch` | 3 | 0 | 0 | `%ROWTYPE`, VARRAY (`t_charge_code_list`), `REF CURSOR` (`t_charge_cur`) | 27 | 02-pkg_fleet_billing.pks:7-11 / 03-pkg_fleet_billing.pkb:9-13 |
-| `pkg_fleet_billing.post_batch_totals` | 1 | 1 | 0 | none | 25 | 02-pkg_fleet_billing.pks:14-16 / 03-pkg_fleet_billing.pkb:37-39 |
+| Object | Params | Cursor Loops | Branches | UDT Usage | File | LOC |
+|--------|--------|--------------|----------|-----------|------|-----|
+| `prc_apply_rate_rules` | 4 | 0 | 11 | none | 04-prc_apply_rate_rules.sql | 73 |
+| `prc_settlement_sweep` | 2 | 2 | 1 | none | 05-prc_settlement_sweep.sql | 49 |
+| `prc_purge_stale_holds` | 0 | 0 | 0 | none | 06-prc_purge_stale_holds.sql | 15 |
+| `fn_trip_surcharge` | 2 | 0 | 2 | none | 07-fn_trip_surcharge.sql | 16 |
+| `pkg_fleet_billing.load_driver_batch` | 3 | 0 | 0 | `%ROWTYPE`, VARRAY (`t_charge_code_list`), `REF CURSOR` (`t_charge_cur`) | 02-pkg_fleet_billing.pks:7-11 / 03-pkg_fleet_billing.pkb:9-13 | 27 |
+| `pkg_fleet_billing.post_batch_totals` | 1 | 1 | 0 | none | 02-pkg_fleet_billing.pks:14-16 / 03-pkg_fleet_billing.pkb:37-39 | 25 |
 | **Totals** | **12** | **3** | **14** | — | — | — |
 
 **Branch-counting basis restated:** each `IF` that opens a conditional, each `ELSIF`, each `WHEN`
