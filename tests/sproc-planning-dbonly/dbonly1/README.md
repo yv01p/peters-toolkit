@@ -9,9 +9,11 @@ builds the rep-facing copy (the report only, this file excluded) both arms of th
 ## Inputs this ground truth is built from
 
 - `DBONLY1-SPROC-XRAY.md` — the x-ray report produced by running the `sproc-xray` skill (v0.4.0)
-  over `dbonly1/sql/`. Its Dimension 5 `Shared-State Coupling (GLOBAL_STATE)` section and its
-  Dimension 1 `Component Manifest` table are the planner's legitimate input — citing them is not
-  leakage.
+  over `dbonly1/sql/`. Its Dimension 1 `### Extraction Metrics` table (per-routine Params / Cursor
+  Loops / Branches / UDT Usage / LOC — the planner's required sizing input, and the heading the
+  migration-plan Input Contract checks for a current-format report), its Dimension 5 `Shared-State
+  Coupling (GLOBAL_STATE)` section, and its Dimension 1 `Component Manifest` table are the planner's
+  legitimate input — citing them is not leakage.
 - **No `app/` tree exists for this fixture.** This is a DB-only input fixture (finding #7's test
   case) — no application callers, no application source tree provided.
 - **No runtime evidence pack exists for this fixture.** No execution-statistics export (call

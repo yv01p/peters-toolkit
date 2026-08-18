@@ -110,6 +110,112 @@ These objects have test scripts but no production callers found in the analyzed 
 
 **Confirmed live objects:** 4 of 9 (fn_calculate_tax, prc_finalize_order, trg_order_status_audit, pkg_order_state)
 
+### Extraction Metrics
+
+One row per routine and trigger DEFINED in the source: the 5 functions, 2 procedures, and 1 trigger. `pkg_order_state` is a package SPEC that declares only state (no nested procedure or function), so it contributes no packaged routine and no row here. Every number below is computed by command; the raw output sits in the proof blocks and the count is the length of the hit list after the named exclusions.
+
+**Scratch file (`metrics.tsv`) materialized first** (`Object|Params|CursorLoops|Branches|UDTFlags|File|LOC`):
+
+```
+fn_calculate_discount|1|0|3|none|fn_calculate_discount.sql|19
+fn_calculate_tax|2|0|0|none|fn_calculate_tax.sql|11
+fn_check_inventory_status|1|0|0|none|fn_check_inventory_status.sql|13
+fn_format_order_number|1|0|0|none|fn_format_order_number.sql|10
+fn_validate_postal_code|1|0|1|none|fn_validate_postal_code.sql|15
+prc_finalize_order|3|0|0|none|prc_finalize_order.sql|19
+prc_reset_batch_totals|0|0|0|none|prc_reset_batch_totals.sql|14
+trg_order_status_audit|0|0|1|none|trg_order_status_audit.sql|11
+```
+
+**Params — detection command and raw output:**
+
+```
+$ grep -nE '^[[:space:]]*(CREATE[[:space:]]+(OR[[:space:]]+REPLACE[[:space:]]+)?)?(PROCEDURE|FUNCTION|TRIGGER)[[:space:]]+[A-Za-z_][A-Za-z0-9_$#]*' sql/*.sql | grep -v Test.sql
+sql/fn_calculate_discount.sql:3:CREATE OR REPLACE FUNCTION fn_calculate_discount(
+sql/fn_calculate_tax.sql:3:CREATE OR REPLACE FUNCTION fn_calculate_tax(
+sql/trg_order_status_audit.sql:4:CREATE OR REPLACE TRIGGER trg_order_status_audit
+sql/fn_check_inventory_status.sql:4:CREATE OR REPLACE FUNCTION fn_check_inventory_status(
+sql/fn_format_order_number.sql:3:CREATE OR REPLACE FUNCTION fn_format_order_number(
+sql/fn_validate_postal_code.sql:3:CREATE OR REPLACE FUNCTION fn_validate_postal_code(
+sql/prc_finalize_order.sql:5:CREATE OR REPLACE PROCEDURE prc_finalize_order(
+sql/prc_reset_batch_totals.sql:4:CREATE OR REPLACE PROCEDURE prc_reset_batch_totals IS
+```
+
+Each banner's parameter list was read through its closing `)`: `fn_calculate_discount(:3-5)` = `p_tier_level` = 1; `fn_calculate_tax(:3-6)` = `p_amount, p_tax_rate` = 2 (its `RETURN NUMBER` at :6 is the return type, not a parameter); `fn_check_inventory_status(:4-6)` = `p_product_id` = 1; `fn_format_order_number(:3-5)` = `p_order_id` = 1; `fn_validate_postal_code(:3-5)` = `p_postal_code` = 1; `prc_finalize_order(:5-9)` = `p_order_id, p_amount, p_tax_rate` = 3; `prc_reset_batch_totals(:4)` has no parenthesized list at all = 0 (written as `0`, not blank). `trg_order_status_audit` is a trigger — no formal parameter list and no signature → `Params 0` (its `:NEW`/`:OLD` pseudo-record fields are not parameters).
+
+**Cursor Loops — detection command and raw output:**
+
+```
+$ grep -nE 'CURSOR[[:space:]]+[A-Za-z_]|FOR[[:space:]]+[A-Za-z_][A-Za-z0-9_$#]*[[:space:]]+IN[[:space:]]|OPEN[[:space:]]+|FETCH[[:space:]]+' sql/*.sql | grep -v Test.sql
+(no output)
+```
+
+Zero cursor-search hits across all 8 objects — Cursor Loops is `0` for every row.
+
+**Branches — detection command and raw output:**
+
+```
+$ grep -nEw 'IF|ELSIF|WHEN|WHILE|ELSE|EXCEPTION|EXIT' sql/*.sql | grep -v Test.sql
+sql/fn_calculate_discount.sql:9:  IF p_tier_level >= 5 THEN
+sql/fn_calculate_discount.sql:11:  ELSIF p_tier_level >= 3 THEN
+sql/fn_calculate_discount.sql:13:  ELSIF p_tier_level >= 1 THEN
+sql/fn_calculate_discount.sql:15:  ELSE
+sql/fn_calculate_discount.sql:17:  END IF;
+sql/fn_validate_postal_code.sql:9:  IF REGEXP_LIKE(p_postal_code, '^\d{5}(-\d{4})?$') THEN
+sql/fn_validate_postal_code.sql:11:  ELSE
+sql/fn_validate_postal_code.sql:13:  END IF;
+sql/trg_order_status_audit.sql:10:  IF :NEW.status = 'APPROVED' AND :OLD.status != 'APPROVED' THEN
+sql/trg_order_status_audit.sql:13:  END IF;
+```
+
+Counted per the fixed basis (below): `fn_calculate_discount` = `IF`(:9) + `ELSIF`(:11) + `ELSIF`(:13) = **3**; dropped `ELSE`(:15) (no condition) and the `IF` substring inside `END IF;`(:17). `fn_validate_postal_code` = `IF`(:9) = **1**; dropped `ELSE`(:11) and `END IF;`(:13). `trg_order_status_audit` = `IF`(:10) = **1**; dropped `END IF;`(:13). All other objects returned no branch hits = **0**.
+
+**UDT Usage — detection command and raw output:**
+
+```
+$ grep -nE '%ROWTYPE|%TYPE|IS[[:space:]]+RECORD|VARRAY|IS[[:space:]]+TABLE[[:space:]]+OF|REF[[:space:]]+CURSOR|SYS_REFCURSOR' sql/*.sql | grep -v Test.sql
+(no output)
+```
+
+No UDT constructs anywhere. Every function's signature returns a scalar (`NUMBER` or `VARCHAR2`) with scalar parameters; both procedures have scalar or empty parameter lists; the trigger has no signature. `UDT Usage` is the literal word `none` for every row.
+
+**Per-routine LOC — detection command and raw output:**
+
+Standalone routines span `CREATE [OR REPLACE]` header line → terminating `/` line (whichever of `END`/`/` is last); the trigger spans `CREATE TRIGGER` header → terminating `END` line (trailing name optional). CREATE header lines are the Params proof block above; the terminators:
+
+```
+$ grep -nE '^/[[:space:]]*$' sql/*.sql | grep -v Test.sql
+sql/fn_check_inventory_status.sql:16:/
+sql/fn_format_order_number.sql:12:/
+sql/fn_validate_postal_code.sql:17:/
+sql/pkg_order_state.sql:8:/
+sql/fn_calculate_discount.sql:21:/
+sql/trg_order_status_audit.sql:15:/
+sql/prc_finalize_order.sql:23:/
+sql/fn_calculate_tax.sql:13:/
+sql/prc_reset_batch_totals.sql:17:/
+$ grep -nE '^[[:space:]]*END' sql/trg_order_status_audit.sql   # trigger uses terminating END, not the '/'
+13:  END IF;
+14:END trg_order_status_audit;
+```
+
+Spans (`echo $((end - start + 1))`): `fn_calculate_discount` :3→:21 = 19; `fn_calculate_tax` :3→:13 = 11; `fn_check_inventory_status` :4→:16 = 13; `fn_format_order_number` :3→:12 = 10; `fn_validate_postal_code` :3→:17 = 15; `prc_finalize_order` :5→:23 = 19; `prc_reset_batch_totals` :4→:17 = 14; `trg_order_status_audit` :4→:14 (terminating `END`) = 11. `pkg_order_state.sql:8:/` is the package terminator, not a routine, and takes no row. These per-routine spans are a distinct measure from the Component Manifest's per-file LOC (which counts each file whole, leading comment header included); the two are never summed or reconciled — the leading `--` comment headers account for the difference.
+
+**Rendered Extraction Metrics table** (transcribed from `metrics.tsv`):
+
+| Object | Params | Cursor Loops | Branches | UDT Usage | File | LOC |
+|--------|--------|--------------|----------|-----------|------|-----|
+| fn_calculate_discount | 1 | 0 | 3 | none | fn_calculate_discount.sql | 19 |
+| fn_calculate_tax | 2 | 0 | 0 | none | fn_calculate_tax.sql | 11 |
+| fn_check_inventory_status | 1 | 0 | 0 | none | fn_check_inventory_status.sql | 13 |
+| fn_format_order_number | 1 | 0 | 0 | none | fn_format_order_number.sql | 10 |
+| fn_validate_postal_code | 1 | 0 | 1 | none | fn_validate_postal_code.sql | 15 |
+| prc_finalize_order | 3 | 0 | 0 | none | prc_finalize_order.sql | 19 |
+| prc_reset_batch_totals | 0 | 0 | 0 | none | prc_reset_batch_totals.sql | 14 |
+| trg_order_status_audit | 0 | 0 | 1 | none | trg_order_status_audit.sql | 11 |
+
+**Branch-counting basis (a stated-method keyword count — NOT cyclomatic complexity):** counted are each `IF`, each `ELSIF`, each `CASE`-`WHEN` arm, each non-cursor `WHILE` head, and each non-cursor `EXIT WHEN`; NOT counted are `ELSE` arms, `EXCEPTION WHEN`/`CATCH` handlers, `FOR`/bare `LOOP` heads, `END IF`/`END CASE` terminators, a trigger's firing `WHEN` clause, and any loop test the Cursor Loops column already owns. These are raw counts with citations, not complexity bands, risk ratings, or effort estimates.
+
 ---
 
 ## 2. Call & Dependency Graph
