@@ -144,6 +144,12 @@ Analyze ALL five dimensions below **in order** — each builds on the prior. Use
 
 - **Binary-DB verdict prohibitions.** When a binary DB file (per Context Intake) is present, the report must not assert that routines "live only in" any single text source — the binary is an unexamined source too. A zero parsed-routine count alongside a present binary DB file must never be read as "no DB logic" or "empty extraction scope," and the analysis must not be declined as empty on that basis — state instead: "logic likely resides in an unparsed binary — DDL export required to analyze."
 
+- **Empty-scope short-circuit (fires only when NO binary DB file is present).** When ALL FOUR hold — 0 stored procedures + 0 functions + 0 triggers + 0 packaged routines, AND 0 logic-bearing views (the Context Intake "Views (with logic)" row), AND 0 business-rule constraints (the Dimension-5 `CONSTRAINT_LOGIC` category — CHECK constraints and logic-bearing DEFAULT clauses, defined under "Business rules in constraints" below), AND no binary DB file is present (per Context Intake) — this is a legitimate in-scope analytic result: "analyzed successfully, found zero DB-resident routines." It is not the wrong-dialect decline ("When NOT to use," above) and it is not the full five-dimension report either. Emit the **Empty-Scope Compact Report** (defined under Report Format) in place of the full five-dimension report below.
+
+  **Mutual exclusivity with the binary-DB verdict prohibition immediately above.** The fourth conjunct of this gate requires no binary DB file — so this short-circuit and the binary-DB verdict prohibition above are written to never both fire on the same report. When a binary DB file IS present, this short-circuit does NOT fire regardless of the parsed routine count, and the prohibition above governs: state "logic likely resides in an unparsed binary — DDL export required," never the empty-scope conclusion.
+
+  **Over-fire guard.** If routines are absent but logic-bearing views OR `CONSTRAINT_LOGIC` findings ARE present, this gate does NOT fire — produce the full five-dimension report below, covering whatever logic those views or constraints carry, even though the routine count is 0.
+
 - **Component Manifest:** List all objects grouped by type with counts, LOC per file, total LOC. Close the manifest with a per-type subtotal line for each type and a grand-total line showing the inline addition for BOTH of its values — the object count as the sum of the per-type counts AND the LOC total as the sum of the per-type LOC subtotals (e.g., `Grand total: 217 objects (= 1 + 96 + 44 + 39 + 25 + 12), 48,112 LOC (= 21,204 + 11,733 + 7,402 + 4,371 + 2,180 + 1,222)`), each computed by command from the column just written. A grand object count without its own displayed type-count addition is not written. (The example's numbers are deliberately from a much larger fictional system — if any number from this skill's examples appears in your report, it was copied, not computed.)
 
   | Type | Object Name | File | LOC | Notable Flags |
@@ -429,6 +435,60 @@ Use `sql` or `tsql` or `plsql` fenced code blocks for illustrative snippets. Use
 The report ends where the evidence ends.
 
 **Oracle orientation (when the dialect is PL/SQL):** Oracle routine sets are typically prefix-less and package/schema-qualified — do not expect `dbo.` / `sp_` / `TR_` naming; the examples above are illustrative T-SQL from a fictional system. For a trigger-less, routine-only Oracle corpus, the Trigger Cascade Map and hub sections legitimately come back empty — state "None" per the explicit-empty-case rules rather than forcing a cascade narrative.
+
+### Empty-Scope Compact Report (short-circuit)
+
+When the Dimension 1 empty-scope short-circuit gate fires, this compact report REPLACES the full five-dimension template above — never produce both. `sproc-migration-plan`'s input validator keys its intake acceptance on the `### Extraction Metrics` heading, one of the two unique dimension titles (`## 3. CRUD Matrix & Trigger Cascade Map` or `## 5. Dialect Footguns & Hidden Risks`), and `## Coverage Declaration`; a report missing any of those is bounced as stale. This compact report keeps exactly that skeleton, with an explicitly empty body at each marker, and drops everything else — no form→table CRUD matrix content, no injection-site enumeration, no application-layer "analogue" findings for any dimension, and no Recommended Next Steps pointing at an application-layer refactor, no matter how much logic the application layer itself holds (that analysis is out of this skill's charter regardless):
+
+```
+## Executive Summary — Critical Red Flags
+
+None — 0 DB-resident routines found.
+
+[Source-file glob command and its raw output showing 0 matches, then the
+`CREATE (PROCEDURE|FUNCTION|TRIGGER|PACKAGE)` search command and its raw output showing 0
+matches — pasted verbatim per the skill's existing proof-block discipline. This is the
+headline finding's proof; nothing below repeats it.]
+
+---
+
+## Coverage Declaration
+
+- **Objects provided:** 0 objects across `<find|wc file count>` files — the empty routine set is fully covered
+- **Objects referenced but missing:** 0
+- **Estimated coverage:** 100% (0 of 0 referenced objects)
+- **Reduced-confidence dimensions:** None — no routines to analyze
+- **Key gaps:** None
+
+---
+
+## 1. Inventory & Completeness
+
+0 stored procedures, 0 functions, 0 triggers, 0 packaged routines (proof above). [A single
+factual line on where the logic actually lives is permitted here — e.g., "All DB access is
+inline application SQL (parameterized ADO.NET `CommandType.Text` calls)" — as context for
+the 0-finding, never as application-layer analysis.]
+
+### Extraction Metrics
+
+0 routines/triggers defined.
+
+## 3. CRUD Matrix & Trigger Cascade Map
+
+None — 0 routines.
+
+## 5. Dialect Footguns & Hidden Risks
+
+None — 0 routines.
+
+---
+
+**STOP.** Analysis complete: 0 DB-resident routines in scope. This skill's charter is
+DB-resident logic extraction; application-layer code — and any refactor of it — is out of
+charter and is not analyzed here.
+```
+
+The Extraction Metrics column contract, `metrics.tsv`, and the LOC/UDT rules earlier in Dimension 1 are unchanged by this short-circuit — they govern the non-empty case exactly as written; the compact report's `### Extraction Metrics` body is empty because there is nothing to tabulate, not because the contract stops applying.
 
 ## Cleanup
 
