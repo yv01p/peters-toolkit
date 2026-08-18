@@ -156,7 +156,7 @@ include the plan directly in your final report.
 Full detail lives in `dbonly1/README.md` (never sent to a rep — see fixture preparation above).
 Summarized here for scoring:
 
-**The 9 manifest objects (all migration-unit-bearing objects — every plan must account for each):**
+**The 9 manifest objects — 8 migratable routines (the partition domain) plus the `pkg_order_state` state container (retained-in-DB storage, not a migration unit); every plan must account for each:**
 
 | Object | Ground truth | Evidence |
 |---|---|---|
