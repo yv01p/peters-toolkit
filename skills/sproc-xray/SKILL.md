@@ -110,6 +110,8 @@ Documented claims are CHECKED — never adopted, and never "confirmed" by anythi
 - **Non-UTF-8 sources:** SSMS-exported files are often ISO-8859-1 or Windows-1252, not UTF-8. Use encoding-tolerant reading (e.g., `grep -a` for binary-safe search, `iconv` if conversion needed).
 - **Mixed line endings:** CRLF (Windows) and LF (Unix) may be mixed in the same export. Report what `file` actually shows.
 - **Non-English comments:** Expect comments in languages other than English. Don't fail on non-ASCII characters.
+- **Binary DB files:** When `file` reports a source as binary `data` (not text) and its extension is a DB file (`.mdf`, `.ndf`, `.ldf`, `.bak`, `.dbf`, `.dmp`), classify it as a **binary DB file** — unparsed, not a text SQL source.
+- **Best-effort name surfacing:** For each binary DB file, binary-safe grep it for `CREATE (PROCEDURE|FUNCTION|TRIGGER|PACKAGE|VIEW)` headers (e.g., `grep -a -oE 'CREATE (PROCEDURE|FUNCTION|TRIGGER|PACKAGE|VIEW)[^\r\n]*' <file>`) and list any names found, marked "names only, bodies unrecovered." These names are **never rendered as rows** in the Component Manifest routine table or the `### Extraction Metrics` table, and are **never written to `metrics.tsv`** — therefore they are excluded from every count derived from them. The names appear ONLY in the intake-table row below and the Coverage Declaration line (see Report Format's `## Confidence & Coverage Declaration`).
 
 **Context-intake table** — list artifact types found and missing:
 
@@ -124,6 +126,7 @@ Documented claims are CHECKED — never adopted, and never "confirmed" by anythi
 | Jobs / scheduled tasks | `.sql`, CREATE JOB, SQL Agent | | |
 | Packages (Oracle) | `.pks`, `.pkb`, CREATE PACKAGE | | |
 | Test scripts | `*Test*.sql`, `*_test.sql` | | |
+| Binary DB files (unparsed) | .mdf/.ndf/.ldf/.bak/.dbf/.dmp | | |
 
 Flag test scripts separately — they are part of the source tree but not part of the production logic inventory.
 
@@ -138,6 +141,8 @@ Analyze ALL five dimensions below **in order** — each builds on the prior. Use
 **Purpose:** Establish what we have before reasoning over it. Cross-reference every object *called* against every object *defined*.
 
 - **Object counts come from parsing `CREATE` statements, never from counting files.** A single file may contain zero, one, or many `CREATE TABLE / VIEW / FUNCTION / PROCEDURE / TRIGGER / DATABASE` statements. A file's name is not evidence of its contents. `CREATE DATABASE` is its own inventory category, not a table. Excluded files (test scripts, seed data) must be counted exactly and listed by name. `CREATE [OR REPLACE]` and the object keyword (`FUNCTION`/`PROCEDURE`) may be split across lines, so a single-line `grep 'CREATE OR REPLACE FUNCTION'` under-counts — count with a multi-line-aware pattern or by object banner.
+
+- **Binary-DB verdict prohibitions.** When a binary DB file (per Context Intake) is present, the report must not assert that routines "live only in" any single text source — the binary is an unexamined source too. A zero parsed-routine count alongside a present binary DB file must never be read as "no DB logic" or "empty extraction scope," and the analysis must not be declined as empty on that basis — state instead: "logic likely resides in an unparsed binary — DDL export required to analyze."
 
 - **Component Manifest:** List all objects grouped by type with counts, LOC per file, total LOC. Close the manifest with a per-type subtotal line for each type and a grand-total line showing the inline addition for BOTH of its values — the object count as the sum of the per-type counts AND the LOC total as the sum of the per-type LOC subtotals (e.g., `Grand total: 217 objects (= 1 + 96 + 44 + 39 + 25 + 12), 48,112 LOC (= 21,204 + 11,733 + 7,402 + 4,371 + 2,180 + 1,222)`), each computed by command from the column just written. A grand object count without its own displayed type-count addition is not written. (The example's numbers are deliberately from a much larger fictional system — if any number from this skill's examples appears in your report, it was copied, not computed.)
 
@@ -384,6 +389,7 @@ nowhere earlier in the report is a self-consistency failure.
 - **Artifact types covered:** [list from context-intake table]
 - **Missing artifacts affecting analysis:** [what's absent and what dimension it impacts]
 - **Encoding/format issues encountered:** [if any — e.g., ISO-8859 files, mixed CRLF/LF, non-English comments]
+- **Binary DB files (unparsed):** [names, or "None"] — contents not parsed; script out definitions (DDL export) and re-run for authoritative analysis.
 - **Path mismatches:** [if README vs reality differs, note it honestly]
 
 ---
@@ -399,6 +405,9 @@ no effort estimate, and no priority ranking; those remain non-goals of this repo
 - **Downstream planner:** the `sproc-migration-plan` skill consumes this report — specifically
   the `### Extraction Metrics` table and the Dimension-5 `GLOBAL_STATE` rows — to sequence and
   size the extraction. Hand it the path to this file.
+- **Binary DB export path:** If a binary DB file was found (Context Intake), script out its
+  definitions before re-running this skill — SSMS *Generate Scripts* or `mssql-scripter`
+  (SQL Server), `DBMS_METADATA.GET_DDL` (Oracle).
 - **Optional runtime evidence pack:** static source cannot show call frequency, row volumes, or
   which routines are actually invoked in production. If an execution-statistics export is
   available (Oracle AWR / `v$sql`; SQL Server Query Store / `sys.dm_exec_procedure_stats`),
