@@ -56,12 +56,16 @@ disclosure of reading a repo path outside the sandbox.
 - **Zero out-of-sandbox disclosure.** One phrase was inspected and cleared: rep 3 writes that its
   "application codebase search path (`/tmp/tmp.IVSiBnjvFy/dbonly1`)" held no app source — that is the
   rep naming *its own sandbox*, not the real checkout; every citation resolves to a fixture file.
-- **Decisive blindness signal — base=8, not the answer key's 9.** All 5 reps independently reconciled
-  their partition against the **8 routines** in the report's `### Extraction Metrics` table, explicitly
-  treating `pkg_order_state` as a non-routine state resource. The committed answer key
-  (`dbonly1/README.md`) counts **9** (package = retained-in-DB). A rep that had wandered into the README
-  or the RED file would have inherited the 9-count; all 5 landed on 8, matching each other and the RED
-  arm and blind to the answer key.
+- **Decisive blindness signal — base=8, not the answer key's then-current 9.** All 5 reps independently
+  reconciled their partition against the **8 routines** in the report's `### Extraction Metrics` table,
+  explicitly treating `pkg_order_state` as a non-routine state resource. At the time these reps ran, the
+  committed answer key (`dbonly1/README.md`) reconciled the partition at **9** (package counted as
+  retained-in-DB); a rep that had wandered into the README or the RED file would have inherited that
+  9-count, but all 5 landed on 8 — matching the skill, each other, and the RED arm, and blind to the
+  answer key. (The answer key and rubric were subsequently corrected to the skill-faithful base=8 —
+  `pkg_order_state` is storage/structure, not a partition unit, per `SKILL.md` — so this 8-vs-9
+  discriminator no longer holds for future re-runs. It is preserved here as a historical attestation;
+  the other tell-scan signals below stand independently of it.)
 - **Fixed-skill fingerprints present.** All 5 use the fix's new DB-only vocabulary
   (`presumptive-live-unconfirmed`, `x-ray-confirmed-dead`, `confirmed-live` from DB-internal evidence)
   and every complexity score cites the report's Extraction Metrics columns — confirming reps planned
@@ -114,12 +118,14 @@ Scored on the same basis as RED, per the RED-arm watch items:
    one is moved elsewhere with a cited reason." Rep 4 satisfies the cited-reason clause; its Wave 0 still
    carries 2 leaves (not zero), so it is nowhere near `EMPTY_OR_MISSING`. The other 4 reps carry all 3
    leaves in Wave 0.
-3. **Dim 8 — base=8 vs the answer key's 9.** All 5 reps reconciled against the 8 Extraction-Metrics
+3. **Dim 8 — base=8, the skill-faithful basis.** All 5 reps reconciled against the 8 Extraction-Metrics
    routines, treating the `pkg_order_state` package as a non-routine state resource (retained/replaced),
-   not a partition unit — consistently, and each rep's own partition sums correctly (no object lost). The
-   answer key counts 9 (package as retained-in-DB). This is the same routine-count-vs-object-count
-   definitional difference recorded in the RED arm, scored on the identical base=8 basis for a clean
-   contrast — not a lost-object under-count.
+   not a partition unit — consistently, and each rep's own partition sums correctly (no object lost).
+   This matches the migration-plan skill's partition-domain rule (`SKILL.md`: the package container is
+   storage/structure, not partitioned) and the RED arm, scored on the identical base=8 basis for a clean
+   contrast — not a lost-object under-count. (At rep-execution time the committed answer key reconciled
+   the partition at 9; it was subsequently corrected to base=8 for skill-consistency — see the blindness
+   signal above.)
 
 ## GREEN-bar verdict
 

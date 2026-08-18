@@ -1,7 +1,7 @@
 -- Procedure with no app caller (DB-only)
 -- Calls helper function fn_calculate_tax (creates DB-internal edge)
 -- Writes to shared package variable (GLOBAL_STATE coupling with prc_reset_batch_totals)
--- Should be classified as possibly-dead/presumptive
+-- Should be classified as confirmed-live (DB-internal caller: trg_order_status_audit -> prc_finalize_order)
 CREATE OR REPLACE PROCEDURE prc_finalize_order(
   p_order_id IN NUMBER,
   p_amount IN NUMBER,

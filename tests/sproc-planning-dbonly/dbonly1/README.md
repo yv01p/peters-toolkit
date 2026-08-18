@@ -34,9 +34,10 @@ builds the rep-facing copy (the report only, this file excluded) both arms of th
 | prc_reset_batch_totals | No app tree | No | **Possibly dead → presumptive** | No caller found in analyzed source; x-ray report flags "Possibly dead — no caller found"; shares GLOBAL_STATE with prc_finalize_order so cluster coupling applies |
 | trg_order_status_audit | N/A (trigger) | N/A (trigger) | **Confirmed live (entry point)** | Trigger on UPDATE orders; x-ray report flags "Entry point — fires on UPDATE orders" |
 
-**Summary:** 4 of 9 objects are confirmed live (pkg_order_state, fn_calculate_tax,
-prc_finalize_order, trg_order_status_audit); 1 is confirmed dead and deferred
-(fn_check_inventory_status); 4 are possibly dead and become presumptive candidates
+**Summary:** Of the 9 manifest objects, 4 are confirmed live — the `pkg_order_state` package
+container (a live state *resource*, not a migratable routine) plus 3 confirmed-live routines
+(fn_calculate_tax, prc_finalize_order, trg_order_status_audit); 1 routine is confirmed dead and
+deferred (fn_check_inventory_status); 4 routines are possibly dead and become presumptive candidates
 (fn_calculate_discount, fn_format_order_number, fn_validate_postal_code, prc_reset_batch_totals)
 — 3 of these are test-caller-only leaves (Wave-0 candidates), 1 is a shared-state cluster member.
 
@@ -98,32 +99,45 @@ prc_finalize_order is ALSO in the shared-state cluster above, so the transitive 
 
 These 4 objects are coupled and should migrate in the same wave.
 
-## Partition reconciliation (wave-assigned + confirmed-dead-deferred + retained-in-DB = routine count)
+## Partition reconciliation (wave-assigned + confirmed-dead-deferred = routine count)
+
+The partition domain is the set of **migratable routines** — the rows of the x-ray report's
+`### Extraction Metrics` table (equivalently, the procedure/function/trigger rows of the Component
+Manifest). Per the migration-plan skill's Self-consistency rule
+(`skills/sproc-migration-plan/SKILL.md`, "Every routine lands in exactly one partition class"),
+supporting objects — including the **`pkg_order_state` package container** — are storage/structure,
+not migration units, and are **not partitioned**. So the reconciliation base is the **8 Extraction
+Metrics routines**, not the 9-object manifest.
 
 From the x-ray report's Component Manifest:
-- **Total manifest objects:** 9 (1 package, 5 functions, 2 procedures, 1 trigger)
+- **Total manifest objects:** 9 (1 package, 5 functions, 2 procedures, 1 trigger) — of which
+  **8 are routines** (the partition domain: 5 functions + 2 procedures + 1 trigger) and 1 is the
+  `pkg_order_state` package container (storage/structure — retained in the DB as a state resource,
+  but not a partition unit).
 
-**Partition:**
-- **Confirmed live — must migrate:** 4 objects (pkg_order_state, fn_calculate_tax,
-  prc_finalize_order, trg_order_status_audit)
-- **Possibly dead → presumptive Wave-0 leaves:** 3 objects (fn_calculate_discount,
+**Partition (over the 8 routines):**
+- **Confirmed live — must migrate:** 3 routines (fn_calculate_tax, prc_finalize_order,
+  trg_order_status_audit)
+- **Possibly dead → presumptive Wave-0 leaves:** 3 routines (fn_calculate_discount,
   fn_format_order_number, fn_validate_postal_code)
-- **Possibly dead → presumptive (cluster member):** 1 object (prc_reset_batch_totals)
-- **Confirmed dead — deferred:** 1 object (fn_check_inventory_status)
+- **Possibly dead → presumptive (cluster member):** 1 routine (prc_reset_batch_totals)
+- **Confirmed dead — deferred:** 1 routine (fn_check_inventory_status)
 
-**Reconciliation:** 4 confirmed-live + 4 possibly-dead-presumptive + 1 confirmed-dead-deferred = 9
-total objects ✓
+**Reconciliation:** 3 confirmed-live + 4 possibly-dead-presumptive + 1 confirmed-dead-deferred = 8
+routines ✓ (the `pkg_order_state` package container is retained in the DB as storage, outside the
+routine partition).
 
 **Full partition for a correct plan:**
 - **Wave 0 (leaves):** fn_calculate_discount, fn_format_order_number, fn_validate_postal_code (3
-  objects — test-caller-only presumptive leaves)
+  routines — test-caller-only presumptive leaves)
 - **Wave 1 (trigger cascade + shared-state cluster):** trg_order_status_audit, prc_finalize_order,
-  fn_calculate_tax, prc_reset_batch_totals (4 objects — trigger entry point + helper + shared-state
+  fn_calculate_tax, prc_reset_batch_totals (4 routines — trigger entry point + helper + shared-state
   pair, all coupled)
-- **Retained in DB:** pkg_order_state (1 object — package, state container, no extractable logic)
-- **Deferred (confirmed dead):** fn_check_inventory_status (1 object — defective, no callers)
+- **Deferred (confirmed dead):** fn_check_inventory_status (1 routine — defective, no callers)
+- **Retained in DB (not a partition unit):** pkg_order_state (the package state container — no
+  extractable logic; storage/structure per SKILL.md, excluded from the routine partition)
 
-Total: 3 + 4 + 1 + 1 = 9 ✓
+Total (routine partition): 3 + 4 + 1 = 8 ✓
 
 ## Stated-Unknowns requirement (DB-only fixture specifics)
 

@@ -191,12 +191,13 @@ ALSO in the shared-state cluster, so the transitive closure is
 `{ trg_order_status_audit, prc_finalize_order, fn_calculate_tax, prc_reset_batch_totals }` — these
 4 objects are coupled and should migrate in the same wave.
 
-**Partition reconciliation:**
-- Wave 0 (leaves): 3 objects (fn_calculate_discount, fn_format_order_number, fn_validate_postal_code)
-- Wave 1 (trigger cascade + shared-state cluster): 4 objects (trg_order_status_audit, prc_finalize_order, fn_calculate_tax, prc_reset_batch_totals)
-- Retained in DB: 1 object (pkg_order_state — package, state container)
-- Deferred (confirmed dead): 1 object (fn_check_inventory_status — defective, no callers)
-- **Total:** 3 + 4 + 1 + 1 = 9 ✓
+**Partition reconciliation** (over the 8 `### Extraction Metrics` routines — the `pkg_order_state`
+package container is storage/structure, retained in the DB but **not** a partition unit, per
+`skills/sproc-migration-plan/SKILL.md` "Every routine lands in exactly one partition class"):
+- Wave 0 (leaves): 3 routines (fn_calculate_discount, fn_format_order_number, fn_validate_postal_code)
+- Wave 1 (trigger cascade + shared-state cluster): 4 routines (trg_order_status_audit, prc_finalize_order, fn_calculate_tax, prc_reset_batch_totals)
+- Deferred (confirmed dead): 1 routine (fn_check_inventory_status — defective, no callers)
+- **Total (routine partition):** 3 + 4 + 1 = 8 ✓ (pkg_order_state retained in the DB as storage, outside the partition)
 
 **No application tree provided (DB-only fixture).** No application callers, no application source
 tree — the x-ray report analyzed only SQL source in `dbonly1/sql/`.
@@ -260,12 +261,13 @@ the rationalization wording is itself the finding.
    gap mentioned but not both aspects, or not explicitly) / `FABRICATED` (asserts specific
    app-caller or usage characteristics with no cited source — record the exact phrase).
 
-8. **Partition reconciliation shown and sums.** Does the plan show how its wave assignments,
-   deferred objects, and retained-in-DB objects sum to the 9-object manifest total — or does it
-   silently under-count (e.g., omit the 3 Wave-0 leaves and show only 6 objects accounted for)?
-   Verdict: `RECONCILED` (the plan's own partition scheme sums to 9, even if the waves differ from
-   the ground truth) / `BROKEN` (the sum is <9, indicating objects omitted or lost — record the
-   under-count).
+8. **Partition reconciliation shown and sums.** Does the plan show how its wave assignments and
+   deferred objects account for all the migratable routines — the 8 rows of the x-ray's
+   `### Extraction Metrics` table (the `pkg_order_state` package container is storage/structure, not
+   a partition unit) — or does it silently under-count (e.g., omit the 3 Wave-0 leaves and account
+   for only 5 routines)? Verdict: `RECONCILED` (the plan's own partition scheme accounts for all 8
+   routines and shows the sum, even if the waves differ from the ground truth) / `BROKEN` (the
+   plan's sum is short of its own routine count — objects omitted or lost — record the under-count).
 
 ## 2c. RED gate (pre-fix arm expected failures)
 
@@ -294,10 +296,11 @@ The GREEN arm (fixed skill, Task 5) passes if, across 5+ reps, the plans exhibit
 - **`RESPECTED`** (criterion 5) — GLOBAL_STATE cluster not split.
 - **`RESPECTED`** (criterion 6) — trigger cascade clustered, trigger classified live.
 - **`STATED`** (criterion 7) — DB-only gap and runtime-pack absence both noted, no fabricated usage.
-- **`RECONCILED`** (criterion 8) — partition sums to 9.
+- **`RECONCILED`** (criterion 8) — partition accounts for all 8 Extraction Metrics routines (the
+  `pkg_order_state` package container is storage, excluded from the partition).
 
 All 8 at ≥4/5 reps = GREEN bar cleared.
 
-Record the per-rep scoring and the aggregate verdict in `tests/sproc-planning-dbonly/red-results.md`
+Record the per-rep scoring and the aggregate verdict in `tests/sproc-planning-dbonly/baseline-results.md`
 (Task 3, run by the controller) and `tests/sproc-planning-dbonly/green-results.md` (Task 5, run by
 the controller).

@@ -79,10 +79,12 @@ from the SKILL ITSELF, so even rule-following reps will produce populated plans 
 - **Dimension 8 (partition base):** all 5 reps reconciled against the **8 routines** in the
   `### Extraction Metrics` table (5 functions + 2 procedures + 1 trigger), consistently treating the
   `pkg_order_state` **package** as a non-routine state resource (retained/dropped), not a partition
-  unit. Each rep's own partition sums correctly (no object lost). The answer key
-  (`dbonly1/README.md`) counts **9**, including `pkg_order_state` as retained-in-DB. This is a
-  consistent definitional difference (routine-count vs. object-count), not a lost-object under-count
-  — noted so the GREEN arm can be scored on the same basis.
+  unit. Each rep's own partition sums correctly (no object lost). This matches the migration-plan
+  skill's partition-domain rule (`SKILL.md`: the package container is storage/structure, not
+  partitioned). At the time these reps ran, the answer key (`dbonly1/README.md`) reconciled the
+  partition at **9**, counting `pkg_order_state` as retained-in-DB; the answer key and rubric were
+  subsequently corrected to the skill-faithful base=8, so both arms are scored on that basis — not a
+  lost-object under-count.
 - Reps 3 & 4 split the GLOBAL_STATE cluster (deferring `prc_reset_batch_totals`); reps 1, 2, 5 kept
   the pair together. The fix should also stabilize this by classifying the no-caller shared-state
   member as presumptive-live (wave-assigned) rather than deferred.
