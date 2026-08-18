@@ -85,7 +85,7 @@ optional and **degrades gracefully**:
 
 | Missing | Effect |
 |---|---|
-| Execution counts (dead-code triage input) | No deletion candidates; uncalled objects route to deferred/needs-investigation instead of deletion |
+| Execution counts (dead-code triage input) | No deletion candidates; uncalled objects route to deferred/needs-investigation when a caller search could have succeeded (app-present), not on DB-only inputs |
 | Row counts (Pattern C volume gate, data-volume dimension) | Data-volume dimension scores Unknown; Pattern C viability flagged Unknown |
 | Performance baselines / call-frequency | Shadow-sampling tiers default to the conservative tier |
 
@@ -135,9 +135,22 @@ Input 2. Four classes:
 | **Both** | Cited in both sources |
 | **No-caller-found** | Neither source cites a caller |
 
+**DB-only inputs.** When the grep finds no confirmed app caller for any routine (zero
+App-called / Both rows) **and** no runtime pack is supplied, the inputs are **DB-only** and
+the absent-app no-caller signal does **not** route to deferral — it is not evidence of
+dead code when the application codebase that would call those routines is not part of the
+evidence set. Instead, classify from x-ray DB-internal evidence: **confirmed-live**
+(trigger, or cited DB-internal caller — the existing DB-internal-called class);
+**x-ray-confirmed-dead** (the x-ray's Dead/Orphan "confirmed dead — no reference anywhere
+in the corpus" verdict → deferred/drop, the *only* class that defers on this basis);
+**presumptive-live-unconfirmed** (any other routine, including the x-ray's "possibly dead —
+insufficient evidence" sub-class → wave-assigned, sequenced structurally from the x-ray's
+dependency graph, liveness stated unconfirmed in Stated Unknowns).
+
 - A **no-caller-found** routine corroborates dead-code triage *when the runtime pack agrees
-  it has zero executions*; without a pack it routes to deferred/needs-investigation, never
-  to silent migration and never to silent deletion.
+  it has zero executions*; without a pack it routes to deferred/needs-investigation **only
+  when a caller search could have succeeded** (app-present or pack-present), never to
+  silent migration and never to silent deletion.
 - A runtime execution with **no** citation in either source indicates a **non-app external
   caller** (scheduler, DB link, DB job) — flag it for investigation rather than calling it
   dead.
@@ -156,8 +169,9 @@ With a runtime pack, a routine with **zero executions in the observation window*
 **deletion candidate**, never a migration unit. A verification checklist travels with each
 candidate: scheduled jobs, triggers, business-owner confirmation. (App-code references are
 already covered by Step 2's grep.) **Without a runtime pack there are no deletion candidates**
-— uncalled routines are deferred/needs-investigation with "what evidence would resolve this"
-stated.
+— uncalled routines are deferred/needs-investigation **when a caller search could have
+succeeded** (app-present) with "what evidence would resolve this" stated; on DB-only inputs
+they route per Step 2's three-way DB-internal classification instead.
 
 ### Step 4 — Complexity scoring
 
@@ -225,10 +239,13 @@ Unknown"** and record the gap in Stated Unknowns — never assume it fits.
 
 ### Step 7 — Wave assembly
 
-- **Wave 0 is the Safe-to-Fail harness plus a small batch of simple leaf functions** — the
-  learning wave (matching the validated real-world Wave 0: infrastructure + ~8 simple
-  functions). Its point is to stand up the validation framework in `references/safe-to-fail.md`
-  against low-risk units before anything hard moves.
+- **Wave 0 is the Safe-to-Fail harness plus simple leaf functions from the x-ray's structure**
+  — the learning wave. Draw its leaves from the x-ray's Extraction Sequencing (dependency-graph
+  leaves ∩ low complexity), not from caller evidence. The validated real-world Wave 0 held
+  infrastructure + ~8 simple functions; "~8" is illustrative (the actual validated count), not
+  a quota — take as many simple leaves as the corpus has, else just the harness. Its point is
+  to stand up the validation framework in `references/safe-to-fail.md` against low-risk units
+  before anything hard moves.
 - **Subsequent waves** are ordered by a priority score:
 
   `priority = (BusinessValue×3) + (Simplicity×2) + (Independence×2) + (RiskReduction×1) + (LearningValue×1)`
@@ -337,6 +354,11 @@ Every plan carries a **Stated Unknowns** section that names, explicitly:
   invented usage characteristic ("rarely called", "hot path") for the missing fact.
 - Any complexity dimension scored Unknown, any Pattern C marked viability-Unknown, and any
   runtime-pack row that failed to join.
+- **When the inputs are DB-only** (no confirmed app caller for any routine, no runtime pack),
+  that the application codebase supplied no callers for any routine, that caller-based
+  liveness could not be established, that every presumptive wave-assigned unit's liveness is
+  unconfirmed (established from x-ray DB-internal evidence only), and that an app-caller grep
+  or runtime pack would resolve it. Never treat DB-only migration as caller-confirmed.
 
 ### Terminal STOP
 
@@ -358,6 +380,17 @@ plan-level sections, the self-consistency reconciliations) are the skill's core 
 3 of 6 reps did not explicitly state the runtime-data gap, which is why **Stated Unknowns**
 is a required slot. A future maintainer adding discipline prose here should first record a
 baseline failure that justifies it.
+
+**Finding #7 (DB-only inputs) recorded the failure that justified the DB-only method text.**
+The pre-fix skill routed any no-app-caller routine to deferred/needs-investigation. On a
+DB-only corpus (no app callers anywhere, no runtime pack) EVERY routine was no-app-caller,
+so the presumptive-live leaves all got deferred, Wave 0 emptied, and the plan collapsed to
+a near-empty output — the skill's own rules collided and contradicted each other. The RED
+baseline (`tests/sproc-planning-dbonly/baseline-results.md`) empirically confirmed the
+collapse. The fix scoped the "no-caller → deferral" rule so it only applies when a caller
+search could have succeeded (app-present or pack-present), and added the explicit
+three-way DB-only classification (confirmed-live, x-ray-confirmed-dead,
+presumptive-live-unconfirmed) so DB-only inputs produce a real wave-sequenced plan.
 
 ## Reference Files
 
