@@ -1,6 +1,6 @@
 ---
 name: sproc-xray
-version: 0.5.0
+version: 0.6.0
 description: Use when analyzing, auditing, or reverse-engineering database-resident business logic (stored procedures, functions, triggers) for extraction migration off Oracle or SQL Server. Trigger when user provides SQL source (T-SQL, PL/SQL), asks for DB logic discovery, wants the database reduced to dumb storage, or prepares a database-to-application-code migration. Accepts a local directory path or GitHub repo URL as input.
 ---
 
