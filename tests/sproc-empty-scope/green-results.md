@@ -30,6 +30,22 @@ State plainly: this cell has **no RED counterpart** — the pre-fix skill had no
 - **`empty` (RED→GREEN):** `COMPACT` **2/2**, validator markers kept **2/2**, balloon sections **0/2**. The BALLOONED-2/2 RED is fixed; the compact report is emitted unaided by blind agents reading the post-fix skill, and remains a valid `sproc-migration-plan` input.
 - **`viewlogic` (over-fire guard):** `CORRECT_NO_SHORTCIRCUIT` **2/2**, view logic `COMPLETE` **2/2**, `CONSTRAINT_LOGIC` `COMPLETE` **2/2**. The gate's over-fire guard holds; no regression on the one negative case the operand set was hardened for (CDR r2/r3).
 
+## Minor #1 close — planner on the *actual* COMPACT report (confirmatory, N=1)
+
+Final-review Minor #1 flagged an evidence gap: the Task-1 `planning-empty` reps (clean 3/3) consumed the **old ballooned** x-ray report (`empty-report/EMPTY1-SPROC-XRAY.md`, 251 lines) — the compact→planner path was verified only at *intake* (validator markers survive), never *behaviorally*. This rep closes that gap.
+
+**Design:** one fresh-context, blind agent (sonnet-class general-purpose), GREEN arm — reads a neutrally-staged copy of the **unchanged** `sproc-migration-plan` SKILL.md (`version: 0.1.0`; Edit B dropped, so this is the shipped planner). Fixture built with `prepare-empty-scope-fixture.sh planning-empty` (README-excluded, neutral `/tmp/rep-sandbox-b/plan-confirm-1` path, confinement preamble), then the ballooned `EMPTY1-SPROC-XRAY.md` was **overwritten with the actual GREEN compact report** produced by blind x-ray rep `green-empty-1` (`/tmp/rep-sandbox-b/green/xray-empty-1/OUT-XRAY.md`, 136 lines, `Empty-Scope Compact Report` header, all 4 downstream-validator markers present). Same documented N-deviation as above (N=1 confirmatory: it verifies input-swap invariance on an already-clean-3/3 cell, not a RED→GREEN transition).
+
+**Scored against `rep-prompt-template.md` Part 2b (`planning-empty`):**
+
+| Rep | 1. Empty backlog + partition reconciliation | 2. Inverse app-layer refactor content | 3. Terminal STOP, no further waves |
+|-----|---|---|---|
+| green-plan-confirm-1 | **`STATED`** — `0 routines = 0 wave-assigned + 0 deletion candidates + 0 retained-in-DB + 0 deferred` (verbatim) | **`ABSENT`** — "There is no migration backlog. Nothing needs to move"; C# app layer explicitly held out of scope as the migration *target*, not a source to refactor | **`PRESENT`** — terminal note "no extraction work exists today"; explicitly declines a Wave 0 harness ("no behavior is being moved") |
+
+The compact report passed the planner's intake validator unaided (the rep names all four markers — `## Coverage Declaration`, both unique dimension titles, `### Extraction Metrics`) and the planner then produced an empty backlog with correct partition reconciliation — **identical disposition to the 3/3 ballooned-input baseline**. Blindness held at the harness's established level: the sandbox is README-free and the rep cited only in-fixture files (`EMPTY1-SPROC-XRAY.md`, `app/db/schema.sql`, `app/src/*.cs`); no navigation outside `{FIXTURE_PATH}`.
+
+**Close:** the shipped compact report is a behaviorally-valid `sproc-migration-plan` input — swapping the ballooned report for the real compact one does not change the planner's empty-scope disposition. Minor #1 is closed; no planner change is warranted.
+
 ## Verdict
 
-Edit A is proven GREEN on both x-ray cells: the empty-scope balloon (the one genuine RED from Task 1) is fixed, and the over-fire guard correctly withholds the short-circuit when logic-bearing views or `CONSTRAINT_LOGIC` are present. No migration-plan change was made or needed (Edit B dropped per the Task-1 RED gate + user direction).
+Edit A is proven GREEN on both x-ray cells: the empty-scope balloon (the one genuine RED from Task 1) is fixed, and the over-fire guard correctly withholds the short-circuit when logic-bearing views or `CONSTRAINT_LOGIC` are present. No migration-plan change was made or needed (Edit B dropped per the Task-1 RED gate + user direction); the confirmatory Minor-#1 rep above shows the **unchanged** planner emits an empty backlog on the *actual* compact report, closing the compact→planner behavioral gap the final review flagged.
