@@ -36,7 +36,7 @@ Apply the findings from one or more `critical-implementation-review` v2 outputs 
    For each finding:
    - **Restate the finding** — quote or directly reference the relevant part of the review.
    - **Read the plan section it touches.** Ground the fix in cited codebase evidence.
-   - **Propose the smallest fix that resolves the finding.** No scope expansion. No adjacent improvements. No prose polishing of unrelated content. No "while we're here" additions. No pattern sweep across the plan for **defects** the review didn't cite — distinct from the mandatory propagation of the applied fix's own changed terms (see Propagate below).
+   - **Propose the smallest fix that resolves the finding.** No scope expansion. No adjacent improvements. No prose polishing of unrelated content. No "while we're here" additions. No pattern sweep across the plan for **defects** the review didn't cite — distinct from the mandatory propagation of the applied fix's own change through the three Propagate sweeps (see below).
    - **Verify new load-bearing claims before proposing.** If the fix —
      whether reviewer-proposed or authored here — introduces a claim the
      artifact will now rest on (a named function or signature, a data or
@@ -48,14 +48,26 @@ Apply the findings from one or more `critical-implementation-review` v2 outputs 
      verify, not a fact to transcribe. If verification fails, surface that
      back to the user with the evidence instead of applying; do not
      silently substitute your own alternative fix.
-   - **Propagate.** After drafting the fix, search the artifact for other
-     statements of the quantity, rule, or mechanism the fix changes (grep
-     the artifact for the changed text's key terms). Each dependent mention
-     either receives a consistent tracked edit — part of the same proposal,
-     under the same approval gate — or an explicit note in the proposal that
-     it is unaffected and why. A fix that rewrites one section's rule while
-     a later section still records the replaced quantities ships an
-     internally inconsistent artifact.
+   - **Propagate.** After drafting the fix, run three sweeps over the
+     artifact, each yielding per-site dispositions:
+     1. **Literal:** grep the artifact for the changed text's key terms.
+     2. **Semantic restatements:** enumerate the sections that restate
+        the changed rule *in other words* — goals, summaries, limits,
+        ADR echoes, and ground-truth/roster lists are standing targets —
+        checked by reading, not grep.
+     3. **Mechanism/contract:** when the fix parameterizes a mechanism
+        (adds an argument, context, or mode) or changes a value contract
+        (arity, tuple shape, key set, grain), enumerate every artifact
+        site that invokes, constructs, returns, or asserts that
+        mechanism or shape — discovered by shape as well as symbol name
+        (mock helpers that return the tuple, arity assertions — sites a
+        "call site" sweep cannot reach).
+
+     Each enumerated site either receives a consistent tracked edit —
+     part of the same proposal, under the same approval gate — or is
+     dispositioned `unaffected — <why>`. A fix that rewrites one
+     section's rule while a later section still records the replaced
+     quantities ships an internally inconsistent artifact.
    - **Ratchet in-round evidence.** When a fix's correctness rests on
      verification performed inside the review round — reviews are typically
      untracked, so their evidence does not persist — track a matching
@@ -74,9 +86,22 @@ Apply the findings from one or more `critical-implementation-review` v2 outputs 
          before applying regardless of whether the reviewer attached evidence); write
          `UNVERIFIED: <why>` for a claim you could not probe in-round; write `none —
          prose-only / transcribes a reviewer fix that introduces no new claim` when the fix
-         introduces none. **This line is always present** — a proposal without it is
+         introduces none. The `Evidence:` line opens with the claim-class tag from the
+         shared review discipline's closed vocabulary (`[totality]` `[presence]`
+         `[absence]` `[compat]` `[bidirectional]` `[negative]` `[existence]`), and you
+         name the claim class BEFORE accepting the reviewer's evidence as sufficient: a
+         totality claim inside a fix ("for all producers", "every X") requires
+         population-run evidence — the n=1 probe that motivated the fix never discharges
+         it; shape/key-dump evidence never discharges a validation claim. Under-tier
+         reviewer evidence makes the fix `UNVERIFIED:` — verified in-round or surfaced
+         back, through the existing unverified-fix path. **This line is always present** — a proposal without it is
          incomplete, and "the reviewer already verified it" or "it's obviously right" is not
          an exemption.
+       - **Propagation** — the enumerated sites from the three sweeps, each
+         `edited` or `unaffected — <why>`; or `none — fix changes no rule,
+         mechanism, or contract`. This line is always present — it
+         mirrors the Evidence line; a proposal without it is visibly
+         incomplete.
        - **Gate** — `Apply this fix? (yes / no / modify)`, then wait for the user.
      If you render the gate as an interactive widget, the Finding / Fix / Evidence lines
      stay in the message body; never place the Evidence line only inside a widget option,
@@ -163,7 +188,7 @@ CIR v2's output preamble emits `**Plan:** <absolute path>`. UIP v2's parser extr
 - **Auditing security** is `critical-security-review`'s job — and security findings are code-level, not plan-level (file:line + code snippets + before/after code patches). This skill does NOT consume critical-security-review output. If you have critical-security-review findings, address them in code (critical-security-review v2 is code-only by design; a future `update-code-from-critical-security-review` skill may exist eventually but does not exist today). Surfacing them through this skill creates either silent drops or scope-confused plan docs.
 - **CIR v1.6.0 reviews** are not supported. CIR v1.6.0's section structure (Critical Issues / Minor Issues & Improvements / Questions for Clarification) was structurally over-engineering-prone and was replaced in CIR v2. Re-run the review with CIR v2 first.
 - **"Improving" the plan for clarity, voice, or "senior engineering quality"** beyond what the findings require is out of scope. There is no "Holistic Upgrade" pass. There is no "scan for any remaining weak/unclear/risky areas" pass. There is no `H1/H2/H3` finding class.
-- **Pattern sweep across the plan for defects the review didn't cite** is out of scope. The review is the contract; if it missed something, surface back to the user as a hint to re-run CIR; don't fold in silently. (Distinct from step 5's Propagate bullet: consistency edits for the applied fix's own changed terms are part of the fix.)
+- **Pattern sweep across the plan for defects the review didn't cite** is out of scope. The review is the contract; if it missed something, surface back to the user as a hint to re-run CIR; don't fold in silently. (Distinct from step 5's Propagate bullet: the three propagation sweeps for the applied fix's own change are part of the fix.)
 - **Touching code referenced by the plan** is out of scope. This skill modifies the plan only.
 
 ## Reviewer-equivalent mindset
@@ -180,7 +205,7 @@ Each fix must be the smallest change that addresses the finding. Specifically fo
 - Documenting edge cases the upstream review didn't surface
 - "Implementation improvements" that weren't proposed inline by the §2 finding
 - Adding a Changelog, version field, "Last updated" marker, or any other metadata accumulation
-- **Pattern sweep across the plan for defects the review didn't cite** — the review IS the contract; if it missed something, surface back to user as hint to re-run CIR, don't fold in silently (distinct from step 5's Propagate bullet: consistency edits for the applied fix's own changed terms are part of the fix)
+- **Pattern sweep across the plan for defects the review didn't cite** — the review IS the contract; if it missed something, surface back to user as hint to re-run CIR, don't fold in silently (distinct from step 5's Propagate bullet: the three propagation sweeps for the applied fix's own change are part of the fix)
 
 The discipline is the same as `thorough-brainstorming`'s: every line you add must justify itself against the upstream finding. If a candidate edit doesn't resolve a specific finding, drop it.
 
@@ -202,7 +227,7 @@ The discipline is the same as `thorough-brainstorming`'s: every line you add mus
 - DON'T invent findings beyond what the upstream review surfaced. There is no "Holistic Upgrade" step. There is no `H1/H2/H3` finding class.
 - DON'T propose implementation alternatives the upstream review didn't propose.
 - DON'T expand fix scope to "improve adjacent code while we're here."
-- DON'T pattern-sweep the plan for **defects** the review didn't cite (propagating the applied fix's changed terms per step 5's Propagate bullet is part of the fix).
+- DON'T pattern-sweep the plan for **defects** the review didn't cite (propagating the applied fix's own change per step 5's three-sweep Propagate bullet is part of the fix).
 - DON'T pick for the user on a §3 forced decision.
 - DON'T apply §1/§2 fixes before §3 forced decisions are resolved (when recommendation is 🛑).
 - DON'T silently strip the plan's `Verified plan-level assumptions` table. If a §1-failed-finding invalidates an assumption, update that table row explicitly.
@@ -235,8 +260,8 @@ These thoughts mean STOP — you're rationalizing your way into producing specul
 | "The review didn't propose an implementation alternative, but the §2 fix would clearly benefit from one — I'll propose it." | Alternatives belong in the §2 finding's proposed-fix prose (per CIR v2's design). If CIR v2 didn't propose one, don't invent one. |
 | "I noticed the upstream review missed a real issue — let me address it too while I'm here." | The review is the contract. If the review missed something, surface it back to the user as a hint to re-run CIR; don't fold it into this update silently. |
 | "The plan's `Verified plan-level assumptions` table is outdated; let me also re-verify the ones the review didn't fail." | Re-verify only the assumptions a failed §1-finding touches. Other assumptions are CIR's job, not yours. |
-| "I should also pattern-sweep the plan for similar issues — the review only cited examples." | UIP v1.1.0 had a blanket 'pattern sweep' instruction; v2 dropped it, and it stays dropped for defects — the review IS the contract. The step-5 Propagate bullet is narrower: it covers only mentions of the terms the applied fix itself changed. Anything else, surface back to the user as a hint to re-run CIR. |
+| "I should also pattern-sweep the plan for similar issues — the review only cited examples." | UIP v1.1.0 had a blanket 'pattern sweep' instruction; v2 dropped it, and it stays dropped for defects — the review IS the contract. The step-5 Propagate bullet is scoped to the applied fix's own change: its three sweeps (literal terms, semantic restatements, mechanism/contract shape) all trace that change; they never hunt defects the review didn't cite. Anything else, surface back to the user as a hint to re-run CIR. |
 | "The span-check item is unverified and proposes no fix — nothing for me to apply, skip it." | Uncovered dependencies are the span check's entire output. Present each to the user; ratchet verified ones into the `Verified plan-level assumptions` table; put unverifiable ones to the user as a choice. A silent drop here defeats the check one skill downstream of where it ran. |
 | "The reviewer proposed this exact fix; my job is to apply it faithfully." | Faithfully to the finding, not to unverified claims inside the fix text. Verify the claim; if it is false, surface it back with evidence — applying it verbatim manufactures the next round's finding. |
-| "The finding pointed at §5; touching §7 too would be scope creep." | Scope creep is adding improvements; propagation is finishing the fix. A dependent section still stating the replaced rule is a new defect authored by the update. |
+| "The finding pointed at §5; touching §7 too would be scope creep." | Scope creep is adding improvements; propagation is finishing the fix. A dependent section still stating the replaced rule is a new defect authored by the update. The three propagation sweeps trace the applied fix's own change — literal terms, restatements, mechanism shape — never defects the review didn't cite. |
 | "The reviewer already verified this / the fix is obviously right — I'll skip the Evidence line." | The line is always present. "Obviously right" is the judgment that failed last time. Re-confirm and cite the reviewer's evidence if it exists (never copy it unchecked), write `none` if prose-only, write `UNVERIFIED:` if you couldn't check — but never omit it. Omitting the line is exactly how the discipline evaporates. |
