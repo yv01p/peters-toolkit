@@ -1,7 +1,6 @@
 """Payment intake dispatch roster -- see spec.md's Section 4.1.
 
-Each handler owns its own persistence call inside process(); handler
-implementations live in their own modules (not included in this fixture).
+Each handler owns its own persistence call inside process().
 """
 
 HANDLER_ROSTER = [
