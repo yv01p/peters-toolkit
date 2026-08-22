@@ -103,7 +103,7 @@ Apply the findings from one or more `critical-implementation-review` v2 outputs 
          mirrors the Evidence line; a proposal without it is visibly
          incomplete.
        - **Gate** — `Apply this fix? (yes / no / modify)`, then wait for the user.
-     If you render the gate as an interactive widget, the Finding / Fix / Evidence lines
+     If you render the gate as an interactive widget, the Finding / Fix / Evidence / Propagation lines
      stay in the message body; never place the Evidence line only inside a widget option,
      where it is truncated out of view.
    - **On approve: TRACK the change. Do NOT call the Edit or Write tool yet.** Note the (find-string, replace-string) for the plan text in your conversation context. All disk writes are deferred to step 9 — this guarantees step 8's snapshot operates on the unmodified plan. **For §1-failure updates, the find-string is the entire current row from the plan's `Verified plan-level assumptions` table; the replace-string is the row with the corrected fact.** Track as a separate (find-string, replace-string) tuple alongside the body fix.
