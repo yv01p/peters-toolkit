@@ -28,14 +28,15 @@ Each item becomes a todo at skill-invocation time, in order:
 1. Read the input plan end-to-end. Verify it's a `thorough-writing-plans` output (presence of `## Verified plan-level assumptions` header, case-insensitive); reject otherwise with the verbatim message in the "Input contract" section.
 2. Read all prior review files matching `<plan-basename>-critical-review-*.md` in `docs/criticalreviews/`. Treat the combined content as the full history; never re-raise an issue already present in any prior review.
 3. Detect drift: parse the plan's `**Source spec:**` header for a SHA (matches both `(commit SHA: <SHA>)` form when spec was tracked and `(uncommitted at plan-write time; repo HEAD = <SHA>)` form when spec was untracked). If `git -C <plan-dir> log --oneline <SHA>..HEAD` returns commits, emit a one-line drift note at the top of the review.
-4. Build the §0 coverage enumeration (see "Coverage before candidates" below): one row per task × surface (step prose, code blocks, commands, wiring/integration text), one row per cross-task interface contract, both failure directions on rule-like content. In round N>1, build the enumeration BEFORE reading the prior round's diff in detail — the prior fix is one row, not the search area.
+4. Build the §0 coverage enumeration (see "Coverage before candidates" below): one row per task × surface (step prose, code blocks, commands, wiring/integration text), one row per cross-task interface contract, both failure directions on rule-like content. In round N>1, build the enumeration BEFORE reading the prior round's diff in detail, then include the three mandatory row families — fix neighborhoods, intersected fix texts, amendment hunks (see Iterative review behavior).
 5. Cross-check the plan's "Verified plan-level assumptions" section (§1 of output): for each assumption, perform a fresh read of the cited evidence; mark each as "still holds" or "failed (with new evidence at file:line)". Then the span check: name any plan dependency with no covering assumption — including dependencies the "Inherited from spec" list assumes but never states (a spec-level span gap otherwise passes through two review layers unexamined).
 6. Work the §0 enumeration through the literal-wrongness test to surface §2 findings (literal-wrongness in the plan's tasks, code blocks, commands, ordering, signatures, consumer impact, race conditions in called primitives, error-path swallowing, integration edge cases at trust boundaries). Give every §0 row a disposition.
 7. Surface §3 forced decisions the plan silently picked (real either/or where a codebase or product constraint forces a choice the plan hasn't named).
 8. Surface §4 history (only if prior reviews exist) — bullets of items from the review history now resolved by the plan's current state.
 9. Pick the recommendation per the bounded taxonomy (✅ / ⚠️ / 🛑).
 10. Write the review file to `docs/criticalreviews/<plan-basename>-critical-review-N.md` (N = highest existing N for that basename + 1, or 1). Create the directory if it doesn't exist; never overwrite.
-11. STOP. The review file is the handoff — no execution-handoff message printed (mirrors CDR v2). Do NOT auto-invoke `update-implementation-plan` or any other downstream skill.
+11. Run the slot-grammar audit on the written review file; print the one-line verdict (`Slot audit: pass` / `pass after N fixes` / `self-audit: …`) as terminal text.
+12. STOP. The review file is the handoff — no execution-handoff message printed (mirrors CDR v2). Do NOT auto-invoke `update-implementation-plan` or any other downstream skill.
 
 ## Process flow
 
@@ -53,6 +54,7 @@ digraph cir_v2 {
     "§4 previously addressed (if history)" [shape=box];
     "Pick recommendation (✅/⚠️/🛑)" [shape=box];
     "Write review file" [shape=box];
+    "Slot-grammar audit" [shape=box];
     "STOP — review file IS the handoff" [shape=doublecircle];
 
     "Read input plan" -> "Plan is thorough-writing-plans output?";
@@ -66,7 +68,8 @@ digraph cir_v2 {
     "§3 forced decisions" -> "§4 previously addressed (if history)";
     "§4 previously addressed (if history)" -> "Pick recommendation (✅/⚠️/🛑)";
     "Pick recommendation (✅/⚠️/🛑)" -> "Write review file";
-    "Write review file" -> "STOP — review file IS the handoff";
+    "Write review file" -> "Slot-grammar audit";
+    "Slot-grammar audit" -> "STOP — review file IS the handoff";
 }
 ```
 
@@ -212,13 +215,32 @@ Disambiguation:
 
 (There is no 🚧 "Plan needs decomposition" — plans are 1:1 with specs by `thorough-writing-plans`'s contract; plan-decomposition isn't a thing here. If a plan really needs to be split, the underlying spec needs to be split first via thorough-brainstorming, not flagged from CIR.)
 
+## Execution: fresh-context dispatch
+
+Run the review as a fresh-context agent whose context is this skill (plus the shared discipline file), the artifact, and the codebase — nothing else. This is a mandatory-strength recommendation when the invoking session authored or last fixed the artifact: sweeps drift toward the newest edit, and a large share of late findings live in text the same session had just written. The review is non-interactive end-to-end, so dispatch changes no contract. When no subagent capability exists, run inline — the slot-grammar audit still applies.
+
 ## Iterative review behavior
 
-- **Re-derive coverage every round.** In round N>1, complete the §0 enumeration sweep BEFORE reading the prior round's diff in detail; the previous round's fix and its neighbors are single enumeration rows, not the search area. History tells you what's *resolved*, never what's *covered* — the CIR→UIP loop otherwise collapses each round's search to the last fix's neighborhood. (Prior-review reading remains mandatory for the never-re-raise rule; it just happens after the enumeration is built.)
+- **Re-derive coverage every round.** In round N>1, complete the §0 enumeration sweep BEFORE reading the prior round's diff in detail. History tells you what's *resolved*, never what's *covered* — the CIR→UIP loop otherwise collapses each round's search to the last fix's neighborhood. Three row families are **mandatory rows** in round N>1 — rows inside the fresh sweep, never a substitute for it:
+  - **(a) Fix neighborhoods:** each prior round's fix sites *and the artifact's restatements of them*.
+  - **(b) Intersected fix texts:** any prior round's fix text whose claims intersect a later discovery — including probe results recorded in the paired artifact's reviews or Verified-assumptions rows for the same feature (spec ↔ plan reviews share probe evidence).
+  - **(c) Amendment hunks:** commits touching the artifact since the previous review round whose messages do not match the update skills' commit shapes (`applied N fixes from …` / `snapshot before … applies N fixes from …`) are out-of-band amendments; their hunks are reviewed at fix-equivalent rigor — the amendment's own claims get population closure, a restatement check, and probes at the right altitude. Detection is anchored on the previous review's recorded anchor header, per "Amendment anchoring" below; round 1 skips (c) — it reviews the whole artifact anyway — but still records the anchor header.
+
+  (Prior-review reading remains mandatory for the never-re-raise rule; it just happens after the enumeration is built.)
 - **History awareness.** Read all prior reviews matching `<plan-basename>-critical-review-*.md` in the output directory. Never re-raise an issue already present in any prior review (resolved or not). If a prior issue is now confirmed as still wrong despite previous mention, surface it in §1 (cross-check) or §2 (literal-wrongness) only if the cited evidence has changed; do not duplicate.
 - **Default output location:** `docs/criticalreviews/<plan-basename>-critical-review-N.md`, relative to the plan's repository root (or to current working directory as fallback if not in a repo). Create the directory if it does not exist. User preference overrides.
 - **Numbering:** N is one higher than the highest existing N for that plan basename, or 1 if none. Never overwrite.
 - **Collision-free with CDR v2 outputs:** CDR v2 writes `<spec-basename>-critical-review-N.md`; CIR v2 writes `<plan-basename>-critical-review-N.md`. By `thorough-writing-plans`'s naming convention, plan basenames carry the `-implementation-plan` suffix that spec basenames don't — the two never collide in the same directory.
+
+**Amendment anchoring.** At round close, every review file records an anchor header in one of two forms, immediately after the `**Spec:**`/`**Plan:**` line:
+- `**Artifact HEAD at review:** <sha>` — when `git log -1 -- <artifact>` yields a commit AND `git status --porcelain -- <artifact>` is empty (the working tree matches the committed state; the sha identifies the reviewed content).
+- `**Artifact anchor at review:** content:<output of git hash-object <artifact>>` — otherwise: gitignored/untracked/non-repo artifacts (every git command in the graph stack succeeds-but-empty on ignored paths, so an empty result there is blindness, not absence), and tracked artifacts modified or staged at round close.
+
+Round N>1 amendment detection, by the previous review's anchor form:
+- **SHA anchor:** run the content-identity check on EVERY report — `git rev-parse <recorded-sha>:<artifact-path>` vs `git hash-object <artifact>`. Equal: no content amendment, proven at content level (forward-window commits are net-zero round-trips). Unequal: the authoritative amendment hunk set is `git diff <recorded-sha> -- <artifact>` — identical to the forward window plus working-tree diff on forward-only histories, and the only complete set when history moved backward — reviewed at fix-equivalent rigor, with in-band commits attributed via the forward window `git log <recorded-sha>..HEAD -- <artifact>` and, where the recorded sha has left HEAD's ancestry, the reverse window `git log HEAD..<recorded-sha> -- <artifact>`. A recorded sha that no longer resolves (pruned by a history rewrite) fails loudly: emit the content-anchor branch's `UNVERIFIED` residue row.
+- **Content anchor:** recompute `git hash-object <artifact>`. Equal: no amendment, proven at content level. Different: an amendment occurred whose hunks and in-band/out-of-band attribution are mechanically unrecoverable — emit one explicit `UNVERIFIED` row naming that residue, flowing to §3 (verify with the user / accept / defer) exactly like an oversized population under population closure.
+
+Never report an empty amendment set from an anchor class that cannot see amendments. Fallback when the previous review predates this slot or carries no anchor line: the mtime window `git log --since=<previous review file's mtime> -- <artifact>` — fallback only (blind to pulled amendments with pre-review committer dates and to mtime resets on fresh checkouts).
 
 ## Drift detection
 
@@ -251,12 +273,25 @@ If N == 0, no note.
 
 If `git -C <plan-dir> rev-parse --is-inside-work-tree` returns false (plan is not in a git repo), skip drift detection silently.
 
+## Slot-grammar audit
+
+After writing the review file and before presenting, dispatch a small fresh-context agent whose only input is the written review file (no codebase access) to audit it against the slot grammar:
+- every confirmed rule-vs-population mismatch has its matrix fully dispositioned (population closure);
+- every load-bearing `ok` and every `Evidence:` line opens with a class tag whose shown evidence matches that class's tier;
+- every rule-like row shows both failure directions;
+- no `UNVERIFIED` row is dropped from §3 flow;
+- the anchor header is present in one of its two forms.
+
+Audit failures return to the reviewer to close before presenting. The audit checks grammar completeness only — it never re-litigates finding content. Fallback without subagent capability: a self-audit against the same checklist, labeled as such in the verdict line.
+
 ## Output format
 
 ````markdown
 # Critical Implementation Review: <plan-basename> (Round N)
 
 **Plan:** <absolute path>
+**Artifact HEAD at review:** <sha> | **Artifact anchor at review:** content:<hash>
+[Record exactly one form — the SHA form when `git log -1 -- <artifact>` yields a commit AND `git status --porcelain -- <artifact>` is empty (working tree matches the committed state); otherwise the content form.]
 **Verified plan-level assumptions section:** present | empty | MISSING
 [If MISSING: skill rejected before reaching this point — message printed in invocation, no file written]
 [If empty: emit "Note: Verified plan-level assumptions section is empty; §1 cross-check has nothing to verify."]

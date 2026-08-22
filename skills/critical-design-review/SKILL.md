@@ -122,12 +122,42 @@ The shared table in `shared-review-discipline.md` applies in full. CDR-specific 
 | "The rule's other operand is obviously the same shape; checking one side covers both." | Structurally-similar operands treated differently by a rule is a named smell. Test the assumed-clean side against real data. |
 | "The arrow reaches the stage with the right records, so the arrow is ok." | Records arriving is half the check. Name the consuming operation's parameters and confirm each exists in the artifact the stage reads. |
 
+## Execution: fresh-context dispatch
+
+Run the review as a fresh-context agent whose context is this skill (plus the shared discipline file), the artifact, and the codebase — nothing else. This is a mandatory-strength recommendation when the invoking session authored or last fixed the artifact: sweeps drift toward the newest edit, and a large share of late findings live in text the same session had just written. The review is non-interactive end-to-end, so dispatch changes no contract. When no subagent capability exists, run inline — the slot-grammar audit still applies.
+
 ## Iterative review behavior
 
-- **Re-derive coverage every round.** In round N>1, complete the §0 enumeration sweep BEFORE reading prior reviews; the previous round's fix and its neighbors are single enumeration rows, not the search area. History tells you what's *resolved*, never what's *covered* — an update loop that only re-examines the last diff walks a thread through one section while the rest of the spec goes unread. (Prior-review reading remains mandatory for the never-re-raise rule; it just happens after the enumeration is built.)
+- **Re-derive coverage every round.** In round N>1, complete the §0 enumeration sweep BEFORE reading prior reviews. History tells you what's *resolved*, never what's *covered* — an update loop that only re-examines the last diff walks a thread through one section while the rest of the spec goes unread. Three row families are **mandatory rows** in round N>1 — rows inside the fresh sweep, never a substitute for it:
+  - **(a) Fix neighborhoods:** each prior round's fix sites *and the artifact's restatements of them*.
+  - **(b) Intersected fix texts:** any prior round's fix text whose claims intersect a later discovery — including probe results recorded in the paired artifact's reviews or Verified-assumptions rows for the same feature (spec ↔ plan reviews share probe evidence).
+  - **(c) Amendment hunks:** commits touching the artifact since the previous review round whose messages do not match the update skills' commit shapes (`applied N fixes from …` / `snapshot before … applies N fixes from …`) are out-of-band amendments; their hunks are reviewed at fix-equivalent rigor — the amendment's own claims get population closure, a restatement check, and probes at the right altitude. Detection is anchored on the previous review's recorded anchor header, per "Amendment anchoring" below; round 1 skips (c) — it reviews the whole artifact anyway — but still records the anchor header.
+
+  (Prior-review reading remains mandatory for the never-re-raise rule; it just happens after the enumeration is built.)
 - **History awareness.** Read all prior reviews matching `<spec-basename>-critical-review-*.md` in the output directory. Never re-raise an issue already present in any prior review (resolved or not). If a prior issue is now confirmed as still wrong despite previous mention, surface it in §1 (verified-assumptions cross-check) or §2 (literal-wrongness) only if the cited evidence has changed; do not duplicate.
 - **Default output location:** `docs/criticalreviews/<spec-basename>-critical-review-N.md`, relative to the repository root. Create the directory if it does not exist. User preference overrides.
 - **Numbering:** N is one higher than the highest existing N for that spec basename, or 1 if none. Never overwrite.
+
+**Amendment anchoring.** At round close, every review file records an anchor header in one of two forms, immediately after the `**Spec:**`/`**Plan:**` line:
+- `**Artifact HEAD at review:** <sha>` — when `git log -1 -- <artifact>` yields a commit AND `git status --porcelain -- <artifact>` is empty (the working tree matches the committed state; the sha identifies the reviewed content).
+- `**Artifact anchor at review:** content:<output of git hash-object <artifact>>` — otherwise: gitignored/untracked/non-repo artifacts (every git command in the graph stack succeeds-but-empty on ignored paths, so an empty result there is blindness, not absence), and tracked artifacts modified or staged at round close.
+
+Round N>1 amendment detection, by the previous review's anchor form:
+- **SHA anchor:** run the content-identity check on EVERY report — `git rev-parse <recorded-sha>:<artifact-path>` vs `git hash-object <artifact>`. Equal: no content amendment, proven at content level (forward-window commits are net-zero round-trips). Unequal: the authoritative amendment hunk set is `git diff <recorded-sha> -- <artifact>` — identical to the forward window plus working-tree diff on forward-only histories, and the only complete set when history moved backward — reviewed at fix-equivalent rigor, with in-band commits attributed via the forward window `git log <recorded-sha>..HEAD -- <artifact>` and, where the recorded sha has left HEAD's ancestry, the reverse window `git log HEAD..<recorded-sha> -- <artifact>`. A recorded sha that no longer resolves (pruned by a history rewrite) fails loudly: emit the content-anchor branch's `UNVERIFIED` residue row.
+- **Content anchor:** recompute `git hash-object <artifact>`. Equal: no amendment, proven at content level. Different: an amendment occurred whose hunks and in-band/out-of-band attribution are mechanically unrecoverable — emit one explicit `UNVERIFIED` row naming that residue, flowing to §3 (verify with the user / accept / defer) exactly like an oversized population under population closure.
+
+Never report an empty amendment set from an anchor class that cannot see amendments. Fallback when the previous review predates this slot or carries no anchor line: the mtime window `git log --since=<previous review file's mtime> -- <artifact>` — fallback only (blind to pulled amendments with pre-review committer dates and to mtime resets on fresh checkouts).
+
+## Slot-grammar audit
+
+After writing the review file and before presenting, dispatch a small fresh-context agent whose only input is the written review file (no codebase access) to audit it against the slot grammar:
+- every confirmed rule-vs-population mismatch has its matrix fully dispositioned (population closure);
+- every load-bearing `ok` and every `Evidence:` line opens with a class tag whose shown evidence matches that class's tier;
+- every rule-like row shows both failure directions;
+- no `UNVERIFIED` row is dropped from §3 flow;
+- the anchor header is present in one of its two forms.
+
+Audit failures return to the reviewer to close before presenting. The audit checks grammar completeness only — it never re-litigates finding content. Fallback without subagent capability: a self-audit against the same checklist, labeled as such in the verdict line.
 
 ## Present the review
 
@@ -145,6 +175,7 @@ Critical Design Review written to:
   §2 Literal-wrongness findings: <count>
   §3 Forced decisions: <count>
   §4 Previously addressed: <count> | n/a (first round)
+  Slot audit: pass | pass after N fixes | self-audit: pass
 ```
 
 The recommendation line uses the icon + label from the bounded taxonomy in `Final recommendation taxonomy` (✅ / ⚠️ / 🛑 / 🚧). Per-section counts are factual — how many bullets the section actually contains. If §1 was skipped because the spec lacked a `Verified assumptions` section, write `n/a (section missing)`. If §4 is omitted because no prior reviews exist, write `n/a (first round)`.
@@ -157,6 +188,8 @@ Print the summary. CDR ends after printing it; no further prompts.
 # Critical Design Review: <spec basename> (Round N)
 
 **Spec:** `<absolute path to spec>`
+**Artifact HEAD at review:** <sha> | **Artifact anchor at review:** content:<hash>
+[Record exactly one form — the SHA form when `git log -1 -- <artifact>` yields a commit AND `git status --porcelain -- <artifact>` is empty (working tree matches the committed state); otherwise the content form.]
 **Verified Assumptions section:** present | MISSING
 
 [If MISSING, immediately after the header:]
