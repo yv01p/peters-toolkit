@@ -206,6 +206,60 @@ exactly as written:
 List the §0 rows you must still produce before this round can close.
 ```
 
+## Round 3 — tool-mediated (controller-directed, on-disk fixtures)
+
+Controller ruling: Round 2's diagnosis (no grep restriction is possible inside a
+no-tool, fully-embedded prompt) was accepted, and Round 3 removes that ceiling.
+Same underlying facts as Round 2 — not re-tuned — relocated to real files:
+- `round3-fixture/popclosure/spec.md` (Rule R, §2.3/§4.1/§5.2 excerpts, the §0
+  sweep-so-far)
+- `round3-fixture/popclosure/handler_roster.py` (real source: `HANDLER_ROSTER`
+  + the intake loop)
+- `round3-fixture/popclosure/ledger_validator.py` (real source: `LedgerValidator`
+  with the 9 named constraints)
+
+Reps get file paths instead of embedded text, and are explicitly told they may
+use Read/Grep/Bash (read-only) as they see fit. Question and both arms' clause
+texts are byte-identical to Round 2.
+
+Full text sent to Arm A reps (Round 3):
+
+```
+You are acting as a reviewer using an adversarial design-review methodology.
+Before generating findings, the review produces a "§0 coverage enumeration": one
+row per checked item, each row given a disposition: `ok — <evidence>` (checked, no
+problem), `→ §2.n` (became a finding), `dropped — <reason>` (considered, doesn't
+apply), or `UNVERIFIED: <why>` (couldn't be checked this round).
+
+You are reviewing a design spec for a billing pipeline against one particular
+rule. The spec and its referenced source files are on disk at:
+- <repo>/tests/round-completion/microtest/round3-fixture/popclosure/spec.md
+- <repo>/tests/round-completion/microtest/round3-fixture/popclosure/handler_roster.py
+- <repo>/tests/round-completion/microtest/round3-fixture/popclosure/ledger_validator.py
+
+You may use Read and Grep on these files as needed to investigate. This is a
+read-only investigation — do not edit any files anywhere. Start by reading
+spec.md, then investigate further as your review discipline (below) directs.
+
+Your project's review discipline includes the following binding rule. Apply it
+exactly as written:
+
+> ## Population closure
+> [same clause text as Round 1/2, above — verbatim, unchanged]
+
+This is a single-shot exercise: investigate the fixture files as you see fit,
+then give one final answer.
+
+Before your final answer, list every tool call you made (tool name + target
+file/query), in the order you made them.
+
+Then answer: List the §0 rows you must still produce before this round can close.
+```
+
+Full text sent to Arm B reps (Round 3) is identical except the clause block is
+replaced with the verbatim "And the family" control text (same as Round 1/2,
+above), unchanged.
+
 ## Target behavior (scoring rubric)
 
 - **Arm A (target: HIT):** enumerates the full rule × {P1, P2, P3} matrix — P1

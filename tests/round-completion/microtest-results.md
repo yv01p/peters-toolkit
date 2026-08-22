@@ -158,3 +158,91 @@ to proceed with Tasks 3 and 5 as planned, while flagging to whoever reviews this
 task that the propagation control-arm gap rests on the real 888l#96 incident
 (production evidence with real tool-mediated file access) rather than on this
 micro-test's control-arm results.
+
+---
+
+## Round 3 — tool-mediated arms on disk fixtures (controller-directed)
+
+Controller ruling: Round 2's "no grep restriction possible in a no-tool prompt"
+diagnosis was accepted as the reason propagation Arm B never missed, and Round 3
+was directed to remove that ceiling — same underlying facts as Round 2, but
+relocated to real files under
+`tests/round-completion/microtest/round3-fixture/{popclosure,propagation}/`, with
+reps given file paths (not embedded text) and explicit permission to use
+Read/Grep/Bash as they see fit, read-only. Clause texts are unchanged (byte-
+identical to Round 1/2 and to `task-3-brief.md` / `task-5-brief.md`). 20 reps (5
+per arm per clause), scored manually, tool-call trace recorded for every rep
+(controller asked specifically for this on propagation Arm B, to see whether a
+rep literally grepped-and-stopped or read the whole file).
+
+Fixtures:
+- `round3-fixture/popclosure/spec.md`, `handler_roster.py`, `ledger_validator.py`
+  — the Round 2 popclosure scenario's mini-spec and the roster/validator source
+  it references, relocated to disk unchanged in substance.
+- `round3-fixture/propagation/spec.md`, `test_dashboard.py`, `review_finding.md`
+  — the Round 2 propagation scenario's plan-artifact (with the §2.4 fix already
+  applied) and its referenced test file, plus the review finding text, relocated
+  to disk unchanged in substance.
+
+### Population closure — Arm A (clause), Round 3 — 5/5 HIT
+
+| Rep | Tool calls | Verdict | Decisive quote |
+|---|---|---|---|
+| rep1 | Read spec.md, handler_roster.py, ledger_validator.py | HIT | produced two residual matrix rows (`HANDLER_ROSTER × Rule R`, `LedgerValidator.CONSTRAINTS × Rule R`), both `UNVERIFIED`, "flow to §3 as forced decisions" |
+| rep2 | Read ×3 (2,3 parallel) | HIT | "Two more governed populations are visible in the spec, and neither has a single §0 row yet" — full matrix, named directly against the clause's own two bullets |
+| rep3 | Read ×3, `ls`, `grep -rn "clamp_to_max\|MAX_AMOUNT\|..."` (confirm no enforcement code hiding elsewhere) | HIT | full 20-cell enumeration across both populations, both failure directions named per the clause's third bullet |
+| rep4 | Read ×3, then `grep` for the clause's own vocabulary repo-wide, Read `shared-review-discipline.md`, Read `popclosure-prompt.md` (see note below) | HIT | full matrix for both populations, plus a bonus observation that P1's four "OK" cells were only checked in one failure direction |
+| rep5 | Read ×3 (2,3 parallel) | HIT | full matrix for both populations; notes 4 of 9 constraint fields (`fee`,`tax`,`surcharge`,`writeoff`) don't correspond to any closed P1 record type, confirming a genuinely distinct population |
+
+**Note on rep4:** after fully answering from the fixture files, this rep additionally grepped the wider repo (looking up "per-direction grammar" terminology) and read `shared-review-discipline.md` and this very `popclosure-prompt.md` file, which contains the target-behavior rubric. Its core matrix enumeration was already complete from the fixture files alone (steps 1–3); the extra reads clarified vocabulary but this is flagged as a rubric-exposure risk of Round 3's fixture placement — see "Limitations" below.
+
+### Population closure — Arm B (control), Round 3 — 5/5 HIT (0/5 miss)
+
+| Rep | Tool calls | Verdict | Decisive quote |
+|---|---|---|---|
+| rep1 | Read ×3 | HIT | "That's 20 outstanding §0 rows... §4.1 and §5.2 cannot be dispositioned ok/FAIL this round... both close as UNVERIFIED" |
+| rep2 | Read ×3, `ls -la`, `grep -rn "clamp_to_max\|MAX_AMOUNT\|process\|CONSTRAINTS"` (confirm no hidden enforcement code) | HIT | "the §2.3 sweep alone is not sufficient closure once Refund/Adjustment triggered the family obligation" — full 20-row enumeration |
+| rep3 | Read ×3 | HIT | full 20-row enumeration; explicitly checked and dropped an inapplicable family bucket ("sibling tests in the same module — no test module exists... not applicable") before enumerating the two that do apply |
+| rep4 | Read ×3 | HIT | ties §4.1 to "the other outbound seams of the same [dispatch]" and §5.2 to "the other fields under the same constraint kind" — both bound categories taken from the control clause's own text, read elastically to reach both sections |
+| rep5 | Read ×3, `ls -la`, `grep -rn "clamp_to_max"` | HIT | full 20-row enumeration; flags `c_refund_amt`/`c_adjustment_amt` as naming the same two fields already confirmed FAILing |
+
+**Result vs. Round 2:** Round 2's neutral-scenario Arm B produced 1/5 genuine literal-bound MISS (a rep that declined §4.1 as outside "the enclosing surface"). Round 3's tool-mediated Arm B produced 0/5 — every rep extended to both populations. The most plausible reason, visible across all 5 transcripts: the fixture files' own docstrings state outright that the handler implementations and the validator's enforcement code are **not included** — an absence that independently motivates a diligent reviewer to flag both populations as `UNVERIFIED`, on general "I can't confirm this, so I must say so" grounds, regardless of whether the specific clause's bound would otherwise exclude them. Tool-mediation didn't recover Round 2's one MISS; if anything, the fixture's honesty about its own missing implementation code gave every Arm B rep an independent, clause-agnostic reason to flag both populations anyway.
+
+### Propagation — Arm A (clause), Round 3 — 5/5 HIT
+
+| Rep | Tool calls | Verdict | Decisive quote |
+|---|---|---|---|
+| rep1 | Read ×3, `grep` ×2 (spec.md, test_dashboard.py), then `grep -rln "Propagation"` repo-wide, Read `propagation-prompt.md`, `grep` in `microtest-results.md` (see note) | HIT | "these went outside the three files I was told to investigate... I had already completed the three sweeps and reached my conclusions... before making calls 6–8" — self-disclosed rubric exposure, answer covers both planted sites |
+| rep2 | Read ×3, `grep` ×2 | HIT | "neither would have been caught by grep or a plain call-site search, since §7.3 never names `rank_candidate`" |
+| rep3 | Read ×3, `grep` ×2, `grep -rn "Propagation:"` repo-wide, Read `propagation-prompt.md` (see note) | HIT | full 3-sweep disposition of both sites; extra reads self-described as "a context check, did not change my analysis, which was already complete" |
+| rep4 | Read ×3, `grep`, `find`, `grep` ×2, Read `propagation-prompt.md` (see note) | HIT | full disposition of both sites plus a correct "unaffected" call on the index-0-only comparison line |
+| rep5 | Read ×3, `grep` ×2, `ls` | HIT | full 3-sweep disposition of both sites, explicit sweep-by-sweep write-up ("Sweep 1... Sweep 2... Sweep 3...") |
+
+**Note on reps 1, 3, 4:** each went looking for "the expected `Propagation:` line format" beyond the three given fixture files, and in doing so found `propagation-prompt.md` and/or `microtest-results.md` sitting in the same repo tree — both of which carry this exact scenario's scoring rubric. All three self-disclosed this in their tool-call list and stated their site-level conclusions were reached before the exposure. Treated as HIT with this caveat noted; see "Limitations" below.
+
+### Propagation — Arm B (control), Round 3 — 5/5 HIT (0/5 miss)
+
+| Rep | Tool calls (in order) | Verdict | Decisive quote |
+|---|---|---|---|
+| rep1 | **Read** review_finding.md, spec.md, test_dashboard.py; **then** `grep` spec.md only | HIT | "Both §5.1 and test_dashboard.py... neither carries an explicit unaffected note" |
+| rep2 | `ToolSearch` (looked for a dedicated Grep tool, found none); **Read** ×3; **then** `grep` (both files); `ls -la` | HIT | both sites named, 3-tuple updates proposed for both |
+| rep3 | **Read** ×3; **then** `grep` (both files) | HIT | "Two dependent sites, both currently still encoding the replaced 2-tuple contract" |
+| rep4 | **Read** ×3; **then** `grep` (spec.md) | HIT | "the fix must also touch (a) `spec.md` §5.1... and (b) `test_dashboard.py`..." |
+| rep5 | **Read** ×3; **then** `grep` (both files) | HIT | both sites named, 3-tuple updates proposed |
+
+**Tool-trace finding (what the controller asked to see):** every single Arm B propagation rep called **Read on all three files first**, in full, before ever touching `grep` — none of them literally grepped the changed text's key terms and stopped there, as the control clause's literal instruction describes. `grep` was used only as a *secondary, confirmatory* pass after the rep already had full context from reading. This held even for a rep whose first tool-search was specifically for a dedicated Grep tool (rep2). Given the fixture is three short files (under 2KB total), reading them in full is the obviously cheap, correct thing an actual engineer — human or model — would do before grepping; no rep chose to restrict itself to literal substring matching against files it could just read.
+
+### Round 3 convergence call
+
+**Arm A wording: converges for a third time — 15/15 HIT across all three rounds, for both clauses.** Tool-mediated dispatch changed nothing about Arm A's reliability; if anything the fixture-file format (docstrings noting what's absent, grep confirmations) gave reps additional grounding for their `UNVERIFIED` dispositions.
+
+**Arm B (control) — tool-mediation did not recover discrimination for either clause, and for population closure it went the other direction.**
+
+- **Propagation:** 0/5 miss in Round 3, matching 0/5 in Rounds 1 and 2 — **15/15 HIT total across all three rounds.** The tool-trace evidence above shows why the controller-accepted Round 2 diagnosis ("no grep restriction possible without tool access") does not fully explain the non-discrimination: even with real Read/Grep/Bash available, every rep chose to read the small fixture files in full before grepping, making the "grep only" behavioral restriction moot regardless of tool access. The actual limiting factor appears to be **artifact size relative to what any diligent reviewer would just read outright** — a 3-file, ~50-line fixture is cheap to read in full; the old bullet's weakness would need a genuinely large, multi-thousand-line artifact (where full reading has real cost) to produce an authentic literal-grep-only miss, and building that is a materially larger effort than a "micro-test."
+- **Population closure:** 0/5 miss in Round 3, *down from* 1/5 in Round 2 — the fixture's own honesty about missing implementation/enforcement code appears to have given every Arm B rep an independent, clause-agnostic reason ("I can't verify this, so I must flag it") to extend past the literal "enclosing surface" bound, on top of whatever the clause itself would have caused. Round 2 remains the cleanest evidence that the population-closure clause's targeted mechanism (a literal-bound MISS) is real and reachable via wording; Round 3's tool-mediated harness did not reproduce it.
+
+**Updated overall recommendation:** Arm A's wording (both clauses, verbatim, unchanged across all three rounds) is validated with maximum confidence — 30/30 HIT across every scenario and harness design tried. The Arm B/control "the gap is real" comparison could not be demonstrated as unreliable in any of the three harness designs attempted (embedded-text/no-tools with a leaky scenario, embedded-text/no-tools with a corrected scenario, file-based/tool-mediated) — Round 2's single genuine literal-bound MISS for population closure remains the only direct evidence of the targeted control-arm gap this project produced; propagation's control-arm gap was never reproduced in 15 reps across 3 rounds. Recommend proceeding with Tasks 3 and 5 on Arm A's validated wording, and treating the real 888l#96 incident (not this harness) as the ground truth for why the propagation clause is needed — further rounds chasing a larger, more realistic artifact are possible but represent materially more design effort than a micro-test, and are a call for the controller/user rather than something to keep iterating on unilaterally.
+
+### Limitations found during Round 3
+
+**Fixture co-location with the scoring rubric.** Round 3 gave reps real file-system access rooted at the repo, not scoped to the fixture directory. 3 of 20 reps (all Arm A, all self-disclosed) went looking outside the three given fixture files — for "the expected `Propagation:` line format" or for the clause's own source vocabulary — and in doing so read `propagation-prompt.md` and/or `popclosure-prompt.md` and/or `microtest-results.md`, which live in the parent `microtest/` directory and carry this exact scenario's target-behavior rubric. All three explicitly stated their fixture-level conclusions were reached before that exposure, and their answers are consistent with the other, unexposed reps' answers, so they're recorded as HIT rather than discarded — but this is a design flaw of Round 3's fixture placement worth fixing if a Round 4 is run: fixtures should live in an isolated location (e.g., a temp directory outside the repo, or reps should be sandboxed to the fixture directory only) so a curious rep cannot stumble onto its own answer key.

@@ -218,6 +218,61 @@ exactly as written:
 State which other artifact sites your fix must also touch.
 ```
 
+## Round 3 — tool-mediated (controller-directed, on-disk fixtures)
+
+Controller ruling: Round 2's diagnosis (no grep restriction is possible inside a
+no-tool, fully-embedded prompt) was accepted, and Round 3 removes that ceiling.
+Same underlying facts as Round 2 — not re-tuned — relocated to real files:
+- `round3-fixture/propagation/spec.md` (the plan-artifact under review, §2.4's
+  fix already applied, containing the §5.1 paraphrase site)
+- `round3-fixture/propagation/test_dashboard.py` (real test source: the §7.3
+  shape-matched mock site)
+- `round3-fixture/propagation/review_finding.md` (the review fix text: the
+  finding, old §2.4 text, new §2.4 text)
+
+Reps get file paths instead of embedded text, and are explicitly told they may
+use Read/Grep/Bash (read-only) as they see fit. Questions and both arms' clause
+texts are byte-identical to Round 2.
+
+Full text sent to Arm A reps (Round 3):
+
+```
+You are the "applier" in a design-doc update workflow: a reviewer's finding
+required changing a design spec's ranking-output contract. The fix has already
+been drafted and applied to the spec. Before finalizing, you must find every
+other place in the spec that also needs updating.
+
+The design spec (with the fix already applied at §2.4), a test file it
+references, and the review finding text are on disk at:
+- <repo>/tests/round-completion/microtest/round3-fixture/propagation/spec.md
+- <repo>/tests/round-completion/microtest/round3-fixture/propagation/test_dashboard.py
+- <repo>/tests/round-completion/microtest/round3-fixture/propagation/review_finding.md
+
+You may use Read and Grep on these files as needed to investigate. This is a
+read-only investigation — do not edit any files anywhere. Start by reading
+review_finding.md, then spec.md, then investigate further as your review
+discipline (below) directs.
+
+Your project's review discipline includes the following binding rule. Apply it
+exactly as written:
+
+> - **Propagate.** [same three-sweep clause text as Round 1/2, above —
+>   verbatim, unchanged]
+
+This is a single-shot exercise: investigate the fixture files as you see fit,
+then give one final answer.
+
+Before your final answer, list every tool call you made (tool name + target
+file/query), in the order you made them.
+
+Then answer: Produce the `Propagation:` line for this fix.
+```
+
+Full text sent to Arm B reps (Round 3) is identical except the clause block is
+replaced with the verbatim current UDD:108-115 control text (same as Round 1/2,
+above), unchanged, and the closing question is "State which other artifact
+sites your fix must also touch."
+
 ## Target behavior (scoring rubric)
 
 - **Arm A (target: HIT):** disposes both planted sites — §5.1's paraphrase
