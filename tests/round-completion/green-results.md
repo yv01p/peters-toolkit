@@ -91,7 +91,21 @@ target behavior the amendment was written to produce.
 
 ---
 
-## 4. propagation — GREEN-arm reps (`update-implementation-plan`, working tree)
+## 4. propagation — GREEN-arm reps, DEFECTIVE FIXTURE (`update-implementation-plan`, working tree)
+
+**Status note (added in the fix round, not a retroactive edit):** the
+controller ruled the fixture used in this §4 run was itself defective — the
+plan's fixture spec required "the artifact holding one paraphrased
+restatement + one shape-bound site (a mock helper returning the old
+shape)," and the shape-bound site was incorrectly planted in
+`src/test_dashboard.py`, a file the plan only *cites*, rather than embedded
+in the plan artifact's own text. §4 below is preserved verbatim as the
+historical record of what was actually run and found against that
+defective fixture — it is real evidence that every rep's Propagation sweep
+scoped "artifact site" to the plan document's own text (a defensible,
+in fact correct, reading once the fixture is understood to be broken this
+way). **§4a below is the corrected-fixture re-run — the authoritative
+current propagation GREEN result.**
 
 Rubric: **CAUGHT** = the proposal's `Propagation:` line disposes BOTH
 planted sites — Task 4's paraphrase AND `src/test_dashboard.py`'s
@@ -167,7 +181,103 @@ call for the controller, not for this task.
 
 ---
 
-## 5. auditor — slot-grammar-audit reps (`critical-design-review`, no codebase access)
+## 4a. propagation — GREEN-arm reps, CORRECTED FIXTURE (`update-implementation-plan`, working tree)
+
+**Fixture fix (controller-directed, `impl-plan.md`):** added a new `## Task
+6: Dashboard test coverage` to `tests/round-completion/propagation/impl-plan.md`,
+embedding the shape-bound mock directly in the plan artifact's own text:
+
+```python
+def _stub_result():
+    return (0.82, "gold")
+
+def test_dashboard_groups_by_bucket():
+    grade, bucket = _stub_result()
+    assert bucket == "gold"
+```
+
+Shares no literal key terms with the changed contract (`score`, `tier`,
+`reason_code`, `rank_candidate`, `2-tuple`/`3-tuple`/`tuple` all absent),
+matching Task 4's `grade`/`bucket` paraphrase vocabulary — findable only by
+shape, not by sweep-1 grep. Task 4 (the paraphrase site) is untouched, byte
+-identical to before. `src/test_dashboard.py` is left in place unedited, as
+background realism (per the controller's explicit discretion) — it is no
+longer the scored site. **Site 2, for scoring purposes from here on, is
+Task 6's embedded code block.**
+
+Same rubric as §4 (site 2 redefined per above), same dispatch method
+(fresh-context `general-purpose`/sonnet, scoped to the fixture directory
+and the working-tree `update-implementation-plan/SKILL.md`), 5 fresh reps
+(not a re-run of the same reps — independent dispatch).
+
+| Rep | Verdict | Decisive quote |
+|---|---|---|
+| propagation-GREEN-corrected-rep1 | **CAUGHT** | Propagation: "Task 6 (dashboard test stub) — **edited** — `_stub_result()` returns `(0.82, "gold")` and is destructured `grade, bucket = _stub_result()`, a mock helper mirroring `rank_candidate`'s exact return shape 'until the real service integration lands'; left as a 2-tuple it goes stale against the new 3-tuple contract." Task 4: "unaffected — restates score/tier in dashboard-display terms... doesn't assert an exhaustive 2-field contract." |
+| propagation-GREEN-corrected-rep2 | **CAUGHT** | Propagation: "Task 6 'Dashboard test coverage' stub (lines 44–53) — **edited.** The stub is explicitly described as standing in for 'the ranking output... until the real service integration lands,' and its code mirrors `rank_candidate`'s exact tuple shape." Task 4: "unaffected — describes the dashboard's UI output (grade + bucket label), not `rank_candidate`'s return-value arity." |
+| propagation-GREEN-corrected-rep3 | **CAUGHT** | Propagation: "Task 6 (dashboard test-coverage code block) — **edited.** This is a mock helper that constructs and destructures the exact value contract Task 3 defines (**the case the mechanism/contract sweep calls out by name: 'mock helpers that return the tuple, arity assertions'**)." Explicitly notes `src/ranking.py`/`src/test_dashboard.py` are "out of scope, not edited: this skill modifies the plan only" — correct scoping, and still catches the in-plan site. |
+| propagation-GREEN-corrected-rep4 | **CAUGHT** | Propagation: "Task 6 'Dashboard test coverage' stub (lines 44–53) — **edited.** ... **so it gets a consistent tracked edit rather than a skip**." Updated block shown with 3-tuple `_stub_result()` and matching destructure. |
+| propagation-GREEN-corrected-rep5 | **CAUGHT** | Propagation: "Task 6, dashboard test-coverage stub... is a mock helper that constructs and destructures a tuple mirroring `rank_candidate`'s old 2-element shape — **edited**, to stay consistent with Task 3's new 3-tuple contract." Diff-style edit shown, both `_stub_result()` and the destructure line updated. |
+
+**Aggregate: 5/5 CAUGHT, 0/5 MISSED.** Complete reversal from §4's 0/5 on
+the defective fixture — every rep, independently, found and correctly
+edited the embedded mock, several explicitly citing it as the literal
+"mock helpers that return the tuple" example named in the landed clause
+text.
+
+---
+
+## 4b. propagation — RED-arm reps, CORRECTED FIXTURE (`update-implementation-plan`, `git show v2.5.0:`)
+
+Full per-rep table with decisive quotes recorded in `baseline-results.md`
+§9 (RED belongs in the baseline file; summarized here for the contrast
+analysis). Per the controller's instruction, expanded to n=5 to match §4a.
+
+**Aggregate: 5/5 CAUGHT, 0/5 MISSED** — every rep independently found and
+edited Task 6's embedded stub as the fix's propagated dependent mention,
+even running the pre-amendment v2.5.0 text (one rep, per `baseline-results.md`
+§9, explicitly noted v2.5.0's proposal shape folds the "Propagate" search
+into the **Fix** bullet rather than a separate `Propagation:` line, and
+correctly reproduced that shape).
+
+### Contrast analysis — corrected fixture: GREEN 5/5 vs. RED 5/5
+
+**No discrimination on the corrected fixture either — both arms now catch
+100%.** This is a different, and much better, result than §4/§4a's
+defective-fixture 0/5-vs-0/5 tie: it confirms GREEN reliably works (the
+controller's primary ask — "if GREEN still misses on the corrected
+fixture, report that honestly" does not apply; GREEN does not miss). But
+it means this particular fixture, once the mock lives inside the plan
+artifact's own text, no longer isolates the *value* of Task 5's three-sweep
+wording specifically — any diligent read of a short, fully-in-scope plan
+document (old skill text or new) finds an embedded code block, the same
+structural reason Task 1's own propagation control-arm micro-test never
+produced a control-arm miss either (`microtest-results.md`'s Round
+2/3/3b: 0/10 valid Arm-B misses — "artifact size relative to what any
+diligent reviewer would just read outright"). **Read together with Task 1:
+across every harness this project has built (Task 1's 20 reps, this
+fixture's 10 defective-fixture reps, this fixture's 10 corrected-fixture
+reps — 40 total propagation reps), the pre-amendment control text has
+never once been caught missing a mock embedded directly in the swept
+artifact.** The real 888l#96 production incident remains the only concrete
+evidence that the old grep-only bullet actually fails in practice; this
+task's corrected fixture now cleanly demonstrates GREEN's reliability
+(5/5, matching Task 1's 15/15) without claiming a RED-arm contrast this
+fixture design cannot produce. This honest framing is reported per the
+same standard applied to popclosure (ruling 1) rather than treated as a
+second silent gap.
+
+---
+
+## 5. auditor — slot-grammar-audit reps, DEFECTIVE FIXTURE (`critical-design-review`, no codebase access)
+
+**Status note (added in the fix round, not a retroactive edit):** the
+controller ruled item 4 of the fixture used in this §5 run was itself
+defective — it bundled 3 named validator constraints into a single
+aggregate over/under disposition rather than a disposition per constituent,
+unlike every other multi-member population in the fixture. §5 below is
+preserved verbatim as the historical record; rep2's "additional flag" was
+real signal, not audit over-reach. **§5a below is the corrected-fixture
+re-run — the authoritative current auditor result.**
 
 Per ruling 2: each rep received ONLY the auditor fixture's `review.md` text
 plus the working-tree `## Slot-grammar audit` section text from
@@ -214,6 +324,44 @@ is reported to the controller as-is — **the auditor fixture was NOT edited
 or otherwise adjusted** in response to this finding, per the explicit
 instruction not to silently fix a fixture based on a rep's result.
 
+*(Superseded by the controller's fix-round ruling: this WAS a fixture
+defect after all — see §5a below.)*
+
+---
+
+## 5a. auditor — slot-grammar-audit reps, CORRECTED FIXTURE (`critical-design-review`, no codebase access)
+
+**Fixture fix (controller-directed, `auditor/review.md`):** item 4 rewritten
+so each of the 3 named constraints (`c_blocklist_check`, `c_rate_check`,
+`c_ip_check`) gets its own `over:`/`under:` bullet, matching the per-member
+treatment already given to §2's 4 endpoint handlers and §3.1's 5-member
+middleware roster. Every one of the 6 resulting dispositions (3 constraints
+× 2 directions) is still left untagged — the missing class tag remains the
+single planted defect at that item; `CacheMiddleware`'s undispositioned
+matrix cell (§3.1) is untouched. Re-verified the exactly-two-defects
+invariant by inspection before re-running reps: defect A (`CacheMiddleware`)
+and defect B (item 4's missing tags, now correctly per-cell) are the only
+two flaggable violations of the checklist against the corrected text.
+
+Same dispatch method as §5 (no tool access, review file + Slot-grammar
+audit section text pasted verbatim), 3 fresh reps.
+
+| Rep | Verdict | Decisive quote |
+|---|---|---|
+| auditor-corrected-rep1 | **CAUGHT** (clean) | "1. Population closure... **FAIL** — `CacheMiddleware` is never dispositioned anywhere in §0 item 3..." "2. Class tag... **FAIL** — none of these six `ok`s (2 per constraint × 3 constraints) opens with a class tag... unlike every other `ok` in §0 items 2 and 3." "3. ...both failure directions: **FAIL**" — explicitly the *same* `CacheMiddleware` gap re-surfacing under item 3's direction check, not a new defect: "a named, rule-like roster member... has zero disposition text." **Overall: FAIL (3 of 5 checklist items fail)** — 2 root defects, 3 checklist-item hits. |
+| auditor-corrected-rep2 | **CAUGHT** (clean) | "1. ... **FAIL** — `CacheMiddleware` has no bullet at all..." "2. ... **FAIL** — none of these six `ok`s... opens with a bracketed class tag." "3. Every rule-like row shows both failure directions: **PASS**... (`CacheMiddleware`'s total absence is a population-closure defect, **already captured under item 1, not a same-row direction gap**)." **Overall: FAIL (items 1 and 2 fail).** Explicitly declines to double-count `CacheMiddleware` — no extra flag. |
+| auditor-corrected-rep3 | **CAUGHT** (clean) | "1. ... **FAIL**... `CacheMiddleware` never appears in a disposition bullet..." "2. ... **FAIL**... **Six ok-lines** (over+under × 3 constraints) are missing their class tag." "3. ...both failure directions: **PASS**... (`CacheMiddleware`'s total absence is a population-closure defect, already captured under item 1, not a same-row direction gap)." **Overall: FAIL (2 of 5 checklist items fail — items 1 and 2).** |
+
+**Aggregate: 3/3 CAUGHT, 0/3 MISSED — clean across the board, zero extra
+flags.** The ambiguity §5 surfaced is fully resolved: with item 4 correctly
+per-cell dispositioned (still untagged), all 3 independent reps converge on
+exactly the two planted defects — one rep (rep1) additionally reports the
+`CacheMiddleware` gap under checklist item 3 ("both failure directions"),
+but this is the *same* underlying defect crossing two checklist categories,
+not a third violation — reps 2 and 3 explicitly note this distinction in
+their own verdicts ("already captured under item 1, not a same-row
+direction gap"), confirming it is not scored as an extra flag.
+
 ---
 
 ## 6. Ruling application notes
@@ -238,29 +386,48 @@ input; the fixture's normalized exactly-two-defects design was not touched;
 the additional flag rep2 raised is reported as a concern, not silently
 absorbed into either the fixture or the scoring.
 
+**Controller fix-round ruling (post-§1–§6, see task-6-report.md's fix-round
+addendum):** both open concerns above (propagation's 0/5-vs-0/5 tie, the
+auditor's extra flag) were ruled **fixture defects** in Task 2's original
+authorship, not clause findings — the no-fixture-edits constraint was
+explicitly lifted for exactly these two fixes. Both fixtures were corrected
+and both arms re-run; see §4a/§4b (propagation) and §5a (auditor) above for
+the corrected-fixture results, and §7 below for the updated final tallies.
+No `skills/` text was touched at any point — the reps' behavior was
+correct throughout; only the fixtures were wrong.
+
 ---
 
 ## 7. Final summary — GREEN + completed RED tallies (supersedes nothing in
 `baseline-results.md`; that file's own §5 is superseded by its §8, added in
-this task)
+this task; §4/§5 above are superseded by §4a/§4b/§5a for current status,
+kept verbatim as the historical record)
 
 | Fixture | GREEN (working tree) | RED (pre-amendment, `v2.5.0`) | Discrimination? |
 |---|---|---|---|
 | popclosure | 2/2 CAUGHT | 5/5 CAUGHT (n expanded 2→5 per ruling 1) | None observed at this n — behavior-shape argument only (ruling 1); real 888l#96 incident remains the production evidence |
-| propagation | 0/5 CAUGHT (5/5 MISSED) | 0/5 CAUGHT (5/5 MISSED, n expanded 2→5) | **None** — clean 5/5-vs-5/5 tie; flagged above as the task's central open concern |
-| auditor | 2/3 CAUGHT clean, 1/3 caught-both-plus-extra-flag (strict-rubric MISSED) | N/A (no pre-Task-4 baseline exists — audit step is new) | N/A — GREEN-only fixture; extra-flag ambiguity flagged above |
+| propagation (defective fixture, §4/§4-baseline — historical) | 0/5 CAUGHT (5/5 MISSED) | 0/5 CAUGHT (5/5 MISSED, n expanded 2→5) | None — a fixture defect, since fixed |
+| **propagation (corrected fixture, §4a/§4b — current)** | **5/5 CAUGHT** | **5/5 CAUGHT** | None — both arms now catch 100%; fixture no longer isolates the clause's marginal value (see §4b contrast analysis), but GREEN's reliability is now cleanly demonstrated |
+| auditor (defective fixture, §5 — historical) | 2/3 CAUGHT clean, 1/3 caught-both-plus-extra-flag | N/A (no pre-Task-4 baseline — audit step is new) | N/A — a fixture defect, since fixed |
+| **auditor (corrected fixture, §5a — current)** | **3/3 CAUGHT, clean, zero extra flags** | N/A (no pre-Task-4 baseline — audit step is new) | N/A — GREEN-only fixture |
 
 Guard: GREEN, exit 0, no literal mismatch, first run. `run-tests.sh`: wired
-per the brief's exact line, `ALL TESTS PASSED` confirmed end-to-end.
+per the brief's exact line, `ALL TESTS PASSED` confirmed end-to-end and
+reconfirmed after both fixture fixes.
 
-**Recommendation to the controller:** popclosure and the guard/wiring are
-clean, unambiguous GREEN evidence. The auditor arm is GREEN with one
-reported fixture-design ambiguity (not fixed here). **Propagation is not
-clean GREEN evidence** — the fixture built in Task 2 shows zero
-discrimination between pre- and post-amendment skill text, for a diagnosed
-structural reason (mock lives in a cited codebase file, not embedded in the
-artifact text, unlike Task 1's validated microtest fixture). This task
-records the result honestly rather than substituting a different fixture or
-re-rolling reps, per the standing instruction against fabricating or
-smoothing over results; resolving it (wording amendment, fixture redesign,
-or accepting the limitation) is left to the controller.
+**Recommendation to the controller:** all three fixtures now produce clean
+GREEN evidence. Popclosure and the guard/wiring were clean from the first
+run. Propagation and auditor initially surfaced what looked like clause
+findings but were, per the controller's fix-round ruling, fixture defects
+in Task 2's original authorship — both fixed (embedding the shape-bound
+mock in the plan artifact's own text; per-cell dispositioning the auditor's
+§4.2 validator population) and both arms re-run to n=5/n=3 respectively,
+landing 5/5, 5/5, and 3/3 CAUGHT with zero extra flags. No `skills/` text
+was changed at any point in this task. The one remaining open note for the
+controller (not a defect, an honest limitation) is §4b's contrast
+analysis: the corrected propagation fixture demonstrates GREEN's
+reliability cleanly but, because the mock now lives inside the artifact
+text, no longer produces a RED-vs-GREEN discrimination for this clause on
+this fixture — consistent with Task 1's own finding that this control
+text's failure mode has proven very hard to reproduce in any harness
+short of the real production incident.

@@ -38,3 +38,16 @@ the dashboard and the alerting pipeline.
 
 - [ ] Three-phase rollout: internal cohort, 10% of traffic, full traffic. No
       scoring or tier content in this task.
+
+## Task 6: Dashboard test coverage
+
+- [ ] Stub the ranking output for the dashboard's summary-panel tests, until
+      the real service integration lands:
+      ```python
+      def _stub_result():
+          return (0.82, "gold")
+
+      def test_dashboard_groups_by_bucket():
+          grade, bucket = _stub_result()
+          assert bucket == "gold"
+      ```

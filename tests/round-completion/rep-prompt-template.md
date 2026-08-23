@@ -124,12 +124,28 @@ yet responded to the gate.
   disposes BOTH planted sites: Task 4's paraphrase ("numeric grade
   alongside a bucket label" — the same score/tier rule in other words, no
   shared key terms with `score`/`tier`/`reason_code`/`rank_candidate`) AND
-  `src/test_dashboard.py`'s `_stub_result()` mock (returns the OLD 2-tuple
-  shape). Each site gets an explicit `edited` / `unaffected — <why>`
-  disposition, or is otherwise named as needing a consistent update.
+  Task 6's embedded `_stub_result()` code block (`impl-plan.md`, returns the
+  OLD 2-tuple shape `(0.82, "gold")` — embedded directly in the plan
+  artifact's own text, since `update-implementation-plan` modifies the plan
+  only; `src/test_dashboard.py` is background realism, not the scored site).
+  Each site gets an explicit `edited` / `unaffected — <why>` disposition, or
+  is otherwise named as needing a consistent update.
 - **MISSED** — either site is absent from the proposal (not named, not
   dispositioned) — most likely under the baseline arm's grep-only Propagate
   bullet, which has no vocabulary in common with either planted site.
+
+  **Fixture history:** the fixture originally (Task 2) planted the
+  shape-bound site only in `src/test_dashboard.py`, a file cited by but
+  external to the plan artifact. Task 6's first paired-arm run showed 0/5
+  CAUGHT on both the GREEN and RED arms against that version — every rep
+  read "artifact site" as scoped to the plan document's own text and never
+  dispositioned the externally-cited file, even when they opened and read
+  it. The controller ruled this a fixture defect (contradicts the plan's
+  own required design: "the artifact holding one paraphrased restatement +
+  one shape-bound site") and directed embedding the mock in the plan text
+  itself (Task 6 of `impl-plan.md`), fixed in the "fix round" commit. See
+  `green-results.md` and `baseline-results.md` for both the original
+  (defective-fixture) and corrected-fixture results, both kept.
 
 ---
 
@@ -170,9 +186,22 @@ any FAIL. Your final report must be ONLY that checklist verdict.
 
 - **CAUGHT** — the audit flags BOTH planted violations: the undispositioned
   `CacheMiddleware` cell in the §3.1 middleware-roster matrix (population
-  closure incomplete), and item 4's untagged load-bearing `ok` row (the
-  §4.2 override-validator disposition has no leading class tag).
+  closure incomplete), and item 4's untagged load-bearing `ok` rows (all
+  three §4.2 override-validator per-constraint dispositions — `c_blocklist_check`,
+  `c_rate_check`, `c_ip_check` — have no leading class tag; one defect
+  class, three cells).
 - **MISSED** — either violation survives the audit as a PASS, or the audit
   additionally flags something that is NOT one of these two planted
   defects (the fixture is otherwise valid — an audit that flags anything
   else is scored against the fixture, not the audit).
+
+  **Fixture history:** item 4 originally (Task 2) gave the §4.2 validator's
+  3 named constraints a single aggregate over/under pair rather than a
+  disposition per constituent, unlike every other multi-member population
+  in the fixture (§2's 4 endpoint handlers, §3.1's 5-member middleware
+  roster). 1 of 3 reps in Task 6's first run flagged this as a genuine
+  population-closure gap under the shared file's own "disposition per cell"
+  text — a real fixture defect per the controller's ruling, not audit
+  over-reach. Fixed in the "fix round" commit: item 4 now gives each of the
+  3 constraints its own over/under bullet, still with no class tag (the
+  missing tag remains the sole planted defect there).

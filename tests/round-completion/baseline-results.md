@@ -5,8 +5,11 @@
 guard was genuinely unwired and Tasks 3–5 hadn't landed. Task 6 has since
 wired the guard into `tests/run-tests.sh` (now passing, `ALL TESTS PASSED`)
 and expanded the RED arms to n=5 for both popclosure and propagation (§6–§8
-below). See `green-results.md` for the GREEN-arm (working tree, post
-Tasks 3–5) results this baseline is paired against.
+below). A controller-directed fix round then corrected a fixture defect in
+the propagation fixture (§9–§10) — **§10 is the current, authoritative
+propagation tally.** See `green-results.md` for the GREEN-arm (working
+tree, post Tasks 3–5) results this baseline is paired against, and its
+§4a/§4b/§5a for the corrected-fixture GREEN + auditor results.
 
 Task 2 of the `888l#96` round-completion-implementation-plan. Records RED
 evidence against the CURRENT (pre-Task-3/4/5-edit) working tree: the
@@ -343,4 +346,62 @@ the same 5/5 miss as the GREEN arm — see §7's concern and
 the controller. §5's original n=2 tallies and framing are preserved above
 unedited, for the historical record of what Task 2 actually ran and
 concluded at the time; this §8 is the authoritative, current tally as of
-Task 6.
+Task 6, **superseded in turn by §10 below once the fixture fix landed.**
+
+---
+
+## 9. Fix round — propagation RED-arm reps, CORRECTED FIXTURE (`update-implementation-plan`, `git show v2.5.0:`)
+
+**Status note:** §4 and §7 above are preserved verbatim as the historical
+record — at the time they ran, the propagation fixture was genuinely
+defective (the shape-bound mock was planted in `src/test_dashboard.py`, a
+file the plan only cites, rather than embedded in the plan artifact's own
+text, contrary to the plan's own required fixture design). The controller
+ruled this a Task 2 fixture defect and lifted the no-fixture-edits
+constraint for exactly this fix. `impl-plan.md` now carries a new `## Task
+6: Dashboard test coverage` embedding the mock directly (see
+`green-results.md` §4a for the exact diff and the shape/vocabulary
+rationale). This §9 is the re-run against that corrected fixture — n=5,
+matching `green-results.md` §4a's GREEN-arm expansion. Same dispatch
+method as §4/§7 (fresh-context reps run `git show
+v2.5.0:skills/update-implementation-plan/SKILL.md` themselves, scoped to
+the fixture directory and that one command).
+
+| Rep | Verdict | Decisive quote |
+|---|---|---|
+| propagation-baseline-corrected-rep1 | **CAUGHT** | "Propagating this contract change to its one other dependent mention in the plan: **Task 6's stub mirrors `rank_candidate`'s return shape** for the dashboard's test coverage, so it must move to the same 3-tuple to stay consistent with Task 3." |
+| propagation-baseline-corrected-rep2 | **CAUGHT** | "Propagated dependent mention — **Task 6's stub code mirrors the exact 2-tuple shape and destructuring pattern this fix changes**, and would go stale if left as-is." |
+| propagation-baseline-corrected-rep3 | **CAUGHT** | "Propagated edit — **Task 6's embedded stub restates the same `rank_candidate` output shape** ('Stub the ranking output... until the real service integration lands') and would silently diverge from Task 3's new contract if left alone." This rep also correctly identified that v2.5.0's actual proposal shape (step 5's "Present the fix proposal in this shape" bullet) is **Finding / Fix / Evidence / Gate**, with no separate `Propagate:` line — the "Propagate" bullet is a drafting-time search-and-track action whose results fold into the **Fix** bullet — and reproduced that shape rather than inventing a `Propagation:` line the v2.5.0 text doesn't specify. |
+| propagation-baseline-corrected-rep4 | **CAUGHT** | "Task 6 (propagated dependent mention — its stub encodes the old 2-tuple shape it's standing in for) — change:" `_stub_result()` and the destructure line both updated to the 3-tuple; `test_dashboard_sorts_descending` (which destructures only `a[0]`, not by arity) correctly left as-is. |
+| propagation-baseline-corrected-rep5 | **CAUGHT** | "Propagated edit — **Task 6's stub records the same replaced quantity** (it mirrors `rank_candidate`'s old 2-value return shape for the dashboard's test coverage) and would otherwise ship an internally inconsistent plan." |
+
+**Aggregate: 5/5 CAUGHT, 0/5 MISSED.** Complete reversal from §7's 0/5 on
+the defective fixture — every rep, running the unmodified pre-amendment
+skill text, independently found and edited the now-embedded mock. See
+`green-results.md` §4b for the full contrast analysis against the matching
+GREEN-arm 5/5: both arms now catch 100%, which confirms GREEN's
+reliability but means this particular fixture no longer isolates the
+marginal value of Task 5's three-sweep wording specifically (any diligent
+read of a short, fully-in-scope plan document finds an embedded code
+block, regardless of clause version) — reported honestly rather than
+claimed as a clean RED-vs-GREEN discrimination this fixture design cannot
+produce.
+
+---
+
+## 10. Updated summary (supersedes §8 above)
+
+| Fixture | Baseline reps run | Baseline CAUGHT | Baseline MISSED |
+|---|---|---|---|
+| popclosure | 5 | 5/5 | 0/5 |
+| propagation (defective fixture — historical, §4/§7) | 5 | 0/5 | 5/5 |
+| **propagation (corrected fixture — current, §9)** | **5** | **5/5** | **0/5** |
+| auditor | 0 (no pre-Task-4 baseline exists — audit step is new) | n/a | n/a |
+
+Propagation's defective-fixture 5/5-MISSED result (§4/§7) is preserved
+verbatim for the historical record — it was real evidence of a real
+fixture defect (planting the shape-bound site outside the artifact text),
+not evidence against the clause. §9's corrected-fixture 5/5-CAUGHT is the
+current, authoritative baseline-arm result. This §10 supersedes §8; §8 in
+turn superseded §5; none of the superseded sections were deleted or
+edited, per the standing instruction to keep the historical record intact.

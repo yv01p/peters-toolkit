@@ -42,14 +42,23 @@
      check runs on every call.
 4. §4.2 Manual review override validator — `ReviewValidator` gates the
    spec-permitted "manual review" branch (support staff clearing a flagged
-   request), enforcing 3 named constraints (`c_blocklist_check`,
-   `c_rate_check`, `c_ip_check`) that independently re-verify the same
-   intent as Rule R. over: ok — read `ReviewValidator.sign_off()` in full:
-   no non-blocklisted user's override is ever blocked by these constraints
-   / under: ok — read `ReviewValidator.sign_off()` in full: each of the
-   three constraints independently re-checks `is_blocklisted()` before
-   permitting the override, and none can be satisfied for a blocklisted
-   user without the required justification field.
+   request), enforcing 3 named constraints that independently re-verify the
+   same intent as Rule R:
+   - `c_blocklist_check` — over: ok — read `ReviewValidator.sign_off()` in
+     full: never blocks a non-blocklisted user's override / under: ok —
+     read `ReviewValidator.sign_off()` in full: re-checks `is_blocklisted()`
+     before permitting the override; cannot be satisfied for a blocklisted
+     user without the required justification field.
+   - `c_rate_check` — over: ok — read `ReviewValidator.sign_off()` in full:
+     never blocks a non-blocklisted user's override / under: ok — read
+     `ReviewValidator.sign_off()` in full: re-checks `is_blocklisted()`
+     before permitting the override; cannot be satisfied for a blocklisted
+     user without the required justification field.
+   - `c_ip_check` — over: ok — read `ReviewValidator.sign_off()` in full:
+     never blocks a non-blocklisted user's override / under: ok — read
+     `ReviewValidator.sign_off()` in full: re-checks `is_blocklisted()`
+     before permitting the override; cannot be satisfied for a blocklisted
+     user without the required justification field.
 
 4/4 endpoint handlers dispositioned, 2 findings raised (`CreateOrder`,
 `CancelOrder` → §2). The middleware roster and the override validator are
