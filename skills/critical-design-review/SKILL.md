@@ -1,7 +1,7 @@
 ---
 name: critical-design-review
 description: Use when reviewing a design spec produced by thorough-brainstorming, before the design is implemented. Use for adversarial design review, second-opinion on a finalized spec, or finding issues in a design before they become bugs. Multiple iterative passes supported.
-version: 2.4.0
+version: 2.5.0
 ---
 
 # Critical Design Review

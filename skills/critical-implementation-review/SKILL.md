@@ -1,7 +1,7 @@
 ---
 name: critical-implementation-review
 description: Use when reviewing an implementation plan produced by thorough-writing-plans, before the plan is implemented. Use for adversarial implementation review, second-opinion on a finalized plan, or finding issues in a plan before they become bugs at execution time. Multiple iterative passes supported.
-version: 2.3.0
+version: 2.4.0
 ---
 
 # Critical Implementation Review (v2)

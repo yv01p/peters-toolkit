@@ -1,7 +1,7 @@
 ---
 name: update-implementation-plan
 description: Use when a critical-implementation-review v2 output exists and the implementation plan needs to be revised to address its findings. Takes one or more CIR v2 review file paths as arguments. Processes each finding sequentially with user approval. Commits pre-state and post-state when the plan is in a git repo. Empty review = no edits made.
-version: 2.3.0
+version: 2.4.0
 ---
 
 # Update Implementation Plan
