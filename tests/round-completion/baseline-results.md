@@ -1,5 +1,13 @@
 # Round-completion paired-arm harness — BASELINE (RED) results
 
+**Status note (added by Task 6, not a Task 2 edit):** §1–§5 below are Task
+2's original record, preserved verbatim — at the time they were written the
+guard was genuinely unwired and Tasks 3–5 hadn't landed. Task 6 has since
+wired the guard into `tests/run-tests.sh` (now passing, `ALL TESTS PASSED`)
+and expanded the RED arms to n=5 for both popclosure and propagation (§6–§8
+below). See `green-results.md` for the GREEN-arm (working tree, post
+Tasks 3–5) results this baseline is paired against.
+
 Task 2 of the `888l#96` round-completion-implementation-plan. Records RED
 evidence against the CURRENT (pre-Task-3/4/5-edit) working tree: the
 deterministic guard's failure output, plus baseline-arm (`git show v2.5.0:`)
@@ -231,3 +239,108 @@ as a call-site-only concern" miss). Popclosure's baseline arm did not
 reproduce a miss at n=2 — reported honestly above as a concern for Task 6,
 consistent with Task 1's own finding that this control text's miss rate is
 low but real, not zero.
+
+---
+
+## 6. Task 6 RED top-up — popclosure (reps 3–5, n expanded 2→5 per controller ruling 1)
+
+Controller ruling (session ledger, carried forward to Task 6): §3's n=2
+baseline-arm result (2/2 CAUGHT, no fresh miss) is expanded to n=5 total
+before accepting the honest-contrast framing. Same dispatch method as §3:
+fresh-context `general-purpose` subagents (model: sonnet), each running
+`git -C <repo> show v2.5.0:skills/critical-design-review/SKILL.md` and the
+matching `shared-review-discipline.md` themselves (rather than being handed
+pre-fetched text), then applying that v2.5.0 text to the same
+`design-spec.md` + `src/` fixture, scoped to the fixture directory and the
+two `git show` commands only. Same rubric as §3 (CAUGHT = both §4.1
+`WalletHandler` and §5.2 `c_writeoff_amt` surfaced; MISSED = the round stops
+at the 2 given findings or extends only partially).
+
+| Rep | Verdict | Decisive quote |
+|---|---|---|
+| popclosure-baseline-rep3 | **CAUGHT** | "`WalletHandler.process` (`:30-32`): `_persist_to_ledger(amount)` — **no call to `clamp_to_max()`** anywhere in its process method. **FAIL.** → §2.3" and "`c_writeoff_amt`: `sign_off()` passes `field_values["c_writeoff_amt"]` straight through at `:24` with **no `clamp_to_max()` call**... **FAIL.** → §2.4" |
+| popclosure-baseline-rep4 | **CAUGHT** | "`WalletHandler.process`: **FAIL** — persists raw `amount` with no `clamp_to_max()` call: `_persist_to_ledger(amount)` (handler_roster.py:32), unlike its four siblings. → §2.3" and "`c_writeoff_amt`: **FAIL** — assigned straight from `field_values` with no `clamp_to_max()` call (ledger_validator.py:24)... → §2.4" |
+| popclosure-baseline-rep5 | **CAUGHT** | "Row 9: `WalletHandler.process`... — `_persist_to_ledger(amount)`. **FAIL** — no `clamp_to_max()` call anywhere in this handler's persistence path... **→ §2.3**" and "Row 16: `c_writeoff_amt`... — `clamped["c_writeoff_amt"] = field_values["c_writeoff_amt"]`. **FAIL** — assigned directly from the input dict; not included in the... loop... **→ §2.4**" |
+
+**Reps 3–5 aggregate: 3/3 CAUGHT, 0/3 MISSED. Combined with §3 (reps 1–2):
+popclosure baseline-arm total is now 5/5 CAUGHT, 0/5 MISSED at n=5.**
+
+**Honest result, not re-rolled further:** expanding to n=5 did not
+reproduce a fresh literal-bound miss for this control text on this fixture.
+This is the outcome flagged as possible in §3's original concern note, and
+per the controller's ruling it is recorded honestly rather than treated as
+grounds to keep expanding: Task 1's own documented finding (1 genuine miss
+across 15 valid control-arm reps in three rounds, ~1/15 ≈ 6–7% observed
+rate) predicts that 5 more reps landing 0 fresh misses is the statistically
+expected outcome, not evidence the underlying gap is illusory. Per ruling 1,
+GREEN's evidentiary value for this fixture rests on the *behavior-shape*
+argument (mandatory full-matrix enumeration, correct per-cell dispositions,
+explicit population-closure vocabulary) documented in `green-results.md`
+§3/§6, not on a raw RED-vs-GREEN catch-rate delta — and the real 888l#96
+incident remains the documented production baseline for this control's
+value.
+
+---
+
+## 7. Task 6 RED top-up — propagation (reps 3–5, n expanded 2→5 to match the GREEN-arm expansion)
+
+Task 6's GREEN-arm propagation reps (see `green-results.md` §4) produced a
+clean, unambiguous 5/5 MISS after expansion — the opposite of the expected
+result. Per the brief's instruction ("if you run GREEN propagation at n>2,
+top up its RED arm to match"), the baseline arm here is expanded from n=2
+(§4 above) to n=5 to match. Same dispatch method as §4: fresh-context
+`general-purpose` subagents run `git -C <repo> show
+v2.5.0:skills/update-implementation-plan/SKILL.md` themselves, then apply
+that pre-amendment text (no `Propagation:` slot, no three-sweep contract) to
+the same `impl-plan.md` + `review.md` + `src/` fixture, scoped to the
+fixture directory and the one `git show` command only. Same rubric as §4.
+
+| Rep | Verdict | Decisive quote |
+|---|---|---|
+| propagation-baseline-rep3 | **MISSED** (site 2 read, cited as justification, never itself dispositioned) | "Read `src/test_dashboard.py` — its stub `_stub_result()` returns `(0.82, "gold")` and both tests destructure only `grade, bucket`, confirming the same gap at Task 4's downstream consumer, **which is what makes it a dependent mention of the changed quantity**" — used solely to justify editing Task 4's *prose*; the Fix section proposes edits to Task 3 and Task 4 only. `src/test_dashboard.py` itself never receives its own `edited`/`unaffected` disposition — the mock ships unedited either way. |
+| propagation-baseline-rep4 | **MISSED** (same pattern) | "Also read `src/test_dashboard.py:1-16`... confirming Task 4 is a genuine dependent mention of the mechanism the fix changes... **so it gets a consistent tracked edit rather than a skip**" — again the tracked edit is to Task 4's prose only; the mock file itself is read for evidence and never proposed as its own edit site. |
+| propagation-baseline-rep5 | **MISSED** (same pattern) | "Also read `src/test_dashboard.py:4-16` — `_stub_result()` returns `(0.82, "gold")`... **confirming Task 4's dashboard is the plan's downstream consumer** of the same 2-field shape the fix replaces — which is what makes Task 4 a dependent mention requiring the propagated edit above **rather than a note that it's unaffected**." Same pattern: Task 4 prose edited, `_stub_result()` itself never dispositioned. |
+
+**Reps 3–5 aggregate: 0/3 CAUGHT, 3/3 MISSED. Combined with §4 (reps 1–2):
+propagation baseline-arm total is now 0/5 CAUGHT, 5/5 MISSED at n=5 —
+identical to the GREEN arm's 0/5 CAUGHT, 5/5 MISSED (`green-results.md`
+§4).**
+
+**This is the central finding flagged to the controller in
+`green-results.md` §4:** propagation shows **zero discrimination** between
+pre- and post-Task-5 skill text on this fixture, at n=5 on both arms. Unlike
+§4's original reps (which either never opened the mock file, or dismissed
+it on "not coupled to arity" call-site-only grounds), all three top-up reps
+here (and 3 of the 5 GREEN reps) DID read `src/test_dashboard.py` and
+correctly recognized it as evidence of a real shape match — but every one
+of them routed that recognition into editing Task 4's *prose* description
+rather than treating the mock *file* as its own swept site needing a
+consistent tracked edit. This is a more sophisticated engagement with the
+shape match than a pure "never looked" miss, but the practical outcome is
+identical: the mock ships unedited in every one of 10 total reps across
+both arms. See `green-results.md` §4 for the root-cause diagnosis (this
+fixture's mock lives in a codebase file only *cited* by the plan artifact,
+not embedded in the artifact's own text — a structural difference from
+Task 1's microtest fixture, which validated the same clause wording at
+15/15 HIT with the mock embedded directly inside the swept document).
+
+---
+
+## 8. Updated summary (supersedes §5 above)
+
+| Fixture | Guard assertion classes RED (pre-amendment) | Baseline reps run | Baseline CAUGHT | Baseline MISSED |
+|---|---|---|---|---|
+| (guard, all 6 classes) | 6/6 FAIL | n/a | n/a | n/a |
+| popclosure | (covered by classes 1–3, applies post-edit) | 5 | 5/5 | 0/5 |
+| propagation | (covered by class 4, applies post-edit) | 5 | 0/5 | 5/5 |
+| auditor | (covered by classes 5–6, applies post-edit) | 0 (no pre-Task-4 baseline exists — audit step is new; GREEN-only per `green-results.md` §5) | n/a | n/a |
+
+Popclosure: expanded to n=5 per controller ruling 1; no fresh miss
+reproduced (consistent with Task 1's ~1/15 low-but-real baseline miss rate).
+Propagation: expanded to n=5 to match the GREEN arm's expansion; produced
+the same 5/5 miss as the GREEN arm — see §7's concern and
+`green-results.md` §4 for the full analysis and the diagnosis flagged to
+the controller. §5's original n=2 tallies and framing are preserved above
+unedited, for the historical record of what Task 2 actually ran and
+concluded at the time; this §8 is the authoritative, current tally as of
+Task 6.
