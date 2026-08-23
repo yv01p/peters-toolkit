@@ -7,6 +7,7 @@ echo "== provenance =="; bash "$ROOT/provenance/check-companion-provenance.sh" |
 echo "== lockstep ==";   bash "$ROOT/lockstep/check-version-lockstep.sh"       || fail=1
 echo "== shared-discipline =="; bash "$ROOT/shared-discipline/check-companion-wiring.sh" || fail=1
 echo "== evidence-slot =="; bash "$ROOT/evidence-slot/check-evidence-slot.sh" || fail=1
+echo "== round-completion =="; bash "$ROOT/round-completion/check-round-completion.sh" || fail=1
 echo "== sproc-xray-scratch =="; bash "$ROOT/sproc-xray-scratch/check-scratch-isolation.sh" || fail=1
 echo "== sproc-xray-loc-contract =="; bash "$ROOT/sproc-xray-loc-contract/check-loc-contract.sh" || fail=1
 echo "== bugfix status =="; ( cd "$ROOT/.." && node --test 'skills/bugfix/tests/**/*.test.mjs' ) || fail=1

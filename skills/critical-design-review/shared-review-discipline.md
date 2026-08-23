@@ -40,11 +40,15 @@ an evidence tier asserted but not shown is fabricated coverage.
 | Artifact–consumer compatibility ("the harness consumes these files") | Push at least one real artifact through the consuming operation or its validator | Existence/count evidence — "67 files on disk" discharges "67 files exist", never "these files load" |
 | Bidirectional completeness ("every X is Y" mappings, span checks) | Both directions checked, each direction's disposition named in the row | A one-direction pass |
 
-Existence-level evidence discharges existence-level claims only. A load-bearing
+A load-bearing
 row that can't meet its tier in-round is not `ok`: upgrade the evidence, or
 surface it as a §3 forced decision (verify empirically / accept the risk /
 defer). Non-load-bearing rows keep their one-line check; the ladder does not
 license padding.
+
+**Per-direction dispositions.** A §0 row for rule-like content shows each failure direction as its own disposition: `over: ok — <probe> / under: → §2.1`. "Check BOTH failure directions" is visible output, not a private step — a row showing one direction is visibly incomplete.
+
+**Claim-class tags.** Every load-bearing disposition and every `Evidence:` line (on §2 fixes and §3 options) opens with a bracketed class tag from this closed vocabulary, mapping onto the ladder rows above: `[totality]`, `[presence]` (field/element present in a persisted artifact), `[absence]`, `[compat]` (artifact–consumer compatibility), `[bidirectional]`, `[negative]` (negative claims, below), `[existence]` (existence-level claims only). The evidence shown after the tag must meet that class's ladder tier — the tag is what makes a read-tier check on a run-tier claim visible at a glance.
 
 **The ladder binds findings too, in the same direction.** A §2 candidate is a
 claim about behavior, and its claim class sets the tier its evidence must meet.
@@ -56,6 +60,18 @@ dependencies), run it before the candidate becomes a finding: a probe that
 confirms the failure is the finding's evidence; a probe that comes out green is
 a disproof that just saved a round. If it can't be run, name the finding's
 evidence tier honestly in its row.
+
+**Probe altitude.** A probe discharges a claim only at the altitude the claim is stated at: a module- or entry-point-level claim requires a probe entering through that surface, not through the internal mechanism the claim was inferred from — a regex-level probe is blind to a pre-regex guard. And the probe must exercise the **artifact's described mechanism or cited precedent as described**: a probe of the reviewer's own correct reconstruction verifies the reconstruction, not the artifact.
+
+## Population closure
+
+When any §0 row confirms a **rule-vs-population mismatch** — a rule that fails against a member of a population it governs — the round cannot close until the full (rule × every population it governs) matrix is enumerated: as individual §0 rows, or as one row naming the matrix with a disposition per cell (`ok — <evidence>` / `→ §2.n` / `dropped — <reason>` / `UNVERIFIED: <why>`). "Population" is read expansively:
+
+- The **roster a rule iterates over is itself a governed population** — the outer matrix (rule × roster) needs cells dispositioned, not only the inner matrix the first finding came from.
+- The **constraint set of a validator gating a spec-permitted branch** is a population that branch is checked against.
+- **Both failure directions apply per cell**, not per rule — a cell checked for over-inclusion only is half-dispositioned (per-direction grammar above).
+
+"Two instances found" triggers full enumeration, never a stop. A population too large to close in-round is not silently sampled: the residual cells get one `UNVERIFIED: <the uncovered remainder>` row, which flows to §3 as a forced decision (verify empirically / accept the risk / defer) — exactly like an unverifiable negative claim.
 
 ## Negative claims require empirical evidence
 
@@ -187,9 +203,6 @@ speculation or fabricated coverage:
 | "The artifact names the paths that produce this status, and I verified those." | The predicate matches whatever the CODE can produce; grep the producers — the unnamed one is the unhandled input class. |
 | "I verified this operation's parameter sourcing at its call site." | At *a* call site. One row per caller — the caller treated as a copy of another is the one that breaks. |
 | "This block already gave me a finding; the rest of it is covered." | A finding disposes a defect, not a surface; the block's remaining identifiers are unchecked until checked. |
-| "I counted the artifacts, so the row is ok." | Counting proves existence; only pushing a real record through the consumer proves compatibility. |
-| "I checked one case and it matched byte-identically." | n=1 verifies that case, not the class; totality claims get the population or both-sets inspection. |
-| "The schema/docstring says the field is there." | The persisted record is the operand, not the type; dump real keys. |
 | "The field wasn't in the records I sampled, so it's absent." | Records that never reached the populating state prove nothing; sample where the field would be set. |
 | "I found the broken check; the rest of that validator is a different concern." | A found check has siblings enforcing the same invariant; inventory the enclosing span. |
 | "This test's outbound call is mocked; the test's row is done." | One row per outbound seam; the unmocked second seam is where the live call escapes. |
@@ -198,3 +211,5 @@ speculation or fabricated coverage:
 | "I verified this earlier in the round; the Evidence line is redundant." | Then it costs one sentence: name the probe and result. Evidence that can't be named in one line was remembered, not verified. |
 | "My probe demonstrates the point — I set up the state and showed the check catches it." | A probe that force-assigns the state it claims to detect cannot come out the other way; exercise the real path and name what would have falsified it. |
 | "The failure mechanism is clear from reading the code; running it would only confirm it." | Read-tier reasoning about runtime behavior misses the interaction that flips the outcome; if it's one runnable command away, run it before it becomes a finding. |
+| "My probe hits the mechanism the claim is really about; the entry point is just plumbing." | A claim stated at module/entry-point altitude is discharged only by a probe entering through that surface; the plumbing is where the pre-mechanism guard lives. |
+| "The artifact's description is roughly what my probe implements; close enough." | A probe of your own reconstruction verifies the reconstruction, not the artifact. Probe the described mechanism as described — a passing simulation of the wrong operation is fabricated coverage. |

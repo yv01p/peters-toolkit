@@ -19,6 +19,51 @@ When cutting a new version, update in lockstep:
 4. A new `git tag vX.Y.Z`
 5. Regenerate `tests/provenance/companion-manifest.sha256` (and its `# target:` line) if the visual-companion files were re-synced to a new Superpowers target
 
+## [2.5.1] — 2026-08-22
+
+**Targets Superpowers 6.3.x** (verified against 6.3.0; compatible back to 6.0.x)
+
+### Changed
+- CDR 2.5.0 / CIR 2.4.0 / UDD 2.4.0 / UIP 2.4.0: round-completion output slots. The reviewers'
+  recurrence sweep replaces the old "bounded to the enclosing surface" family bound with
+  **population closure** — a round cannot close until the full (rule × every population it governs)
+  matrix is enumerated, as individual §0 rows or one row naming the matrix with a disposition per
+  cell — carried once in `shared-review-discipline.md` and referenced by both CDR and CIR. Each
+  disposition now uses a **per-direction, class-tagged grammar** (`over:`/`under:` opened by a
+  bracketed `[totality]`/`[existence]`/… class tag) at a stated **probe altitude**. Round-N>1
+  reviews carry **mandatory rows** anchored by **two amendment forms** (`Artifact HEAD at review:`
+  and `Artifact anchor at review: content:`) so a fix-equivalent amendment hunk is reviewed at
+  fix-equivalent rigor; reviews run as **fresh-context dispatch**; and CDR/CIR gain a
+  **slot-grammar audit** step. UDD/UIP add the **three-sweep propagation contract**
+  (1. literal / 2. semantic restatements / 3. mechanism-contract) terminating in a required
+  `**Propagation:**` line that enumerates every dependent site, with **claim-classed evidence
+  acceptance** for forwarded reviewer evidence.
+- Motivation: the 888l#96 corpus — 48 round-≥2 review items over 42 corpus cycles, ~85–100%
+  mechanically derivable and ~30% actually fix-authored — i.e., round-2+ completion work the prior
+  slots left to reviewer diligence rather than compelling structurally.
+- Reliability evidence (GREEN). The population-closure and propagation clause wordings converge at
+  **30/30 HIT** (15 per clause) across every micro-test round and harness design tried — embedded-text
+  and tool-mediated fixtures, 65 reps total (`tests/round-completion/microtest-results.md`). The
+  paired-arm harness (`tests/round-completion/green-results.md`) shows the landed slots producing the
+  target behavior cleanly: popclosure **2/2 CAUGHT** with full-matrix, per-direction, class-tagged
+  dispositions; the corrected propagation fixture **5/5 CAUGHT**; the slot-grammar auditor **3/3 CAUGHT**
+  with zero extra flags. New deterministic guard `tests/round-completion/check-round-completion.sh`
+  (6 assertion classes) wired into `tests/run-tests.sh`; micro-test + paired-arm harness under
+  `tests/round-completion/`.
+- Honest evidence limits. **Population closure** — the control arm produced a single genuine
+  literal-bound miss (1 of 15 valid control-arm micro-test reps); the clause's value is *reliability*
+  (a sometimes-correct-by-diligence behavior made always-correct via mandatory full-matrix enumeration
+  and the population vocabulary), a behavior-shape difference rather than a high raw miss-rate, with the
+  888l#96 corpus as the documented production baseline. **Propagation** — the 888l#96 corpus is the RED
+  baseline; three independent harness designs could not reproduce the grep-blindness miss on small
+  fixtures (the pre-amendment control arm also CAUGHT the embedded mock 5/5, and 0 of 10 valid
+  control-arm micro-test reps missed), so the test suite is **not** claimed to demonstrate a propagation
+  RED→GREEN flip — it demonstrates GREEN reliability, with the real production incident as the gap's
+  ground truth.
+- Size: the reviewers grew. Per-invocation word counts (SKILL.md + `shared-review-discipline.md` where
+  applicable): CDR 6,159 → 7,287 (+1,128); CIR 7,779 → 8,940 (+1,161); UDD 3,488 → 3,728 (+240);
+  UIP 3,981 → 4,242 (+261).
+
 ## [2.5.0] — 2026-08-16
 
 **Targets Superpowers 6.3.x** (verified against 6.3.0; compatible back to 6.0.x)
