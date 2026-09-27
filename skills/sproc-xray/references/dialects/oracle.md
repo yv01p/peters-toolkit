@@ -210,9 +210,12 @@ State that outlives one call, or that is shared between routines. Record one `fi
 # STEP 1 — print each package's DECLARATION REGION: everything between the package header
 # and its first nested PROCEDURE/FUNCTION. Whatever is declared here is package-level state,
 # whatever it is named. This is a region search, not a name search — do not filter by prefix.
-awk 'toupper($0) ~ /^[[:space:]]*CREATE[[:space:]]+(OR[[:space:]]+REPLACE[[:space:]]+)?PACKAGE/ {inpkg=1}
+# Run it over every source file: a region opens only at a package header and closes at the
+# end of its file, so file content, not a .pks/.pkb extension, selects the package files.
+awk 'FNR==1 {inpkg=0}
+     toupper($0) ~ /^[[:space:]]*CREATE[[:space:]]+(OR[[:space:]]+REPLACE[[:space:]]+)?((NON)?EDITIONABLE[[:space:]]+)?PACKAGE/ {inpkg=1}
      inpkg && toupper($0) ~ /^[[:space:]]*(PROCEDURE|FUNCTION)[[:space:]]/ {inpkg=0}
-     inpkg {print FILENAME":"FNR": "$0}' sql/*.pks sql/*.pkb
+     inpkg {print FILENAME":"FNR": "$0}' sql/*
 # STEP 2 — for each identifier STEP 1 reported, find every read and write of it by name.
 # Build this pattern from STEP 1's output; do not guess it from a naming convention.
 grep -nE '\b(<name1>|<name2>|…)\b' sql/
