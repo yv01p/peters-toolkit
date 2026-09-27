@@ -157,7 +157,7 @@ One context doing the whole analysis measured 347K tokens on 50 Oracle functions
 
    ```bash
    awk -F'|' -v LIMIT=128000 '
-   { f=$1; cmd="wc -c < \"" f "\""; cmd | getline sz; close(cmd)
+   { f=$1; q=f; gsub(/\047/, "\047\"\047\"\047", q); cmd="wc -c < \047" q "\047"; sz=0; cmd | getline sz; close(cmd)
      t=""; while ((getline line < f) > 0) t=t " " line; close(f); t=toupper(t); key=""
      if (match(t, /CREATE[[:space:]]+(OR[[:space:]]+REPLACE[[:space:]]+)?((NON)?EDITIONABLE[[:space:]]+)?PACKAGE[[:space:]]+(BODY[[:space:]]+)?[A-Z0-9_$#."]+/)) {
        key=substr(t, RSTART, RLENGTH); sub(/.*[[:space:]]/, "", key); gsub(/"/, "", key); sub(/.*\./, "", key) }
