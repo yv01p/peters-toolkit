@@ -23,11 +23,11 @@ claude -p "/peters-toolkit:sproc-migration-plan ./O1-CORPUS-SPROC-XRAY.md — th
   --output-format json > run.json 2> run.err
 ```
 
-**Outcome: every session of T2, T3, T4 and T5 stayed at or below 400K tokens with no compaction.** The largest was a T3 worker at 343,216.
+**Outcome: every session of T2, T3, T4 and T5 stayed at or below 400K tokens with no compaction.** The largest was the T2 worker at 356,088.
 
 ## Changes from the plan
 
-- **Model.** `claude-opus-5-5` instead of `sonnet`, decided after the Sonnet runs below failed quality criteria at every batch size.
+- **Model.** `claude-opus-5-5` instead of `sonnet`, decided after the Sonnet runs below: Sonnet 5 failed at least one check in 3 of 4 runs, and the 45,000 run passed all of them. One run per size cannot separate model from batch size; the user chose Opus.
 - **Batch limit.** 128,000 bytes. The plan's 15,000 was set against the earlier 160K-per-context target; the target is now 400K (40% of a 1M window).
 - **T3 batch count.** 5 at 128,000, derived with Step 4.2's command (the plan's 43 was at 15,000). The run's `Agent` briefs list 37 / 43 / 80 / 64 / 26 files, the same as the command. No file exceeds 128,000 bytes, so the oversize-batch exception does not apply.
 - **T2 `UDT Usage`, 3 rows.** SKILL.md says `UDT Usage` lists the signature's type constructs "copied verbatim". Every GREEN run, on both models, wrote the anchor verbatim (`C_BPartner.C_BPartner_ID%TYPE`); the baseline wrote a bare `` `%TYPE` ``. Ruled a baseline error.
@@ -131,7 +131,7 @@ The failures move between runs and are not explained by batch size (F12 hit the 
 ## Known issues carried forward
 
 - **Report size** (#10): batched reports are 4–5× the single-context size (T2 366,303 vs 78,581 bytes; T5 108,794 vs the golden 26,578), mostly proof blocks pasted inline. T3's 907,590-byte report has not been run through the planner.
-- **Worker headroom:** the largest T3 worker used 343,216 tokens on 126,633 bytes, about 57K under the limit.
+- **Worker headroom:** the T2 worker used 356,088 tokens on 122,831 bytes, about 44K under the limit; the largest T3 worker used 343,216 on 126,633 bytes.
 - **Proof commands that depend on shell variables:** re-verify catches and repairs them (T3: 1 of 218).
 
 ## Evidence location

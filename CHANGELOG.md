@@ -19,6 +19,20 @@ When cutting a new version, update in lockstep:
 4. A new `git tag vX.Y.Z`
 5. Regenerate `tests/provenance/companion-manifest.sha256` (and its `# target:` line) if the visual-companion files were re-synced to a new Superpowers target
 
+## [Unreleased]
+
+### Changed
+- sproc-xray 0.7.0: batched runs. The coordinator plans batches of source files (at most
+  128,000 bytes each, a package's spec and body together), runs one Batch Worker subagent per
+  batch (at most 10 at once), and combines their scratch files into the same report. Measured
+  on ADempiere (50 and 250 objects): every context stayed at or below 400K tokens with no
+  compaction; largest worker 356,088, largest coordinator 213,622.
+- Validated on Opus 5.5. Sonnet 5 followed the skill's rules inconsistently between runs
+  (per-routine LOC, Extraction Sequencing format, scratch-dir writes, proof re-verify); see
+  `tests/sproc-xray-batching/green-results.md`.
+- sproc-xray `references/dialects/oracle.md`: GLOBAL_STATE STEP 1 resets its package region
+  per file and runs over every source file.
+
 ## [2.5.1] — 2026-08-22
 
 **Targets Superpowers 6.3.x** (verified against 6.3.0; compatible back to 6.0.x)

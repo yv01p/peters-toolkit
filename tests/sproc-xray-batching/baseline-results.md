@@ -56,6 +56,8 @@ Notes:
 
 Extraction Metrics table, verbatim from the baseline report. The GREEN run's table must match it row for row, since every cell is computed by command:
 
+Exception: the three `%TYPE` cells (`bpartnerRemitLocation`, `documentNo`, `get_Sysconfig`) are a baseline error. SKILL.md says `UDT Usage` copies the signature's type construct verbatim (e.g. `C_BPartner.C_BPartner_ID%TYPE`); see `green-results.md`, "Changes from the plan".
+
 | Object | Params | Cursor Loops | Branches | UDT Usage | File | LOC |
 |--------|--------|--------------|----------|-----------|------|-----|
 | acctBalance | 3 | 0 | 4 | none | Acct_Balance.sql | 64 |
