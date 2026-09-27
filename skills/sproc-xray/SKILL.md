@@ -156,7 +156,7 @@ One context doing the whole analysis measured 347K tokens on 50 Oracle functions
 2. **Batch plan, by command.** Write `<WORK>/sources.tsv`, no header line, one line per text source file from the Step 1 glob, `absolute path|scope`, sorted by path: scope is `test` for the files Context Intake flags as test scripts, otherwise `production`. Binary DB files and the files Step 3 excludes for other reasons (seed data) are left out. Then run this verbatim. It writes `<WORK>/batches.tsv` (`Batch|File|Scope`, no header line):
 
    ```bash
-   awk -F'|' -v LIMIT=45000 '
+   awk -F'|' -v LIMIT=86000 '
    { f=$1; cmd="wc -c < \"" f "\""; cmd | getline sz; close(cmd)
      t=""; while ((getline line < f) > 0) t=t " " line; close(f); t=toupper(t); key=""
      if (match(t, /CREATE[[:space:]]+(OR[[:space:]]+REPLACE[[:space:]]+)?((NON)?EDITIONABLE[[:space:]]+)?PACKAGE[[:space:]]+(BODY[[:space:]]+)?[A-Z0-9_$#."]+/)) {
