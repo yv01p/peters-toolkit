@@ -26,6 +26,7 @@ need 'cmd-K.out'                                              'proof command-fil
 absent 'Format as indented tree or Mermaid diagram'            'dependency graph must be Mermaid only'
 absent 'every bare-filename proof-block command resolves here' 'cwd-reliant Step 1 text must be gone'
 absent 'Use subagents to parallelize where dimensions are independent' 'old Step 4 suggestion must be gone'
+grep -n '\$[0-9]' "$SKILL" >&2 && { echo 'FAIL (present): $N field reference; Claude Code substitutes skill arguments for $0, $1, ... in SKILL.md, write $(N)' >&2; err=1; }
 
 if [ "$err" -ne 0 ]; then echo "sproc-xray batching contract: FAIL" >&2; exit 1; fi
 echo "sproc-xray batching contract OK"

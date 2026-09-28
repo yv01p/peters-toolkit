@@ -151,18 +151,18 @@ One context doing the whole analysis measured 347K tokens on 50 Oracle functions
 
 1. **Manifest.** Build the Component Manifest by command as Dimension 1 requires, and also write `<WORK>/manifest.tsv`, no header line, one line per object defined in a production file: `Object|Type|File|LOC`. Type is `Procedure`, `Function`, `Trigger`, `View`, `Table`, or `Package`; File is the basename, as `metrics.tsv` writes it; LOC is the Component Manifest's LOC. A packaged routine gets its own line, named `pkg.routine` as `metrics.tsv` names it, overloads included. The names in `manifest.tsv` are the canonical spellings for the whole run. Then, by command:
    - **Oracle:** write `<WORK>/state.tsv`, no header line, one line per shared-state name, `Name|File:Line`: every name declared in a package's declarative region (the dialect file's GLOBAL_STATE STEP 1, run over every text source file) and every `CREATE GLOBAL TEMPORARY TABLE` name, each with its declaration site.
-   - **Duplicate standalone names:** `awk -F'|' '($2=="Procedure" || $2=="Function") && $1 !~ /\./ {print $1}' <WORK>/manifest.tsv | sort -f | uniq -di`. Names with a package prefix are left out, because package overloads are legal. Write each duplicate with its files to `<WORK>/dup-names.txt`, for the Executive Summary and Dimension 1.
+   - **Duplicate standalone names:** `awk -F'|' '($(2)=="Procedure" || $(2)=="Function") && $(1) !~ /\./ {print $(1)}' <WORK>/manifest.tsv | sort -f | uniq -di`. Names with a package prefix are left out, because package overloads are legal. Write each duplicate with its files to `<WORK>/dup-names.txt`, for the Executive Summary and Dimension 1.
    - Evaluate the Dimension 1 empty-scope gate here, before any batching. When it fires, emit the Empty-Scope Compact Report exactly as Report Format defines it, straight to the report path with its proofs inline (it skips step 5), and dispatch nothing.
 2. **Batch plan, by command.** Write `<WORK>/sources.tsv`, no header line, one line per text source file from the Step 1 glob, `absolute path|scope`, sorted by path: scope is `test` for the files Context Intake flags as test scripts, otherwise `production`. Binary DB files and the files Step 3 excludes for other reasons (seed data) are left out. Then run this verbatim. It writes `<WORK>/batches.tsv` (`Batch|File|Scope`, no header line):
 
    ```bash
    awk -F'|' -v LIMIT=128000 '
-   { f=$1; q=f; gsub(/\047/, "\047\"\047\"\047", q); cmd="wc -c < \047" q "\047"; sz=0; cmd | getline sz; close(cmd)
+   { f=$(1); q=f; gsub(/\047/, "\047\"\047\"\047", q); cmd="wc -c < \047" q "\047"; sz=0; cmd | getline sz; close(cmd)
      t=""; while ((getline line < f) > 0) t=t " " line; close(f); t=toupper(t); key=""
      if (match(t, /CREATE[[:space:]]+(OR[[:space:]]+REPLACE[[:space:]]+)?((NON)?EDITIONABLE[[:space:]]+)?PACKAGE[[:space:]]+(BODY[[:space:]]+)?[A-Z0-9_$#."]+/)) {
        key=substr(t, RSTART, RLENGTH); sub(/.*[[:space:]]/, "", key); gsub(/"/, "", key); sub(/.*\./, "", key) }
      if (key != "" && (key in unit)) id=unit[key]; else { id=++n; if (key != "") unit[key]=id }
-     files[id]=files[id] $0 "\n"; bytes[id]+=sz }
+     files[id]=files[id] $(0) "\n"; bytes[id]+=sz }
    END { b=0; used=0
      for (i=1; i<=n; i++) { if (b==0 || (used>0 && used+bytes[i]>LIMIT)) { b++; used=0 }
        used+=bytes[i]; m=split(files[i], r, "\n"); for (j=1; j<m; j++) printf "%02d|%s\n", b, r[j] } }' <WORK>/sources.tsv > <WORK>/batches.tsv
@@ -183,11 +183,11 @@ One context doing the whole analysis measured 347K tokens on 50 Oracle functions
       W=<WORK>; for f in calls crud ext findings metrics; do : > "$W/$f.tsv.tmp"; done
       awk -F'|' -v OFS='|' '
       function fix(v,  k) { k=tolower(v); if (k in canon) return canon[k]; if (!(k in seen)) seen[k]=v; return seen[k] }
-      FNR==NR { k=tolower($1); if (!(k in canon)) canon[k]=$1; next }
+      FNR==NR { k=tolower($(1)); if (!(k in canon)) canon[k]=$(1); next }
       { n=FILENAME; sub(/.*\//, "", n)
-        if (n=="metrics.tsv") $1=fix($1)
-        else if (n=="findings.tsv") $3=fix($3)
-        else { $1=fix($1); $2=fix($2) }
+        if (n=="metrics.tsv") $(1)=fix($(1))
+        else if (n=="findings.tsv") $(3)=fix($(3))
+        else { $(1)=fix($(1)); $(2)=fix($(2)) }
         print > (FILENAME ".tmp") }' "$W/manifest.tsv" "$W/calls.tsv" "$W/crud.tsv" "$W/ext.tsv" "$W/findings.tsv" "$W/metrics.tsv" &&
       for f in calls crud ext findings metrics; do mv "$W/$f.tsv.tmp" "$W/$f.tsv"; done
       ```
@@ -201,11 +201,11 @@ One context doing the whole analysis measured 347K tokens on 50 Oracle functions
 
         ```bash
         W=<WORK>; awk -F'|' '
-        FNR==NR { k=tolower($1)
-          if ($2=="Trigger") trg[k]=$1
-          else if (($2=="Procedure" || $2=="Function") && !(k in node)) { node[k]=$1; left++ }
+        FNR==NR { k=tolower($(1))
+          if ($(2)=="Trigger") trg[k]=$(1)
+          else if (($(2)=="Procedure" || $(2)=="Function") && !(k in node)) { node[k]=$(1); left++ }
           next }
-        { a=tolower($1); b=tolower($2); if (a!=b && (a in node) && (b in node)) dep[a SUBSEP b]=1 }
+        { a=tolower($(1)); b=tolower($(2)); if (a!=b && (a in node) && (b in node)) dep[a SUBSEP b]=1 }
         END { L=0
           while (left > 0) { L++; cnt=0
             for (x in node) if (!(x in done)) { ok=1
@@ -226,15 +226,15 @@ One context doing the whole analysis measured 347K tokens on 50 Oracle functions
       function base(p) { sub(/.*\//, "", p); return p }
       function flush() { if (lo) { print (lo == hi ? "Proof " lo : "Proofs " lo "–" hi) ": see `" base(P) "`." > R; m++; lo = 0 } }
       BEGIN { print "# Proof blocks for `" base(R) "`\n\nEvery proof block of the report, in report order, under the report heading it sat below." > P }
-      !inf && /^```/ { inf = 1; nl = 0; first = ""; buf = $0 "\n"; next }
-      inf && /^```/ { inf = 0; buf = buf $0 "\n"
+      !inf && /^```/ { inf = 1; nl = 0; first = ""; buf = $(0) "\n"; next }
+      inf && /^```/ { inf = 0; buf = buf $(0) "\n"
         if (first ~ /^\$ /) { k++; if (!lo) lo = k; hi = k; pend = ""; printf "\n## Proof %d — %s\n\n%s", k, head, buf > P }
         else { flush(); printf "%s%s", pend, buf > R; pend = "" }
         next }
-      inf { if (++nl == 1) first = $0; buf = buf $0 "\n"; next }
-      lo && /^[ \t]*$/ { pend = pend $0 "\n"; next }
+      inf { if (++nl == 1) first = $(0); buf = buf $(0) "\n"; next }
+      lo && /^[ \t]*$/ { pend = pend $(0) "\n"; next }
       { flush(); printf "%s", pend > R; pend = ""
-        if ($0 ~ /^#+ /) { head = $0; sub(/^#+ /, "", head) }
+        if ($(0) ~ /^#+ /) { head = $(0); sub(/^#+ /, "", head) }
         print > R }
       END { flush(); printf "%s", pend > R
         if (inf) { printf "%s", buf > R; print "UNCLOSED FENCE: the fences in assembled.md do not pair"; exit 1 }
@@ -398,7 +398,7 @@ Dimension 5 commands go to `proof-findings.md` the same way.
 
   Highlight **hub resources** touched by 3+ objects. The hub-resource section is DERIVED from the CRUD matrix just written — it is a re-reading of the matrix rows, not a recollection of the analysis. Procedure, per resource: (1) scan the matrix's Resource column and copy out every row for that resource; (2) collapse the copied rows to DISTINCT Object values — one object appearing in several rows or citations is ONE object; (3) if the distinct-object list has 3+ members, the resource is a hub and MUST appear in this section — omitting a resource that qualifies by the matrix is a self-consistency failure; (4) write the hub line as the enumerated distinct objects, each with one File:Line copied from its matrix row, followed by the count as the length of that enumeration. Example shape: `dbo.Posts — SP_Create_Post (004-01:45), FN_Get_User_Posts (003-02:18), TR_Notify_Subscribers (005-TR:49), VW_Recent_Posts (002-04:22) — 4 objects (= length of this list)`. Before moving on, verify each hub line against the matrix: exactly the distinct objects of that resource's rows — same objects, no more, no fewer, no duplicates. Each hub gets ONE complete list, written once — never a partial list followed by an "additional objects" continuation, and never a running total that exceeds what is enumerated.
 
-  **Resource Touch Tally (MANDATORY, placed immediately after the CRUD matrix, before any hub-resource line):** Compute the tally by running a command against the scratch file BEFORE writing this section — e.g., `awk -F'|' '{print $2, $1}' crud.tsv | sort -u | awk '{c[$1]++} END {for (r in c) print r, c[r]}'` — and paste the command's output as the table. Show your work: immediately above the rendered tally table, include a fenced code block containing the exact command you ran and its raw output, verbatim. The rendered table is a transcription of that raw output — a table value differing from the raw output above it, or raw output that re-running the shown command against the scratch file would not reproduce, is a self-consistency failure. The tally is the command's output, never a recalled number: one row for EVERY distinct Resource value in the scratch file, hub or not, with its distinct-object count and a Hub? column that is `yes` exactly when the count is 3+:
+  **Resource Touch Tally (MANDATORY, placed immediately after the CRUD matrix, before any hub-resource line):** Compute the tally by running a command against the scratch file BEFORE writing this section — e.g., `awk -F'|' '{print $(2), $(1)}' crud.tsv | sort -u | awk '{c[$(1)]++} END {for (r in c) print r, c[r]}'` — and paste the command's output as the table. Show your work: immediately above the rendered tally table, include a fenced code block containing the exact command you ran and its raw output, verbatim. The rendered table is a transcription of that raw output — a table value differing from the raw output above it, or raw output that re-running the shown command against the scratch file would not reproduce, is a self-consistency failure. The tally is the command's output, never a recalled number: one row for EVERY distinct Resource value in the scratch file, hub or not, with its distinct-object count and a Hub? column that is `yes` exactly when the count is 3+:
 
   | Resource | Distinct objects touching | Hub? (3+) |
   |----------|--------------------------|-----------|
