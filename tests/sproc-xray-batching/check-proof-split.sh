@@ -4,6 +4,7 @@
 # A — proof runs become pointer lines and move byte-identical to the proofs file;
 # B — an odd fence count inside a proof exits non-zero (the run falls back);
 # C — an even fence count inside one proof passes and tears it (the accepted known issue).
+# D — a non-proof fence right after a proof run follows the run's pointer line.
 # No network / install. Runs in a scratch temp dir.
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -72,6 +73,19 @@ diff "$TMPROOT/C/exp-R" "$R" >/dev/null || fail "Case C: report differs from exp
 $(diff "$TMPROOT/C/exp-R" "$R")"
 tail -4 "$P" | diff - <(printf '%s\n' "$F" "\$ sed -n '1,5p' f1.sql" '/* usage:' "$F") >/dev/null \
   || fail "Case C: proofs file does not end at the first inner fence:
+$(tail -4 "$P")"
+
+
+# --- Case D: a non-proof fence directly after a proof run -> pointer line, then the block ---
+mkdir -p "$TMPROOT/D/w"
+printf '%s\n' '## S' "$F" '$ echo one' 'one' "$F" "${F}mermaid" 'flowchart TD' "$F" 'after' > "$TMPROOT/D/w/assembled.md"
+run_case D
+[ "$rc" -eq 0 ] || fail "Case D: exit $rc ($(cat "$TMPROOT/D/cmd.err"))"
+printf '%s\n' '## S' 'Proof 1: see `SYS-SPROC-XRAY-PROOFS.md`.' "${F}mermaid" 'flowchart TD' "$F" 'after' > "$TMPROOT/D/exp-R"
+diff "$TMPROOT/D/exp-R" "$R" >/dev/null || fail "Case D: report differs from expected:
+$(diff "$TMPROOT/D/exp-R" "$R")"
+tail -4 "$P" | diff - <(printf '%s\n' "$F" '$ echo one' 'one' "$F") >/dev/null \
+  || fail "Case D: proofs file does not end with the proof block:
 $(tail -4 "$P")"
 
 echo "sproc-xray proof split OK"
