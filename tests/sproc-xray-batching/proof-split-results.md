@@ -46,11 +46,20 @@ claude -p "/peters-toolkit:sproc-xray ./dbonly1" --model claude-opus-5-5 --plugi
 
 | Criterion | Result |
 |---|---|
-| 1. Both files exist, report has pointers and no `$ ` lines, all headings present | PASS — `DBONLY1-SPROC-XRAY.md` 51,589 bytes, `DBONLY1-SPROC-XRAY-PROOFS.md` 63,252 bytes, both under `reports/`; 47 pointer lines; 0 lines starting `$ `; all three required headings present (Coverage Declaration, Extraction Metrics, CRUD Matrix & Trigger Cascade Map) |
-| 2. Proof heading count matches pointer ranges | PASS — 77 proof headings; pointer ranges cover 1..77 with no gap |
-| 3. Split command ran as written, exit 0; re-verify ran | PASS (O9) — split ran once (`toolu_01MVzYZj8NkoZChVpKDuaKp9`), `is_error=false`, exit 0, printed `77 proof blocks moved, 47 pointer lines`; re-verify ran once. The plan's normalization check found no match: the coordinator's Bash call set `W=/tmp/tmp.FN1jcZWFx9` unquoted on the call's first line, which dropped the `W="<WORK>"; ` prefix from the `D=` line, and it appended `; echo "exit=$?"` after the awk command. The awk program itself (lines 2–18) is byte-identical to SKILL.md. Peter accepted the result as passing (O9) |
-| 4. Every context ≤ 400K tokens, no compaction | PASS — coordinator `8bff4bd9…` turns=49 peak=155,370 drops=0; worker `agent-a1a8cf34…` turns=14 peak=125,441 drops=0; worker `agent-a41ad87f…` turns=15 peak=135,425 drops=0 |
+| 1. Both files exist, report has pointers and no `$ ` lines, all headings present | PASS — `DBONLY1-SPROC-XRAY.md` 48,214 bytes, `DBONLY1-SPROC-XRAY-PROOFS.md` 64,059 bytes, both under `reports/`; 23 pointer lines; 0 lines starting `$ `; all three required headings present (Coverage Declaration, Extraction Metrics, CRUD Matrix & Trigger Cascade Map) |
+| 2. Proof heading count matches pointer ranges | PASS — 76 proof headings; pointer ranges cover 1..76 with no gap |
+| 3. Split command ran as written, exit 0; re-verify ran | PASS (O9) — split calls: 2. Call 1 matched SKILL.md except `; echo "exit=$?"` appended and the two checks after it in the same call. After call 1, the coordinator rewrote `cmd-N` mentions in part prose to `Proof K` and ran assembly and the split again. Both calls: 76 blocks, 23 pointers, exit 0. Re-verify ran (79 commands reproduced). Delivered skill text kept `$(0)`. Passes under Peter's O9 standard |
+| 4. Every context ≤ 400K tokens, no compaction | PASS — coordinator `07a435ad…` turns=49 peak=150,869 drops=0; worker `agent-a13adc9a…` turns=17 peak=128,494 drops=0; worker `agent-a1da75e4…` turns=17 peak=124,165 drops=0 |
 
-Session ID: `8bff4bd9-771f-468e-a515-64853cd351aa`. Duration 14 min 30 s
-(`2026-09-28T01:18:28.598Z` – `2026-09-28T01:32:58.324Z`). `total_cost_usd` $7.0343892 (a
+Session ID: `07a435ad-c12a-46ba-b1ee-c6a88e298e14`. Duration 12 min 25 s
+(`2026-09-28T02:32:25.869Z` – `2026-09-28T02:44:51.016Z`). `total_cost_usd` $6.595395 (a
 list-price estimate; the run bills to Peter's Max subscription, not pay-per-token).
+
+### Run 1 (before the $(N) fix)
+
+Session `8bff4bd9-771f-468e-a515-64853cd351aa`, 14 min 30 s, $7.03. Criteria 1, 2 and 4 passed
+(47 pointer lines, 77 proofs, peaks 155,370 / 125,441 / 135,425, 0 drops). The skill text this
+run received had `$0` replaced by the argument (`buf = ./dbonly1 "\n"`, `first = ./dbonly1`, `if
+(./dbonly1 ~ /^#+ /)`); the coordinator repaired those tokens by hand before running the
+command, and said so in its final message. That finding led to the `$(N)` fix. The coordinator
+also edited the report by hand after the split (one `sed -i` on a LOC phrase).
