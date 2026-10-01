@@ -127,4 +127,16 @@ run_case 1500 "$CASED2"
 same_batch "$CASED2" "Case D2" c_bodies.pkb a_pkg_a.pks
 same_batch "$CASED2" "Case D2" c_bodies.pkb b_pkg_b.pks
 
+# --- Case E: a header whose name part parses empty joins no unit ---
+# "PACKAGE hr." with the name on the next line yields an empty key; two such files are unrelated.
+CASEE="$TMPROOT/caseE"
+mkdir -p "$CASEE/src"
+{ printf 'CREATE OR REPLACE PACKAGE hr.\n  pkg_a AS\n  PROCEDURE p;\nEND;\n/\n'; pad; } > "$CASEE/src/a.pks"
+{ printf 'CREATE OR REPLACE PACKAGE fin.\n  pkg_z AS\n  PROCEDURE p;\nEND;\n/\n'; pad; } > "$CASEE/src/b.pks"
+find "$CASEE/src" -type f | LC_ALL=C sort | awk '{print $0"|production"}' > "$CASEE/sources.tsv"
+run_case 1500 "$CASEE"
+[ -s "$CASEE/batches.tsv" ] || fail "Case E: batches.tsv empty or missing ($(cat "$CASEE/cmd.err" 2>/dev/null))"
+[ "$(batch_of "$CASEE" a.pks)" != "$(batch_of "$CASEE" b.pks)" ] || fail "Case E: a.pks and b.pks share a batch through an empty package key:
+$(cat "$CASEE/batches.tsv")"
+
 echo "sproc-xray batch-plan command OK"

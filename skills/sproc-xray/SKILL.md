@@ -163,6 +163,7 @@ One context doing the whole analysis measured 347K tokens on 50 Oracle functions
      id=++n; up[id]=id; path[id]=$(0); bytes[id]=sz
      while (match(t, /CREATE[[:space:]]+(OR[[:space:]]+REPLACE[[:space:]]+)?((NON)?EDITIONABLE[[:space:]]+)?PACKAGE[[:space:]]+(BODY[[:space:]]+)?[A-Z0-9_$#."]+/)) {
        key=substr(t, RSTART, RLENGTH); t=substr(t, RSTART+RLENGTH); sub(/.*[[:space:]]/, "", key); gsub(/"/, "", key); sub(/.*\./, "", key)
+       if (key == "") continue
        if (key in unit) { a=root(unit[key]); c=root(id); if (a<c) up[c]=a; else up[a]=c } else unit[key]=id } }
    END { for (i=1; i<=n; i++) { r=root(i); files[r]=files[r] path[i] "\n"; total[r]+=bytes[i] }
      b=0; used=0
