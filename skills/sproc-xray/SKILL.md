@@ -151,24 +151,28 @@ One context doing the whole analysis measured 347K tokens on 50 Oracle functions
 
 1. **Manifest.** Build the Component Manifest by command as Dimension 1 requires, and also write `<WORK>/manifest.tsv`, no header line, one line per object defined in a production file: `Object|Type|File|LOC`. Type is `Procedure`, `Function`, `Trigger`, `View`, `Table`, or `Package`; File is the basename, as `metrics.tsv` writes it; LOC is the Component Manifest's LOC. A packaged routine gets its own line, named `pkg.routine` as `metrics.tsv` names it, overloads included. The names in `manifest.tsv` are the canonical spellings for the whole run. Then, by command:
    - **Oracle:** write `<WORK>/state.tsv`, no header line, one line per shared-state name, `Name|File:Line`: every name declared in a package's declarative region (the dialect file's GLOBAL_STATE STEP 1, run over every text source file) and every `CREATE GLOBAL TEMPORARY TABLE` name, each with its declaration site.
-   - **Duplicate standalone names:** `awk -F'|' '($2=="Procedure" || $2=="Function") && $1 !~ /\./ {print $1}' <WORK>/manifest.tsv | sort -f | uniq -di`. Names with a package prefix are left out, because package overloads are legal. Write each duplicate with its files to `<WORK>/dup-names.txt`, for the Executive Summary and Dimension 1.
-   - Evaluate the Dimension 1 empty-scope gate here, before any batching. When it fires, emit the Empty-Scope Compact Report exactly as Report Format defines it and dispatch nothing.
+   - **Duplicate standalone names:** `awk -F'|' '($(2)=="Procedure" || $(2)=="Function") && $(1) !~ /\./ {print $(1)}' <WORK>/manifest.tsv | sort -f | uniq -di`. Names with a package prefix are left out, because package overloads are legal. Write each duplicate with its files to `<WORK>/dup-names.txt`, for the Executive Summary and Dimension 1.
+   - Evaluate the Dimension 1 empty-scope gate here, before any batching. When it fires, emit the Empty-Scope Compact Report exactly as Report Format defines it, straight to the report path with its proofs inline (it skips item 5 below except 5.8, Cleanup), and dispatch nothing.
 2. **Batch plan, by command.** Write `<WORK>/sources.tsv`, no header line, one line per text source file from the Step 1 glob, `absolute path|scope`, sorted by path: scope is `test` for the files Context Intake flags as test scripts, otherwise `production`. Binary DB files and the files Step 3 excludes for other reasons (seed data) are left out. Then run this verbatim. It writes `<WORK>/batches.tsv` (`Batch|File|Scope`, no header line):
 
    ```bash
    awk -F'|' -v LIMIT=128000 '
-   { f=$1; q=f; gsub(/\047/, "\047\"\047\"\047", q); cmd="wc -c < \047" q "\047"; sz=0; cmd | getline sz; close(cmd)
-     t=""; while ((getline line < f) > 0) t=t " " line; close(f); t=toupper(t); key=""
-     if (match(t, /CREATE[[:space:]]+(OR[[:space:]]+REPLACE[[:space:]]+)?((NON)?EDITIONABLE[[:space:]]+)?PACKAGE[[:space:]]+(BODY[[:space:]]+)?[A-Z0-9_$#."]+/)) {
-       key=substr(t, RSTART, RLENGTH); sub(/.*[[:space:]]/, "", key); gsub(/"/, "", key); sub(/.*\./, "", key) }
-     if (key != "" && (key in unit)) id=unit[key]; else { id=++n; if (key != "") unit[key]=id }
-     files[id]=files[id] $0 "\n"; bytes[id]+=sz }
-   END { b=0; used=0
-     for (i=1; i<=n; i++) { if (b==0 || (used>0 && used+bytes[i]>LIMIT)) { b++; used=0 }
-       used+=bytes[i]; m=split(files[i], r, "\n"); for (j=1; j<m; j++) printf "%02d|%s\n", b, r[j] } }' <WORK>/sources.tsv > <WORK>/batches.tsv
+   function root(x) { while (up[x] != x) x=up[x]; return x }
+   { f=$(1); q=f; gsub(/\047/, "\047\"\047\"\047", q); cmd="wc -c < \047" q "\047"; sz=0; cmd | getline sz; close(cmd)
+     t=""; while ((getline line < f) > 0) t=t " " line; close(f); t=toupper(t)
+     id=++n; up[id]=id; path[id]=$(0); bytes[id]=sz
+     while (match(t, /CREATE[[:space:]]+(OR[[:space:]]+REPLACE[[:space:]]+)?((NON)?EDITIONABLE[[:space:]]+)?PACKAGE[[:space:]]+(BODY[[:space:]]+)?[A-Z0-9_$#."]+/)) {
+       key=substr(t, RSTART, RLENGTH); t=substr(t, RSTART+RLENGTH); sub(/.*[[:space:]]/, "", key); gsub(/"/, "", key); sub(/.*\./, "", key)
+       if (key == "") continue
+       if (key in unit) { a=root(unit[key]); c=root(id); if (a<c) up[c]=a; else up[a]=c } else unit[key]=id } }
+   END { for (i=1; i<=n; i++) { r=root(i); files[r]=files[r] path[i] "\n"; total[r]+=bytes[i] }
+     b=0; used=0
+     for (i=1; i<=n; i++) { if (!(i in files)) continue
+       if (b==0 || (used>0 && used+total[i]>LIMIT)) { b++; used=0 }
+       used+=total[i]; m=split(files[i], row, "\n"); for (j=1; j<m; j++) printf "%02d|%s\n", b, row[j] } }' <WORK>/sources.tsv > <WORK>/batches.tsv
    ```
 
-   Files are packed in order into batches of at most `LIMIT` bytes of source (`wc -c`); a file larger than `LIMIT` gets a batch of its own. A package's spec and body files (the same `CREATE [OR REPLACE] [EDITIONABLE | NONEDITIONABLE] PACKAGE [BODY] <name>`, found by content even when the header spans lines) always go in the same batch.
+   Files are packed in order into batches of at most `LIMIT` bytes of source (`wc -c`). Files that share a package name in any `CREATE [OR REPLACE] [EDITIONABLE | NONEDITIONABLE] PACKAGE [BODY] <name>` header (every header in a file counts, found by content even when a header spans lines) form one unit, transitively, so a package's spec and body files always go in the same batch. A file or unit larger than `LIMIT` gets a batch of its own.
 3. **Dispatch (MANDATORY when the harness has a subagent tool).** First create each `<WORK>/batch-NN/` holding the five TSVs empty (`metrics.tsv`, `calls.tsv`, `crud.tsv`, `findings.tsv`, `ext.tsv`). Then start one subagent per batch, at most 10 running at once, and start the next batch when one returns. Claude Code: the `Agent` tool with a general-purpose subagent. Codex: `spawn_agent` (needs `multi_agent = true`). Hermes: `delegate_task`. Each brief is this text with only the values filled in:
 
    > Follow SKILL.md's Batch Worker section. Batch `NN`. Files: `<list, each with its scope>`. Source root `<SRC>`, scratch dir `<WORK>`, manifest `<WORK>/manifest.tsv`, state `<WORK>/state.tsv` (Oracle), dialect file `<path>`, skill file `<path>`.
@@ -183,11 +187,11 @@ One context doing the whole analysis measured 347K tokens on 50 Oracle functions
       W=<WORK>; for f in calls crud ext findings metrics; do : > "$W/$f.tsv.tmp"; done
       awk -F'|' -v OFS='|' '
       function fix(v,  k) { k=tolower(v); if (k in canon) return canon[k]; if (!(k in seen)) seen[k]=v; return seen[k] }
-      FNR==NR { k=tolower($1); if (!(k in canon)) canon[k]=$1; next }
+      FNR==NR { k=tolower($(1)); if (!(k in canon)) canon[k]=$(1); next }
       { n=FILENAME; sub(/.*\//, "", n)
-        if (n=="metrics.tsv") $1=fix($1)
-        else if (n=="findings.tsv") $3=fix($3)
-        else { $1=fix($1); $2=fix($2) }
+        if (n=="metrics.tsv") $(1)=fix($(1))
+        else if (n=="findings.tsv") $(3)=fix($(3))
+        else { $(1)=fix($(1)); $(2)=fix($(2)) }
         print > (FILENAME ".tmp") }' "$W/manifest.tsv" "$W/calls.tsv" "$W/crud.tsv" "$W/ext.tsv" "$W/findings.tsv" "$W/metrics.tsv" &&
       for f in calls crud ext findings metrics; do mv "$W/$f.tsv.tmp" "$W/$f.tsv"; done
       ```
@@ -201,11 +205,11 @@ One context doing the whole analysis measured 347K tokens on 50 Oracle functions
 
         ```bash
         W=<WORK>; awk -F'|' '
-        FNR==NR { k=tolower($1)
-          if ($2=="Trigger") trg[k]=$1
-          else if (($2=="Procedure" || $2=="Function") && !(k in node)) { node[k]=$1; left++ }
+        FNR==NR { k=tolower($(1))
+          if ($(2)=="Trigger") trg[k]=$(1)
+          else if (($(2)=="Procedure" || $(2)=="Function") && !(k in node)) { node[k]=$(1); left++ }
           next }
-        { a=tolower($1); b=tolower($2); if (a!=b && (a in node) && (b in node)) dep[a SUBSEP b]=1 }
+        { a=tolower($(1)); b=tolower($(2)); if (a!=b && (a in node) && (b in node)) dep[a SUBSEP b]=1 }
         END { L=0
           while (left > 0) { L++; cnt=0
             for (x in node) if (!(x in done)) { ok=1
@@ -218,8 +222,31 @@ One context doing the whole analysis measured 347K tokens on 50 Oracle functions
       - **Entry points:** the manifest triggers plus the dead/orphan candidates above (same rule).
       - **Trigger firing tables:** taken from the trigger headers by command (the table after `ON`), for the cascade map.
    5. **Coordinator prose, kept short:** the Executive Summary (from the CRITICAL and HIGH `findings.tsv` rows; the CRITICAL and HIGH lines of the batch `d4.md` files, `grep -h '^- \*\*\[\(CRITICAL\|HIGH\)\]' <WORK>/batch-*/d4.md`; the Missing-Reference Table's routine rows; `dup-names.txt`; and the cascade chains), the Coverage Declaration (copied values, still written last), the Coverage Honesty Check (copies the Coverage Declaration's fraction), the trigger cascade map, cross-routine atomic groups, the dead/orphan confirmed-vs-possible judgment, and the closing sections.
-   6. **Assembly.** The report is the `cat`, in number order, of numbered part files (`<WORK>/parts/00-exec.md`, `<WORK>/parts/10-coverage.md`, …) into `<ORIG>/reports/{SYSTEM}-SPROC-XRAY.md`; the numbers fix the order, whatever order the parts were written in. Batch fragments go under their sections: the batch `proof-metrics.md` files above the Extraction Metrics table; Dimension 2 = the graph part, then `cat <WORK>/batch-*/d2.md`; Dimension 4 = coordinator prose, then `cat <WORK>/batch-*/d4.md`; Dimension 5 = the batch `proof-findings.md` files, the rendered production `findings.tsv` rows, then `cat <WORK>/batch-*/d5.md`. Tables are rendered by command into parts and never printed to context; the Extraction Metrics render prints the exact header `| Object | Params | Cursor Loops | Branches | UDT Usage | File | LOC |`. Then confirm by command that the report contains `## Coverage Declaration`, `### Extraction Metrics`, and `## 3. CRUD Matrix & Trigger Cascade Map`.
-   7. **Re-verify (Hard Constraint 9).** Re-run every saved proof command and `diff` its output against the stored output: for each `<WORK>/batch-*/cmd-*.sh` and `<WORK>/coord/cmd-*.sh`, `bash <file> 2>&1 | diff - <the same path ending .out>`. Only a differing command reaches your context. Numbers in coordinator prose are checked against their owning files as today.
+   6. **Assembly.** The `cat`, in number order, of numbered part files (`<WORK>/parts/00-exec.md`, `<WORK>/parts/10-coverage.md`, …) into `<WORK>/assembled.md`; the numbers fix the order, whatever order the parts were written in. Batch fragments go under their sections: the batch `proof-metrics.md` files above the Extraction Metrics table; Dimension 2 = the graph part, then `cat <WORK>/batch-*/d2.md`; Dimension 4 = coordinator prose, then `cat <WORK>/batch-*/d4.md`; Dimension 5 = the batch `proof-findings.md` files, the rendered production `findings.tsv` rows, then `cat <WORK>/batch-*/d5.md`. Tables are rendered by command into parts and never printed to context; the Extraction Metrics render prints the exact header `| Object | Params | Cursor Loops | Branches | UDT Usage | File | LOC |`. Then run this verbatim. It writes the report, `<ORIG>/reports/{SYSTEM}-SPROC-XRAY.md`, with each run of consecutive proof blocks replaced by one pointer line, and moves the proof blocks to `<ORIG>/reports/{SYSTEM}-SPROC-XRAY-PROOFS.md`:
+
+      ```bash
+      W="<WORK>"; D="<ORIG>/reports"; mkdir -p "$D"
+      awk -v R="$D/{SYSTEM}-SPROC-XRAY.md" -v P="$D/{SYSTEM}-SPROC-XRAY-PROOFS.md" '
+      function base(p) { sub(/.*\//, "", p); return p }
+      function flush() { if (lo) { print (lo == hi ? "Proof " lo : "Proofs " lo "–" hi) ": see `" base(P) "`." > R; m++; lo = 0 } }
+      BEGIN { print "# Proof blocks for `" base(R) "`\n\nEvery proof block of the report, in report order, under the report heading it sat below." > P }
+      !inf && /^```/ { inf = 1; nl = 0; first = ""; buf = $(0) "\n"; next }
+      inf && /^```/ { inf = 0; buf = buf $(0) "\n"
+        if (first ~ /^\$ /) { k++; if (!lo) lo = k; hi = k; pend = ""; printf "\n## Proof %d — %s\n\n%s", k, head, buf > P }
+        else { flush(); printf "%s%s", pend, buf > R; pend = "" }
+        next }
+      inf { if (++nl == 1) first = $(0); buf = buf $(0) "\n"; next }
+      lo && /^[ \t]*$/ { pend = pend $(0) "\n"; next }
+      { flush(); printf "%s", pend > R; pend = ""
+        if ($(0) ~ /^#+ /) { head = $(0); sub(/^#+ /, "", head) }
+        print > R }
+      END { flush(); printf "%s", pend > R
+        if (inf) { printf "%s", buf > R; print "UNCLOSED FENCE: the fences in assembled.md do not pair"; exit 1 }
+        print k " proof blocks moved, " m " pointer lines" }' "$W/assembled.md"
+      ```
+
+      The command must exit 0 (non-zero means the fences in `assembled.md` do not pair), and `grep -c '^\$ ' <ORIG>/reports/{SYSTEM}-SPROC-XRAY.md` must print 0. If either check fails, copy `<WORK>/assembled.md` to the report path unchanged and delete the proofs file: the report keeps its proofs inline. Then confirm by command that the report contains `## Coverage Declaration`, `### Extraction Metrics`, and `## 3. CRUD Matrix & Trigger Cascade Map`.
+   7. **Re-verify (Hard Constraint 9).** Re-run every saved proof command and `diff` its output against the stored output: for each `<WORK>/batch-*/cmd-*.sh` and `<WORK>/coord/cmd-*.sh`, `bash <file> 2>&1 | diff - <the same path ending .out>`. Only a differing command reaches your context. Numbers in coordinator prose are checked against their owning files as today. If a differing output forces a correction, fix the part file and run item 5.6 (assembly and the split) again.
    8. **Cleanup** as the Cleanup section says.
 
 ## Batch Worker
@@ -375,7 +402,7 @@ Dimension 5 commands go to `proof-findings.md` the same way.
 
   Highlight **hub resources** touched by 3+ objects. The hub-resource section is DERIVED from the CRUD matrix just written — it is a re-reading of the matrix rows, not a recollection of the analysis. Procedure, per resource: (1) scan the matrix's Resource column and copy out every row for that resource; (2) collapse the copied rows to DISTINCT Object values — one object appearing in several rows or citations is ONE object; (3) if the distinct-object list has 3+ members, the resource is a hub and MUST appear in this section — omitting a resource that qualifies by the matrix is a self-consistency failure; (4) write the hub line as the enumerated distinct objects, each with one File:Line copied from its matrix row, followed by the count as the length of that enumeration. Example shape: `dbo.Posts — SP_Create_Post (004-01:45), FN_Get_User_Posts (003-02:18), TR_Notify_Subscribers (005-TR:49), VW_Recent_Posts (002-04:22) — 4 objects (= length of this list)`. Before moving on, verify each hub line against the matrix: exactly the distinct objects of that resource's rows — same objects, no more, no fewer, no duplicates. Each hub gets ONE complete list, written once — never a partial list followed by an "additional objects" continuation, and never a running total that exceeds what is enumerated.
 
-  **Resource Touch Tally (MANDATORY, placed immediately after the CRUD matrix, before any hub-resource line):** Compute the tally by running a command against the scratch file BEFORE writing this section — e.g., `awk -F'|' '{print $2, $1}' crud.tsv | sort -u | awk '{c[$1]++} END {for (r in c) print r, c[r]}'` — and paste the command's output as the table. Show your work: immediately above the rendered tally table, include a fenced code block containing the exact command you ran and its raw output, verbatim. The rendered table is a transcription of that raw output — a table value differing from the raw output above it, or raw output that re-running the shown command against the scratch file would not reproduce, is a self-consistency failure. The tally is the command's output, never a recalled number: one row for EVERY distinct Resource value in the scratch file, hub or not, with its distinct-object count and a Hub? column that is `yes` exactly when the count is 3+:
+  **Resource Touch Tally (MANDATORY, placed immediately after the CRUD matrix, before any hub-resource line):** Compute the tally by running a command against the scratch file BEFORE writing this section — e.g., `awk -F'|' '{print $(2), $(1)}' crud.tsv | sort -u | awk '{c[$(1)]++} END {for (r in c) print r, c[r]}'` — and paste the command's output as the table. Show your work: immediately above the rendered tally table, include a fenced code block containing the exact command you ran and its raw output, verbatim. The rendered table is a transcription of that raw output — a table value differing from the raw output above it, or raw output that re-running the shown command against the scratch file would not reproduce, is a self-consistency failure. The tally is the command's output, never a recalled number: one row for EVERY distinct Resource value in the scratch file, hub or not, with its distinct-object count and a Hub? column that is `yes` exactly when the count is 3+:
 
   | Resource | Distinct objects touching | Hub? (3+) |
   |----------|--------------------------|-----------|
@@ -468,7 +495,7 @@ Severity is reworded for extraction migration (not porting between database engi
 
 ## Output File
 
-**MANDATORY:** Write the final report to a `reports/` directory inside the **original invocation directory** captured in Step 1 — use the literal `$ORIG` path recorded in Step 1 (`$ORIG/reports/{SYSTEM-NAME}-SPROC-XRAY.md`), NOT the current working directory (after Step 1 that is the scratch dir, which cleanup deletes). Create the directory if it does not exist. Derive the system name by uppercasing the repository or directory name **verbatim** — do not abbreviate, strip suffixes, or reword (e.g., repo `BlogPlatformDB` becomes `BLOGPLATFORMDB`, not `BLOGPLATFORM`; repo `ADempiere` becomes `ADEMPIERE`). Example: `$ORIG/reports/BLOGPLATFORMDB-SPROC-XRAY.md`. Do NOT only print the report to the console — it MUST be persisted as a file. Do NOT write the report to `~/.claude/` or any other user-config directory.
+**MANDATORY:** Write the final report to a `reports/` directory inside the **original invocation directory** captured in Step 1 — use the literal `$ORIG` path recorded in Step 1 (`$ORIG/reports/{SYSTEM-NAME}-SPROC-XRAY.md`), NOT the current working directory (after Step 1 that is the scratch dir, which cleanup deletes). Create the directory if it does not exist. Unless assembly falls back (Step 4, item 5.6), the run also writes `$ORIG/reports/{SYSTEM-NAME}-SPROC-XRAY-PROOFS.md` beside it: every proof block of the report, which points to it where the blocks sat. Derive the system name by uppercasing the repository or directory name **verbatim** — do not abbreviate, strip suffixes, or reword (e.g., repo `BlogPlatformDB` becomes `BLOGPLATFORMDB`, not `BLOGPLATFORM`; repo `ADempiere` becomes `ADEMPIERE`). Example: `$ORIG/reports/BLOGPLATFORMDB-SPROC-XRAY.md`. Do NOT only print the report to the console — it MUST be persisted as a file. Do NOT write the report to `~/.claude/` or any other user-config directory.
 
 ## Report Format
 
@@ -500,7 +527,7 @@ This section is positioned FIRST in the report but is WRITTEN LAST: leave it for
 [Component manifest table, missing-reference table, coverage honesty check, dead/orphan code findings]
 
 ### Extraction Metrics
-[Per-routine table with exactly these columns — Object | Params | Cursor Loops | Branches | UDT Usage | File | LOC — transcribed from `metrics.tsv`; the proof blocks of computing commands and their raw output (grouped by batch) sit immediately above the table, and the stated branch-counting basis immediately below it. One row per defined routine and trigger, all-zero rows included, `0` written not blank. Raw counts and cited constructs only — no complexity band, risk rating, or effort estimate]
+[Per-routine table with exactly these columns — Object | Params | Cursor Loops | Branches | UDT Usage | File | LOC — transcribed from `metrics.tsv`; a pointer line to the proofs file sits immediately above the table, where assembly (Step 4, item 5.6) moved the proof blocks of computing commands and their raw output (grouped by batch), and the stated branch-counting basis immediately below it. One row per defined routine and trigger, all-zero rows included, `0` written not blank. Raw counts and cited constructs only — no complexity band, risk rating, or effort estimate]
 
 ## 2. Call & Dependency Graph
 [Mermaid dependency graph with FILE:LINE edge labels and dynamic-SQL flagging, dynamic-SQL and external-edge notes, hub objects, Extraction Sequencing layer list]
