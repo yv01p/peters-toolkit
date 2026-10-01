@@ -157,18 +157,21 @@ One context doing the whole analysis measured 347K tokens on 50 Oracle functions
 
    ```bash
    awk -F'|' -v LIMIT=128000 '
+   function root(x) { while (up[x] != x) x=up[x]; return x }
    { f=$(1); q=f; gsub(/\047/, "\047\"\047\"\047", q); cmd="wc -c < \047" q "\047"; sz=0; cmd | getline sz; close(cmd)
-     t=""; while ((getline line < f) > 0) t=t " " line; close(f); t=toupper(t); key=""
-     if (match(t, /CREATE[[:space:]]+(OR[[:space:]]+REPLACE[[:space:]]+)?((NON)?EDITIONABLE[[:space:]]+)?PACKAGE[[:space:]]+(BODY[[:space:]]+)?[A-Z0-9_$#."]+/)) {
-       key=substr(t, RSTART, RLENGTH); sub(/.*[[:space:]]/, "", key); gsub(/"/, "", key); sub(/.*\./, "", key) }
-     if (key != "" && (key in unit)) id=unit[key]; else { id=++n; if (key != "") unit[key]=id }
-     files[id]=files[id] $(0) "\n"; bytes[id]+=sz }
-   END { b=0; used=0
-     for (i=1; i<=n; i++) { if (b==0 || (used>0 && used+bytes[i]>LIMIT)) { b++; used=0 }
-       used+=bytes[i]; m=split(files[i], r, "\n"); for (j=1; j<m; j++) printf "%02d|%s\n", b, r[j] } }' <WORK>/sources.tsv > <WORK>/batches.tsv
+     t=""; while ((getline line < f) > 0) t=t " " line; close(f); t=toupper(t)
+     id=++n; up[id]=id; path[id]=$(0); bytes[id]=sz
+     while (match(t, /CREATE[[:space:]]+(OR[[:space:]]+REPLACE[[:space:]]+)?((NON)?EDITIONABLE[[:space:]]+)?PACKAGE[[:space:]]+(BODY[[:space:]]+)?[A-Z0-9_$#."]+/)) {
+       key=substr(t, RSTART, RLENGTH); t=substr(t, RSTART+RLENGTH); sub(/.*[[:space:]]/, "", key); gsub(/"/, "", key); sub(/.*\./, "", key)
+       if (key in unit) { a=root(unit[key]); c=root(id); if (a<c) up[c]=a; else up[a]=c } else unit[key]=id } }
+   END { for (i=1; i<=n; i++) { r=root(i); files[r]=files[r] path[i] "\n"; total[r]+=bytes[i] }
+     b=0; used=0
+     for (i=1; i<=n; i++) { if (!(i in files)) continue
+       if (b==0 || (used>0 && used+total[i]>LIMIT)) { b++; used=0 }
+       used+=total[i]; m=split(files[i], row, "\n"); for (j=1; j<m; j++) printf "%02d|%s\n", b, row[j] } }' <WORK>/sources.tsv > <WORK>/batches.tsv
    ```
 
-   Files are packed in order into batches of at most `LIMIT` bytes of source (`wc -c`); a file larger than `LIMIT` gets a batch of its own. A package's spec and body files (the same `CREATE [OR REPLACE] [EDITIONABLE | NONEDITIONABLE] PACKAGE [BODY] <name>`, found by content even when the header spans lines) always go in the same batch.
+   Files are packed in order into batches of at most `LIMIT` bytes of source (`wc -c`). Files that share a package name in any `CREATE [OR REPLACE] [EDITIONABLE | NONEDITIONABLE] PACKAGE [BODY] <name>` header (every header in a file counts, found by content even when a header spans lines) form one unit, transitively, so a package's spec and body files always go in the same batch. A file or unit larger than `LIMIT` gets a batch of its own.
 3. **Dispatch (MANDATORY when the harness has a subagent tool).** First create each `<WORK>/batch-NN/` holding the five TSVs empty (`metrics.tsv`, `calls.tsv`, `crud.tsv`, `findings.tsv`, `ext.tsv`). Then start one subagent per batch, at most 10 running at once, and start the next batch when one returns. Claude Code: the `Agent` tool with a general-purpose subagent. Codex: `spawn_agent` (needs `multi_agent = true`). Hermes: `delegate_task`. Each brief is this text with only the values filled in:
 
    > Follow SKILL.md's Batch Worker section. Batch `NN`. Files: `<list, each with its scope>`. Source root `<SRC>`, scratch dir `<WORK>`, manifest `<WORK>/manifest.tsv`, state `<WORK>/state.tsv` (Oracle), dialect file `<path>`, skill file `<path>`.
