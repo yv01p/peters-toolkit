@@ -90,4 +90,41 @@ distinct="$(awk -F'|' '{print $1}' "$CASEC/batches.tsv" | sort -u | wc -l | tr -
 [ "$distinct" = "3" ] || fail "Case C: expected 3 distinct batch numbers (files sized independently), got $distinct:
 $(cat "$CASEC/batches.tsv")"
 
+# --- Case D: every package in a multi-package file stays with its other half (#11) ---
+# ~1 KB files under LIMIT=1500, so any two units land in different batches.
+pad(){ head -c 1000 /dev/zero | tr '\0' ' '; echo; }
+spec(){ printf 'CREATE OR REPLACE PACKAGE %s AS\n  PROCEDURE p;\nEND %s;\n/\n' "$1" "$1"; }
+body(){ printf 'CREATE OR REPLACE PACKAGE BODY %s AS\n  PROCEDURE p IS BEGIN NULL; END;\nEND %s;\n/\n' "$1" "$1"; }
+batch_of(){ awk -F'|' -v f="$2" '{n=$(2); sub(/.*\//, "", n)} n==f {print $(1)}' "$1/batches.tsv"; }
+same_batch(){
+  local dir="$1" label="$2" a="$3" b="$4" ba bb
+  ba="$(batch_of "$dir" "$a")"; bb="$(batch_of "$dir" "$b")"
+  [ -n "$ba" ] && [ "$ba" = "$bb" ] || fail "$label: $a (batch '$ba') and $b (batch '$bb') must share a batch:
+$(cat "$dir/batches.tsv")"
+}
+
+# D1: one all-specs file, then a body file per package.
+CASED1="$TMPROOT/caseD1"
+mkdir -p "$CASED1/src"
+{ spec pkg_a; spec pkg_b; pad; } > "$CASED1/src/a_specs.pks"
+{ body pkg_a; pad; } > "$CASED1/src/b_pkg_a.pkb"
+{ body pkg_b; pad; } > "$CASED1/src/c_pkg_b.pkb"
+find "$CASED1/src" -type f | LC_ALL=C sort | awk '{print $0"|production"}' > "$CASED1/sources.tsv"
+run_case 1500 "$CASED1"
+[ -s "$CASED1/batches.tsv" ] || fail "Case D1: batches.tsv empty or missing ($(cat "$CASED1/cmd.err" 2>/dev/null))"
+same_batch "$CASED1" "Case D1" a_specs.pks b_pkg_a.pkb
+same_batch "$CASED1" "Case D1" a_specs.pks c_pkg_b.pkb
+
+# D2: a spec file per package, then one all-bodies file that joins both.
+CASED2="$TMPROOT/caseD2"
+mkdir -p "$CASED2/src"
+{ spec pkg_a; pad; } > "$CASED2/src/a_pkg_a.pks"
+{ spec pkg_b; pad; } > "$CASED2/src/b_pkg_b.pks"
+{ body pkg_a; body pkg_b; pad; } > "$CASED2/src/c_bodies.pkb"
+find "$CASED2/src" -type f | LC_ALL=C sort | awk '{print $0"|production"}' > "$CASED2/sources.tsv"
+run_case 1500 "$CASED2"
+[ -s "$CASED2/batches.tsv" ] || fail "Case D2: batches.tsv empty or missing ($(cat "$CASED2/cmd.err" 2>/dev/null))"
+same_batch "$CASED2" "Case D2" c_bodies.pkb a_pkg_a.pks
+same_batch "$CASED2" "Case D2" c_bodies.pkb b_pkg_b.pks
+
 echo "sproc-xray batch-plan command OK"
