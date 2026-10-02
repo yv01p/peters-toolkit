@@ -21,7 +21,13 @@ When cutting a new version, update in lockstep:
 
 ## [Unreleased]
 
+**Targets Superpowers 6.4.x** (verified against 6.4.2; compatible back to 6.0.x)
+
+### Added
+- `sproc-xray` 0.7.0 and `sproc-migration-plan` 0.1.1 are announced and documented in the README. Earlier versions were already on `main` but were marked as in test.
+
 ### Changed
+- Superpowers 6.4 compatibility. Verified against upstream v6.4.2: every referenced Superpowers skill still exists, and `subagent-driven-development`'s plan-file input is unchanged. Re-synced `skills/thorough-brainstorming/visual-companion.md` verbatim from 6.4.2 (the start and stop commands now run through `bash`). The five companion scripts are unchanged upstream. Regenerated `tests/provenance/companion-manifest.sha256` with `# target: 6.4.x`. README: target line updated, and the description of which Superpowers skills the Toolkit invokes corrected (#21).
 - sproc-xray 0.7.0: batched runs. The coordinator plans batches of source files (at most
   128,000 bytes each, a package's spec and body together), runs one Batch Worker subagent per
   batch (at most 10 at once), and combines their scratch files into the same report. Measured
