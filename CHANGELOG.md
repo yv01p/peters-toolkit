@@ -31,7 +31,8 @@ When cutting a new version, update in lockstep:
   (per-routine LOC, Extraction Sequencing format, scratch-dir writes, proof re-verify); see
   `tests/sproc-xray-batching/green-results.md`.
 - sproc-xray `references/dialects/oracle.md`: GLOBAL_STATE STEP 1 resets its package region
-  per file and runs over every source file.
+  per file, runs over every source file, and opens a region when the package header spans
+  lines.
 - sproc-xray: proof blocks (each command with its raw output) move out of the report into
   `{SYSTEM}-SPROC-XRAY-PROOFS.md` beside it; the report keeps one pointer line per run of
   them. ADempiere reports shrink from 366 KB to 116 KB (50 functions) and from 908 KB to
