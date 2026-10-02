@@ -1,12 +1,12 @@
 # Peter's Agentic Toolkit
 
-**Version 2.5.1** · targets Superpowers 6.3.x (verified against 6.3.0; compatible back to 6.0.x)
+**Version 2.6.0** · targets Superpowers 6.4.x (verified against 6.4.2; compatible back to 6.0.x)
 
 Peter's Agentic Toolkit is a Claude Code plugin. It's a set of skills that shape how an agent handles design, planning, review, and implementation. The idea is simple: **agentic work deserves the same discipline you'd apply to writing critical software.** You brainstorm an idea into a spec, review the spec adversarially and revise it, turn the spec into a plan, review the plan adversarially and revise it, then hand the plan to sub-agents to build. Security gets assessed along the way.
 
 Each step is explicit, and load-bearing assumptions get checked against the real codebase before they harden into code.
 
-The Toolkit builds on [Superpowers](https://github.com/obra/superpowers) by Jesse Vincent. It augments Superpowers' core loop rather than replacing it. **Superpowers is a hard requirement.** The Toolkit builds on Superpowers' skills (it invokes `subagent-driven-development` directly and reaches the others through it) and lives *on top of* them, so you need Superpowers installed for any of this to work.
+The Toolkit builds on [Superpowers](https://github.com/obra/superpowers) by Jesse Vincent. It augments Superpowers' core loop rather than replacing it. **Superpowers is a hard requirement.** The Toolkit builds on Superpowers' skills (`bugfix` invokes eight of them directly, and approved plans run through `subagent-driven-development`) and lives *on top of* them, so you need Superpowers installed for any of this to work.
 
 ## Methodology and principles
 
@@ -19,7 +19,7 @@ The Toolkit inherits Superpowers' **planning-first, test-driven-development** me
 
 ### Prerequisite: Superpowers (required)
 
-The Toolkit will not function without [Superpowers](https://github.com/obra/superpowers) — verified against 6.3.0, compatible back to 6.0.x. The compatibility contract is the invoked skill names and `subagent-driven-development`'s plan-file input, which are stable across that range; SDD's internals changed substantially in 6.2–6.3, compatibly. It invokes `subagent-driven-development` directly (which in turn reaches `requesting-code-review` and `using-git-worktrees`), and `thorough-brainstorming` / `thorough-writing-plans` extend Superpowers' `brainstorming` / `writing-plans`. Install it first:
+The Toolkit will not function without [Superpowers](https://github.com/obra/superpowers) — verified against 6.4.2, compatible back to 6.0.x. The compatibility contract is the invoked skill names and `subagent-driven-development`'s plan-file input, which are stable across that range; SDD's internals changed substantially in 6.2–6.4, compatibly. `bugfix` invokes eight Superpowers skills directly, approved plans run through `subagent-driven-development` (which in turn reaches `requesting-code-review` and `using-git-worktrees`), and `thorough-brainstorming` / `thorough-writing-plans` extend Superpowers' `brainstorming` / `writing-plans`. Install it first:
 
 ```
 /plugin install superpowers@claude-plugins-official
@@ -83,6 +83,37 @@ Two skills add a security track to the pipeline.
 - **`critical-security-review` (CSR)** is a focused, code-level security review with three passes: reconnaissance, systematic vulnerability hunting, then cross-cutting analysis. Because it reviews **code**, it runs after `subagent-driven-development` has implemented the entire plan, as a security pass over the finished code. It can optionally take a TMA threat model as its attack-surface map. The vulnerability taxonomy and severity rubric are built in, so it has no external dependencies.
 - **`tma` (Threat Model Analysis)** produces a full threat model (STRIDE-per-element) for a system: architecture and data flows with trust boundaries, threat actors, mitigations, and a prioritized findings roadmap. Run it when a security trigger fires during design (new auth model, new tenant boundary, new external integration, a new class of sensitive data, and so on), before a first deploy, or after a major architectural change. Its output feeds CSR.
 
+## Moving logic out of the database
+
+A lot of business logic still lives in stored procedures, functions and triggers. Two skills help you move it out of an Oracle or SQL Server database and into application code, so the database ends up as plain storage.
+
+`sproc-xray` reads the database code and writes a report on it. The report covers the inventory of routines with their extraction metrics, the call and dependency graph, which routines read and write which tables (including trigger cascades), transaction and error-handling behavior, and the dialect traps that bite during a migration. Every claim cites a file and line, and the commands behind the numbers go into a proofs file next to the report, so you can run them again yourself. Large codebases are split into batches, with each package's spec and body kept together, and every batch gets its own subagent before the results are combined into one report.
+
+`sproc-migration-plan` takes that report and turns it into a migration plan. It groups the routines into waves and puts the waves in order, and each wave comes out as a brief you can hand to `thorough-brainstorming`.
+
+### How to use them
+
+1. **Get the source on disk.** Both skills read SQL source files and never connect to a live database. If all you have is the database, the dialect references in `skills/sproc-xray/references/dialects/` explain how to export it.
+2. **Run the x-ray** on a directory or a GitHub repo URL:
+   ```
+   /peters-toolkit:sproc-xray ./db-source
+   ```
+   It writes `reports/{SYSTEM}-SPROC-XRAY.md` and `reports/{SYSTEM}-SPROC-XRAY-PROOFS.md` in the directory you ran it from.
+3. **Plan the migration** from the report and the application code that calls the database:
+   ```
+   /peters-toolkit:sproc-migration-plan reports/{SYSTEM}-SPROC-XRAY.md (the application codebase is ./app)
+   ```
+   It writes `plans/{SYSTEM}-MIGRATION-PLAN.md`. The application and the SQL can live in the same repo. You can also hand it a runtime evidence pack, which is execution counts, table row counts and performance baselines exported from the database (`skills/sproc-migration-plan/references/runtime-evidence.md` shows how). Without application callers or runtime evidence, the plan tells you so, and you should read it as an analysis rather than a sequence you can execute.
+4. **Take each wave** through the design and planning cycles described above, starting with `thorough-brainstorming`.
+
+### What to expect
+
+We have tested both skills extensively with Oracle PL/SQL, and less so with SQL Server T-SQL.
+
+- **Model.** Use Opus 5.5 with a 1M-token context window. We size the batches so that no context goes past 400K tokens, because quality drops once a context passes that threshold (see "Managing the context window" below). Sonnet 5 did not follow the rules consistently in our runs.
+- **Dialects.** Oracle PL/SQL and SQL Server T-SQL only. PostgreSQL source is declined, since PostgreSQL is usually where you are migrating to.
+- **Not covered.** Dynamic SQL is flagged but not resolved, and the methods of Oracle object types (`CREATE TYPE … BODY`) are not analyzed.
+
 ## Managing the context window
 
 Two skills exist specifically to protect work quality across long sessions.
@@ -119,6 +150,8 @@ Most of the skills here are single-shot passes. You point one at a spec, a plan,
 | | `resume-handoff` | Resume work from a handoff document with full state validation against the current repo |
 | **Architecture and domain** | `arch-review` | Architectural review of an existing codebase against a stated trigger (scaling, migration, incident, due diligence) |
 | | `cobol-xray` | X-ray analysis of legacy COBOL codebases for migration, modernization, or refactoring |
+| **Database migration** | `sproc-xray` | X-ray stored procedures, functions and triggers (Oracle, SQL Server) for extraction into application code |
+| | `sproc-migration-plan` | Turn a `sproc-xray` report into migration waves, each a brief ready for `thorough-brainstorming` |
 
 ## Attribution
 

@@ -19,6 +19,31 @@ When cutting a new version, update in lockstep:
 4. A new `git tag vX.Y.Z`
 5. Regenerate `tests/provenance/companion-manifest.sha256` (and its `# target:` line) if the visual-companion files were re-synced to a new Superpowers target
 
+## [2.6.0] — 2026-10-02
+
+**Targets Superpowers 6.4.x** (verified against 6.4.2; compatible back to 6.0.x)
+
+### Added
+- `sproc-xray` 0.7.0 and `sproc-migration-plan` 0.1.1 are announced and documented in the README. Earlier versions were already on `main` but were marked as in test.
+
+### Changed
+- Superpowers 6.4 compatibility. Verified against upstream v6.4.2: every referenced Superpowers skill still exists, and `subagent-driven-development`'s plan-file input is unchanged. Re-synced `skills/thorough-brainstorming/visual-companion.md` verbatim from 6.4.2 (the start and stop commands now run through `bash`). The five companion scripts are unchanged upstream. Regenerated `tests/provenance/companion-manifest.sha256` with `# target: 6.4.x`. README: target line updated, and the description of which Superpowers skills the Toolkit invokes corrected (#21).
+- sproc-xray 0.7.0: batched runs. The coordinator plans batches of source files (at most
+  128,000 bytes each, a package's spec and body together), runs one Batch Worker subagent per
+  batch (at most 10 at once), and combines their scratch files into the same report. Measured
+  on ADempiere (50 and 250 objects): every context stayed at or below 400K tokens with no
+  compaction; largest worker 356,088, largest coordinator 213,622.
+- Validated on Opus 5.5. Sonnet 5 followed the skill's rules inconsistently between runs
+  (per-routine LOC, Extraction Sequencing format, scratch-dir writes, proof re-verify); see
+  `tests/sproc-xray-batching/green-results.md`.
+- sproc-xray `references/dialects/oracle.md`: GLOBAL_STATE STEP 1 resets its package region
+  per file, runs over every source file, and opens a region when the package header spans
+  lines.
+- sproc-xray: proof blocks (each command with its raw output) move out of the report into
+  `{SYSTEM}-SPROC-XRAY-PROOFS.md` beside it; the report keeps one pointer line per run of
+  them. ADempiere reports shrink from 366 KB to 116 KB (50 functions) and from 908 KB to
+  543 KB (250 objects).
+
 ## [2.5.1] — 2026-08-22
 
 **Targets Superpowers 6.3.x** (verified against 6.3.0; compatible back to 6.0.x)
