@@ -83,6 +83,37 @@ Two skills add a security track to the pipeline.
 - **`critical-security-review` (CSR)** is a focused, code-level security review with three passes: reconnaissance, systematic vulnerability hunting, then cross-cutting analysis. Because it reviews **code**, it runs after `subagent-driven-development` has implemented the entire plan, as a security pass over the finished code. It can optionally take a TMA threat model as its attack-surface map. The vulnerability taxonomy and severity rubric are built in, so it has no external dependencies.
 - **`tma` (Threat Model Analysis)** produces a full threat model (STRIDE-per-element) for a system: architecture and data flows with trust boundaries, threat actors, mitigations, and a prioritized findings roadmap. Run it when a security trigger fires during design (new auth model, new tenant boundary, new external integration, a new class of sensitive data, and so on), before a first deploy, or after a major architectural change. Its output feeds CSR.
 
+## Moving logic out of the database
+
+A lot of business logic still lives in stored procedures, functions and triggers. Two skills help you move it out of an Oracle or SQL Server database and into application code, so the database ends up as plain storage.
+
+`sproc-xray` reads the database code and writes a report on it. The report covers the inventory of routines with their extraction metrics, the call and dependency graph, which routines read and write which tables (including trigger cascades), transaction and error-handling behavior, and the dialect traps that bite during a migration. Every claim cites a file and line, and the commands behind the numbers go into a proofs file next to the report, so you can run them again yourself. Large codebases are split into batches, with each package's spec and body kept together, and every batch gets its own subagent before the results are combined into one report.
+
+`sproc-migration-plan` takes that report and turns it into a migration plan. It groups the routines into waves and puts the waves in order, and each wave comes out as a brief you can hand to `thorough-brainstorming`.
+
+### How to use them
+
+1. **Get the source on disk.** Both skills read SQL source files and never connect to a live database. If all you have is the database, the dialect references in `skills/sproc-xray/references/dialects/` explain how to export it.
+2. **Run the x-ray** on a directory or a GitHub repo URL:
+   ```
+   /peters-toolkit:sproc-xray ./db-source
+   ```
+   It writes `reports/{SYSTEM}-SPROC-XRAY.md` and `reports/{SYSTEM}-SPROC-XRAY-PROOFS.md` in the directory you ran it from.
+3. **Plan the migration** from the report and the application code that calls the database:
+   ```
+   /peters-toolkit:sproc-migration-plan reports/{SYSTEM}-SPROC-XRAY.md (the application codebase is ./app)
+   ```
+   It writes `plans/{SYSTEM}-MIGRATION-PLAN.md`. The application and the SQL can live in the same repo. You can also hand it a runtime evidence pack, which is execution counts, table row counts and performance baselines exported from the database (`skills/sproc-migration-plan/references/runtime-evidence.md` shows how). Without application callers or runtime evidence, the plan tells you so, and you should read it as an analysis rather than a sequence you can execute.
+4. **Take each wave** through the design and planning cycles described above, starting with `thorough-brainstorming`.
+
+### What to expect
+
+We have tested both skills extensively with Oracle PL/SQL, and less so with SQL Server T-SQL.
+
+- **Model.** Use Opus 5.5 with a 1M-token context window. We size the batches so that no context goes past 400K tokens, because quality drops once a context passes that threshold (see "Managing the context window" below). Sonnet 5 did not follow the rules consistently in our runs.
+- **Dialects.** Oracle PL/SQL and SQL Server T-SQL only. PostgreSQL source is declined, since PostgreSQL is usually where you are migrating to.
+- **Not covered.** Dynamic SQL is flagged but not resolved, and the methods of Oracle object types (`CREATE TYPE … BODY`) are not analyzed.
+
 ## Managing the context window
 
 Two skills exist specifically to protect work quality across long sessions.
@@ -119,6 +150,8 @@ Most of the skills here are single-shot passes. You point one at a spec, a plan,
 | | `resume-handoff` | Resume work from a handoff document with full state validation against the current repo |
 | **Architecture and domain** | `arch-review` | Architectural review of an existing codebase against a stated trigger (scaling, migration, incident, due diligence) |
 | | `cobol-xray` | X-ray analysis of legacy COBOL codebases for migration, modernization, or refactoring |
+| **Database migration** | `sproc-xray` | X-ray stored procedures, functions and triggers (Oracle, SQL Server) for extraction into application code |
+| | `sproc-migration-plan` | Turn a `sproc-xray` report into migration waves, each a brief ready for `thorough-brainstorming` |
 
 ## Attribution
 
