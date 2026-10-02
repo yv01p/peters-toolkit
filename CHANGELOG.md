@@ -19,7 +19,7 @@ When cutting a new version, update in lockstep:
 4. A new `git tag vX.Y.Z`
 5. Regenerate `tests/provenance/companion-manifest.sha256` (and its `# target:` line) if the visual-companion files were re-synced to a new Superpowers target
 
-## [Unreleased]
+## [2.6.0] — 2026-10-02
 
 **Targets Superpowers 6.4.x** (verified against 6.4.2; compatible back to 6.0.x)
 
