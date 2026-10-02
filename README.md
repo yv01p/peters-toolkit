@@ -1,12 +1,12 @@
 # Peter's Agentic Toolkit
 
-**Version 2.5.1** · targets Superpowers 6.3.x (verified against 6.3.0; compatible back to 6.0.x)
+**Version 2.5.1** · targets Superpowers 6.4.x (verified against 6.4.2; compatible back to 6.0.x)
 
 Peter's Agentic Toolkit is a Claude Code plugin. It's a set of skills that shape how an agent handles design, planning, review, and implementation. The idea is simple: **agentic work deserves the same discipline you'd apply to writing critical software.** You brainstorm an idea into a spec, review the spec adversarially and revise it, turn the spec into a plan, review the plan adversarially and revise it, then hand the plan to sub-agents to build. Security gets assessed along the way.
 
 Each step is explicit, and load-bearing assumptions get checked against the real codebase before they harden into code.
 
-The Toolkit builds on [Superpowers](https://github.com/obra/superpowers) by Jesse Vincent. It augments Superpowers' core loop rather than replacing it. **Superpowers is a hard requirement.** The Toolkit builds on Superpowers' skills (it invokes `subagent-driven-development` directly and reaches the others through it) and lives *on top of* them, so you need Superpowers installed for any of this to work.
+The Toolkit builds on [Superpowers](https://github.com/obra/superpowers) by Jesse Vincent. It augments Superpowers' core loop rather than replacing it. **Superpowers is a hard requirement.** The Toolkit builds on Superpowers' skills (`bugfix` invokes eight of them directly, and approved plans run through `subagent-driven-development`) and lives *on top of* them, so you need Superpowers installed for any of this to work.
 
 ## Methodology and principles
 
@@ -19,7 +19,7 @@ The Toolkit inherits Superpowers' **planning-first, test-driven-development** me
 
 ### Prerequisite: Superpowers (required)
 
-The Toolkit will not function without [Superpowers](https://github.com/obra/superpowers) — verified against 6.3.0, compatible back to 6.0.x. The compatibility contract is the invoked skill names and `subagent-driven-development`'s plan-file input, which are stable across that range; SDD's internals changed substantially in 6.2–6.3, compatibly. It invokes `subagent-driven-development` directly (which in turn reaches `requesting-code-review` and `using-git-worktrees`), and `thorough-brainstorming` / `thorough-writing-plans` extend Superpowers' `brainstorming` / `writing-plans`. Install it first:
+The Toolkit will not function without [Superpowers](https://github.com/obra/superpowers) — verified against 6.4.2, compatible back to 6.0.x. The compatibility contract is the invoked skill names and `subagent-driven-development`'s plan-file input, which are stable across that range; SDD's internals changed substantially in 6.2–6.4, compatibly. `bugfix` invokes eight Superpowers skills directly, approved plans run through `subagent-driven-development` (which in turn reaches `requesting-code-review` and `using-git-worktrees`), and `thorough-brainstorming` / `thorough-writing-plans` extend Superpowers' `brainstorming` / `writing-plans`. Install it first:
 
 ```
 /plugin install superpowers@claude-plugins-official
