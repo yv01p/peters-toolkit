@@ -30,12 +30,13 @@ block="$(sed -n "$((start+1)),$((end-1))p" "$SKILL")"
 run_gate() {
   local root="$1/${3:-src}"
   printf '%s\n' "$block" \
-    | sed -e "s#<WORK>#$1/work#g" -e "s#<SRC>#$root#g" -e "s/NN/$2/g" > "$1/gate-$2.sh"
+    | sed -e "s/NN/$2/g" -e "s#<WORK>#$1/work#g" -e "s#<SRC>#$root#g" > "$1/gate-$2.sh"
   ( cd "$1" && bash "$1/gate-$2.sh" 2>&1 )
 }
 
 # make_state DIR [ROOTNAME] [FORM] [DIR_A] [NAME_A] — two same-named files in different
-# directories, one per batch, with correct worker output. FORM is the manifest File form:
+# directories, one per batch, with correct worker output, plus a Table line that no worker
+# reports (the gate counts routines only). FORM is the manifest File form:
 # rel (path relative to <SRC>, the default), dot (./rel) or abs (absolute path).
 make_state() {
   local d="$1" root="$1/${2:-src}" form="${3:-rel}" da="${4:-schema_a}" na="${5:-a_log}" W="$1/work" pa pb
@@ -47,7 +48,7 @@ make_state() {
     dot) pa="./$da/util.sql"; pb="./schema_b/util.sql" ;;
     abs) pa="$root/$da/util.sql"; pb="$root/schema_b/util.sql" ;;
   esac
-  printf '%s|Procedure|%s|2\nb_fmt|Procedure|%s|2\n' "$na" "$pa" "$pb" > "$W/manifest.tsv"
+  printf '%s|Procedure|%s|2\nb_fmt|Procedure|%s|2\nt_x|Table|%s|2\n' "$na" "$pa" "$pb" "$pa" > "$W/manifest.tsv"
   printf '01|%s|production\n02|%s|production\n' "$root/$da/util.sql" "$root/schema_b/util.sql" > "$W/batches.tsv"
   printf '%s|0|0|0|none|util.sql|2\n' "$na" > "$W/batch-01/metrics.tsv"
   printf 'b_fmt|0|0|0|none|util.sql|2\n' > "$W/batch-02/metrics.tsv"
@@ -69,11 +70,17 @@ A="$TMPROOT/caseA"; make_state "$A"; both_pass "Case A" "$A"
 
 # --- Case B: a missing object is still caught ---
 B="$TMPROOT/caseB"; make_state "$B"; : > "$B/work/batch-02/metrics.tsv"
-[ -n "$(run_gate "$B" 02)" ] || fail "Case B: batch 02 has no metrics rows but passed the gate"
+out="$(run_gate "$B" 02)"
+printf '%s\n' "$out" | grep -qx '< b_fmt' || fail "Case B: batch 02's missing routine must print as '< b_fmt'. Got:
+$out"
 
 # --- Case C: a stray row is still caught ---
 C="$TMPROOT/caseC"; make_state "$C"; printf 'b_fmt|0|0|0|none|util.sql|2\n' >> "$C/work/batch-01/metrics.tsv"
 [ -n "$(run_gate "$C" 01)" ] || fail "Case C: batch 01 carries batch 02's routine but passed the gate"
+
+# --- Case C2: a batch with no done file is caught ---
+C2="$TMPROOT/caseC2"; make_state "$C2"; rm "$C2/work/batch-01/done"
+[ -n "$(run_gate "$C2" 01)" ] || fail "Case C2: batch 01 has no done file but passed the gate"
 
 # --- Case D: a ' in the source root ---
 D="$TMPROOT/caseD"; make_state "$D" "it's src"; both_pass "Case D" "$D" "it's src"

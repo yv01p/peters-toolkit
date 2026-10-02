@@ -191,7 +191,7 @@ One context doing the whole analysis measured 347K tokens on 50 Oracle functions
       LC_ALL=C awk -F'|' '{ print tolower($(1)) }' "$W/batch-NN/metrics.tsv" | LC_ALL=C sort | diff "$W/batch-NN/expected.txt" -
       ```
 
-      The source root goes through the environment, so a `'` in it is taken literally. Both awks and both sorts run under `LC_ALL=C`, so names are compared and ordered byte for byte: in a UTF-8 locale, `sort` can leave distinct names such as `get_name` and `getname` in input order, and gawk and BWK awk stop on non-UTF-8 bytes. A `<` line is a missing object; a `>` line is a duplicate or stray row. A failed batch is dispatched once more into an emptied `batch-NN/` (the five TSVs re-created empty). If it fails again, stop and name the batch; no partial report is written.
+      The source root goes through the environment, so a `'` in it is taken literally. Both awks and both sorts run under `LC_ALL=C`, so names are compared and ordered byte for byte: in a UTF-8 locale, `sort` can leave distinct names such as `get_name` and `getname` in input order, and on non-UTF-8 bytes gawk warns and BWK awk aborts. A `<` line is a missing object; a `>` line is a duplicate or stray row. A failed batch is dispatched once more into an emptied `batch-NN/` (the five TSVs re-created empty). If it fails again, stop and name the batch; no partial report is written.
    2. **Combine.** For each of the five files, `cat <WORK>/batch-*/X.tsv > <WORK>/X.tsv` (batch order). Then normalize identifier spelling by running this verbatim: matching is case-insensitive, a value matching a `manifest.tsv` name takes the manifest spelling, and any other value keeps the first spelling seen.
 
       ```bash
