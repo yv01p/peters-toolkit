@@ -62,6 +62,8 @@ END pkg_tall;
 /
 EOF
 
+# A file ending mid-header; the next file in glob order (oneline.pks) must still open.
+printf 'SELECT 1 FROM dual;\nCREATE OR REPLACE\n' > "$F/sql/dangling.sql"
 # Blank line and -- comments inside the header.
 cat > "$F/sql/commented.pks" <<'EOF'
 CREATE OR REPLACE -- billing state
