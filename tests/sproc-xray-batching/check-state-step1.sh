@@ -62,6 +62,38 @@ END pkg_tall;
 /
 EOF
 
+# Blank line and -- comments inside the header.
+cat > "$F/sql/commented.pks" <<'EOF'
+CREATE OR REPLACE -- billing state
+
+-- spec follows
+PACKAGE pkg_cb AS
+  g_cb NUMBER;
+  PROCEDURE p;
+END pkg_cb;
+/
+EOF
+# Not packages: a split CREATE of another object, and a doc comment starting "Package".
+cat > "$F/sql/trigger.sql" <<'EOF'
+CREATE OR REPLACE
+TRIGGER trg_x BEFORE INSERT ON t FOR EACH ROW
+DECLARE
+  v_trig NUMBER;
+BEGIN NULL; END;
+/
+EOF
+cat > "$F/sql/proc_doc.sql" <<'EOF'
+/*
+  Package pkg_billing holds the counters; this procedure resets them.
+*/
+CREATE OR REPLACE PROCEDURE reset_counts AS
+  v_local NUMBER;
+BEGIN
+  NULL;
+END;
+/
+EOF
+
 ( cd "$F" && bash "$TMPROOT/step1.sh" ) > "$TMPROOT/out" 2> "$TMPROOT/err" \
   || fail "STEP 1 exited non-zero: $(cat "$TMPROOT/err")"
 
@@ -70,7 +102,8 @@ for want in \
   'sql/oneline.pks:2:   g_count NUMBER := 0;' \
   'sql/split.pks:3:   g_total NUMBER := 0;' \
   'sql/split.pkb:3:   l_cache VARCHAR2(10);' \
-  'sql/tall.pks:7:   c_limit CONSTANT NUMBER := 10;'
+  'sql/tall.pks:7:   c_limit CONSTANT NUMBER := 10;' \
+  'sql/commented.pks:5:   g_cb NUMBER;'
 do
   grep -qxF "$want" "$TMPROOT/out" || fail "missing STEP 1 row: $want
 Got:
@@ -80,6 +113,12 @@ done
 # The region still closes at the first nested PROCEDURE/FUNCTION.
 if grep -qE ':[[:space:]]+(PROCEDURE|FUNCTION|END)[[:space:]]' "$TMPROOT/out"; then
   fail "STEP 1 printed lines past a region's first PROCEDURE/FUNCTION:
+$(cat "$TMPROOT/out")"
+fi
+
+# No region outside a package header.
+if grep -qE '^sql/(trigger|proc_doc)\.sql:' "$TMPROOT/out"; then
+  fail "STEP 1 opened a region in a file with no package header:
 $(cat "$TMPROOT/out")"
 fi
 
