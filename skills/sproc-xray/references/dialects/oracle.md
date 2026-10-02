@@ -212,8 +212,11 @@ State that outlives one call, or that is shared between routines. Record one `fi
 # whatever it is named. This is a region search, not a name search — do not filter by prefix.
 # Run it over every source file: a region opens only at a package header and closes at the
 # end of its file, so file content, not a .pks/.pkb extension, selects the package files.
-awk 'FNR==1 {inpkg=0}
-     toupper($0) ~ /^[[:space:]]*CREATE[[:space:]]+(OR[[:space:]]+REPLACE[[:space:]]+)?((NON)?EDITIONABLE[[:space:]]+)?PACKAGE/ {inpkg=1}
+# The header may span lines; blank lines and -- comments inside it are ignored.
+awk 'FNR==1 {inpkg=0; h=""}
+     !inpkg { u=toupper($0); sub(/--.*/, "", u); h=h " " u
+       if (h ~ /^[[:space:]]*CREATE[[:space:]]+(OR[[:space:]]+REPLACE[[:space:]]+)?((NON)?EDITIONABLE[[:space:]]+)?PACKAGE/) inpkg=1
+       if (h !~ /^[[:space:]]*CREATE([[:space:]]+(OR|REPLACE|EDITIONABLE|NONEDITIONABLE))*[[:space:]]*$/) h="" }
      inpkg && toupper($0) ~ /^[[:space:]]*(PROCEDURE|FUNCTION)[[:space:]]/ {inpkg=0}
      inpkg {print FILENAME":"FNR": "$0}' sql/*
 # STEP 2 — for each identifier STEP 1 reported, find every read and write of it by name.
