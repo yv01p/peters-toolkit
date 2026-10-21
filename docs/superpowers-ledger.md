@@ -10,7 +10,7 @@ last-reviewed: 7.0.0
 | 6.4.1/native-executing-plans | piggyback | reject | — | toolkit #21 (D4); upstream #2318, #2258 | 2026-10-21 |
 | 6.4.2/lean-plans | replaced | reject | — | toolkit #21 (D2); upstream #2333 | 2026-10-21 |
 | 7.0.0/brainstorming-sizes-the-work | replaced | reject | — | toolkit #21 (D5, part); upstream #2463 | 2026-10-21 |
-| 6.4.1/plan-review-focus | replaced | import | — | toolkit #27; upstream #2319 | 2026-10-21 |
+| 6.4.1/plan-review-focus | replaced | defer | a toolkit run (after CDR/CIR review and SDD) ships a crash on an input the spec implied but never named | toolkit #27; upstream #2319 | 2026-10-21 |
 | 6.4.1/brainstorming-intent-and-approval-binding | replaced | import | — | toolkit #28; upstream #2258 | 2026-10-21 |
 | 7.0.0/brainstorming-draws-out-intent | replaced | defer | the 7.0.0 → 7.0.1 review | upstream #2463 | 2026-10-21 |
 | 7.0.0/brainstorming-builder-check | replaced | reject | — | upstream #2463 | 2026-10-21 |
