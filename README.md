@@ -1,6 +1,6 @@
 # Peter's Agentic Toolkit
 
-**Version 2.6.0** · targets Superpowers 6.4.x (verified against 6.4.2; compatible back to 6.0.x)
+**Version 2.6.1** · targets Superpowers 7.0.x (verified against 7.0.0; compatible back to 6.0.x)
 
 Peter's Agentic Toolkit is a Claude Code plugin. It's a set of skills that shape how an agent handles design, planning, review, and implementation. The idea is simple: **agentic work deserves the same discipline you'd apply to writing critical software.** You brainstorm an idea into a spec, review the spec adversarially and revise it, turn the spec into a plan, review the plan adversarially and revise it, then hand the plan to sub-agents to build. Security gets assessed along the way.
 
@@ -19,7 +19,7 @@ The Toolkit inherits Superpowers' **planning-first, test-driven-development** me
 
 ### Prerequisite: Superpowers (required)
 
-The Toolkit will not function without [Superpowers](https://github.com/obra/superpowers) — verified against 6.4.2, compatible back to 6.0.x. The compatibility contract is the invoked skill names and `subagent-driven-development`'s plan-file input, which are stable across that range; SDD's internals changed substantially in 6.2–6.4, compatibly. `bugfix` invokes eight Superpowers skills directly, approved plans run through `subagent-driven-development` (which in turn reaches `requesting-code-review` and `using-git-worktrees`), and `thorough-brainstorming` / `thorough-writing-plans` extend Superpowers' `brainstorming` / `writing-plans`. Install it first:
+The Toolkit will not function without [Superpowers](https://github.com/obra/superpowers) — verified against 7.0.0, compatible back to 6.0.x. The compatibility contract is the invoked skill names and `subagent-driven-development`'s plan-file input, which are stable across that range. `bugfix` invokes eight Superpowers skills directly, approved plans run through `subagent-driven-development` (which in turn reaches `requesting-code-review` and `using-git-worktrees`), and `thorough-brainstorming` / `thorough-writing-plans` extend Superpowers' `brainstorming` / `writing-plans`. "Relationship with Superpowers" below explains what the Toolkit uses as is, what it replaces, and what it doesn't support. Install it first:
 
 ```
 /plugin install superpowers@claude-plugins-official

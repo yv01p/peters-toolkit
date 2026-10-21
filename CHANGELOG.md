@@ -19,6 +19,18 @@ When cutting a new version, update in lockstep:
 4. A new `git tag vX.Y.Z`
 5. Regenerate `tests/provenance/companion-manifest.sha256` (and its `# target:` line) if the visual-companion files were re-synced to a new Superpowers target
 
+## [2.6.1] — 2026-10-21
+
+**Targets Superpowers 7.0.x** (verified against 7.0.0; compatible back to 6.0.x)
+
+### Added
+- README: "Relationship with Superpowers". It covers what the Toolkit uses as is, what it replaces with stricter skills, what it deliberately doesn't support (Native execution, work-sizing in brainstorming, lean plans), and how it keeps up with upstream.
+- `tests/superpowers-compat/check-superpowers-compat.sh`, wired into `tests/run-tests.sh`. It reads the installed Superpowers and fails if a Superpowers skill the Toolkit references is missing, or if `subagent-driven-development`'s `task-brief` can't extract a task from `thorough-writing-plans`' plan template. It prints `UPSTREAM DRIFT`, without failing, when the forked visual companion differs from upstream or the installed Superpowers is past the targeted version. It is the only guard in the suite that isn't hermetic.
+
+### Fixed
+- Superpowers 7.0 compatibility. Verified against upstream v7.0.0: every referenced Superpowers skill still exists, and `subagent-driven-development`'s `task-brief` still extracts tasks from `thorough-writing-plans`' plan template. Re-synced `skills/thorough-brainstorming/scripts/server.cjs` verbatim from 7.0.0: the visual companion now inserts screen content literally, so content containing `$'`, `$&` and similar sequences is no longer mangled. The other five companion files are unchanged upstream. Regenerated `tests/provenance/companion-manifest.sha256` with `# target: 7.0.x`.
+- `thorough-writing-plans` 2.1.2: the plan header names `subagent-driven-development` as the only executor. 2.2.1 had restored upstream's wording, which also offered `superpowers:executing-plans` as a fallback for harnesses without subagents. The Toolkit is a Claude Code plugin, which always has subagents, and since Superpowers 6.4.1 `executing-plans` is Native execution, which the Toolkit doesn't support. The header is an instruction the executing agent reads, so it no longer offers it.
+
 ## [2.6.0] — 2026-10-02
 
 **Targets Superpowers 6.4.x** (verified against 6.4.2; compatible back to 6.0.x)
