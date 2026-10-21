@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# Runs every deterministic guard. Hermetic — no Superpowers install or network needed.
+# Runs every deterministic guard. All are hermetic except superpowers-compat, which reads
+# the installed Superpowers (a hard requirement). None needs the network.
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 fail=0
 echo "== provenance =="; bash "$ROOT/provenance/check-companion-provenance.sh" || fail=1
 echo "== lockstep ==";   bash "$ROOT/lockstep/check-version-lockstep.sh"       || fail=1
+echo "== superpowers-compat =="; bash "$ROOT/superpowers-compat/check-superpowers-compat.sh" || fail=1
 echo "== shared-discipline =="; bash "$ROOT/shared-discipline/check-companion-wiring.sh" || fail=1
 echo "== evidence-slot =="; bash "$ROOT/evidence-slot/check-evidence-slot.sh" || fail=1
 echo "== round-completion =="; bash "$ROOT/round-completion/check-round-completion.sh" || fail=1

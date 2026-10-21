@@ -1,6 +1,6 @@
 # Peter's Agentic Toolkit
 
-**Version 2.6.0** · targets Superpowers 6.4.x (verified against 6.4.2; compatible back to 6.0.x)
+**Version 2.6.1** · targets Superpowers 7.0.x (verified against 7.0.0; compatible back to 6.0.x)
 
 Peter's Agentic Toolkit is a Claude Code plugin. It's a set of skills that shape how an agent handles design, planning, review, and implementation. The idea is simple: **agentic work deserves the same discipline you'd apply to writing critical software.** You brainstorm an idea into a spec, review the spec adversarially and revise it, turn the spec into a plan, review the plan adversarially and revise it, then hand the plan to sub-agents to build. Security gets assessed along the way.
 
@@ -19,7 +19,7 @@ The Toolkit inherits Superpowers' **planning-first, test-driven-development** me
 
 ### Prerequisite: Superpowers (required)
 
-The Toolkit will not function without [Superpowers](https://github.com/obra/superpowers) — verified against 6.4.2, compatible back to 6.0.x. The compatibility contract is the invoked skill names and `subagent-driven-development`'s plan-file input, which are stable across that range; SDD's internals changed substantially in 6.2–6.4, compatibly. `bugfix` invokes eight Superpowers skills directly, approved plans run through `subagent-driven-development` (which in turn reaches `requesting-code-review` and `using-git-worktrees`), and `thorough-brainstorming` / `thorough-writing-plans` extend Superpowers' `brainstorming` / `writing-plans`. Install it first:
+The Toolkit will not function without [Superpowers](https://github.com/obra/superpowers) — verified against 7.0.0, compatible back to 6.0.x. The compatibility contract is the invoked skill names and `subagent-driven-development`'s plan-file input, which are stable across that range. `bugfix` invokes eight Superpowers skills directly, approved plans run through `subagent-driven-development` (which in turn reaches `requesting-code-review` and `using-git-worktrees`), and `thorough-brainstorming` / `thorough-writing-plans` extend Superpowers' `brainstorming` / `writing-plans`. "Relationship with Superpowers" below explains what the Toolkit uses as is, what it replaces, and what it doesn't support. Install it first:
 
 ```
 /plugin install superpowers@claude-plugins-official
@@ -75,6 +75,22 @@ Once the spec is approved, `thorough-writing-plans` (TWP) turns it into an imple
 **3. Implementation and security review**
 
 You hand the approved plan to Superpowers' `subagent-driven-development` (SDD) to build. `critical-security-review` is optional and you run it yourself, once the implementation is done (usually post-SDD, over the finished code). If you already have a TMA threat model, point it there with `tma_path`.
+
+## Relationship with Superpowers
+
+The Toolkit depends on Superpowers but doesn't follow it everywhere. The rule is simple: where rigor isn't at stake, we use Superpowers as it is; where it is, we use our own stricter skills and bring in upstream ideas only after reviewing them.
+
+**What we use as is.** Executing a plan, and everything around it, comes straight from Superpowers: `subagent-driven-development`, `test-driven-development`, `systematic-debugging`, `using-git-worktrees`, `requesting-code-review`, `receiving-code-review`, `finishing-a-development-branch` and `verification-before-completion`. The Toolkit adds nothing there, and you get upstream's improvements as soon as you update Superpowers.
+
+**What we replaced with stricter versions.** `thorough-brainstorming` and `thorough-writing-plans` stand in for Superpowers' `brainstorming` and `writing-plans`, and the CDR/UDD and CIR/UIP loops add adversarial review on top. Superpowers has been moving toward lighter process: since 7.0.0, `brainstorming` sizes the work and does quick tasks without a design, and since 6.4.2, `writing-plans` records decisions instead of code. The Toolkit deliberately doesn't follow. Every change gets a verified design, and every plan carries verified code.
+
+**What we don't support.**
+
+- **Native execution** (`executing-plans`). Plans run only through `subagent-driven-development`, so every task gets a fresh context and an independent review. The plan header that `thorough-writing-plans` writes says so.
+- **Sizing the work in brainstorming.** `thorough-brainstorming` runs its full process on every change, however small. The design can be a few sentences, but it is always written down and verified.
+- **Lean plans.** `thorough-writing-plans` keeps the code in the plan and verifies it against the codebase before anything is built.
+
+**How we keep up.** Each release targets one Superpowers version, shown on the version line at the top of this README. A compatibility check in the test suite fails if a Superpowers skill the Toolkit calls disappears or `subagent-driven-development` can no longer read our plans, and warns when the installed Superpowers version differs from the targeted one. New Superpowers features are reviewed, then adopted, adapted or declined. The ones we decline are listed above.
 
 ## Security skills
 
