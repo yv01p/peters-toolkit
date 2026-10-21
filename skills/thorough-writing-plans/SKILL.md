@@ -1,7 +1,7 @@
 ---
 name: thorough-writing-plans
 description: Use after thorough-brainstorming has produced and committed a verified design spec, before writing any code. Hardens superpowers:writing-plans by empirically verifying every plan-level assumption (file paths, function signatures, test/lint/build commands, task ordering, code-in-plan correctness, consumer impact) against the real codebase, and applies ruthless YAGNI / strict DRY to plan content. Consumes thorough-brainstorming spec output (strict input contract — rejects other formats).
-version: 2.1.1
+version: 2.1.2
 ---
 
 # Thorough Writing Plans: Verified, Minimal Implementation Plans
@@ -300,7 +300,7 @@ Empty or minimal. No `version`. No `parameters:` (non-standard per agentskills.i
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Source spec:** `docs/specs/YYYY-MM-DD-<topic>-design.md` (commit SHA: `<spec-SHA-at-plan-write-time>`)
 
