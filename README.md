@@ -90,7 +90,7 @@ The Toolkit depends on Superpowers but doesn't follow it everywhere. The rule is
 - **Sizing the work in brainstorming.** `thorough-brainstorming` runs its full process on every change, however small. The design can be a few sentences, but it is always written down and verified.
 - **Lean plans.** `thorough-writing-plans` keeps the code in the plan and verifies it against the codebase before anything is built.
 
-**How we keep up.** Each release targets one Superpowers version, shown on the version line at the top of this README. A compatibility check in the test suite fails if a Superpowers skill the Toolkit calls disappears or `subagent-driven-development` can no longer read our plans, and warns when Superpowers has moved past the targeted version. New Superpowers features are reviewed, then adopted, adapted or declined. The ones we decline are listed above.
+**How we keep up.** Each release targets one Superpowers version, shown on the version line at the top of this README. A compatibility check in the test suite fails if a Superpowers skill the Toolkit calls disappears or `subagent-driven-development` can no longer read our plans, and warns when the installed Superpowers version differs from the targeted one. New Superpowers features are reviewed, then adopted, adapted or declined. The ones we decline are listed above.
 
 ## Security skills
 
