@@ -14,8 +14,8 @@ last-reviewed: 7.0.0
 | 6.4.1/brainstorming-intent-and-approval-binding | replaced | reject | — | toolkit #28; upstream #2258 | 2026-10-21 |
 | 7.0.0/brainstorming-draws-out-intent | replaced | defer | the 7.0.0 → 7.0.1 review | upstream #2463 | 2026-10-21 |
 | 7.0.0/brainstorming-builder-check | replaced | reject | — | upstream #2463 | 2026-10-21 |
-| 7.0.0/brainstorming-how-it-gets-made | replaced | import | — | toolkit #29; upstream #2482, #2483 | 2026-10-21 |
-| 7.0.0/visual-companion-offer | replaced | import | — | toolkit #30; upstream #2463 | 2026-10-21 |
+| 7.0.0/brainstorming-how-it-gets-made | replaced | reject | — | toolkit #29; upstream #2482, #2483 | 2026-10-21 |
+| 7.0.0/visual-companion-offer | replaced | reject | — | toolkit #30; upstream #2463 | 2026-10-21 |
 | 7.0.0/visual-companion-literal-insert | replaced | import | — | already in toolkit; upstream #2362, #2364 | 2026-10-21 |
 | 6.4.1/interpreter-invocation | replaced | import | — | already in toolkit; upstream #2301, #2134, #2040 | 2026-10-21 |
 | 6.4.1/plan-review-before-run | replaced | import | — | already in toolkit; upstream #2258 | 2026-10-21 |
